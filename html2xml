@@ -1,0 +1,28 @@
+#!/usr/bin/perl 
+use warnings;
+use strict;
+
+use XML::Twig;
+
+sub _chose_html_string
+  { if( _use( 'XML::LibXML'))
+      { $html2xml
+
+sub parsefile_html
+  { my( $twig, $file)= @_;
+    my $fh;
+    
+       open( $fh, "tidy -asxml -quiet  2>/dev/null '$file' |")
+    or open( $fh, "xmllint -html '$file' |")
+    or open( $fh, "$^X -MXML::LibXML -e'print XML::LibXML->new->parse_html_file( \'$file\')->toString' |")
+    or carp "cannot convert HTML to XML (needs tidy, xmllint or XML::LibXML)";
+    $twig->parse( $fh);
+  }
+     
+
+sub _use
+  { my( $module, @args)= @_;
+    if( eval "require $module") { import $module, @args; }
+    else                        { return;                }
+  }
+    

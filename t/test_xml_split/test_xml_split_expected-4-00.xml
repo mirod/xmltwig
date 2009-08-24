@@ -1,0 +1,17 @@
+<doc>
+    <xi:include href="t/test_xml_split/test_xml_split_expected-4-01.xml"/>
+    <xi:include href="t/test_xml_split/test_xml_split_expected-4-02.xml"/>
+    <xi:include href="t/test_xml_split/test_xml_split_expected-4-03.xml"/>
+    <elt2>
+        <xi:include href="t/test_xml_split/test_xml_split_expected-4-04.xml"/>
+        <xi:include href="t/test_xml_split/test_xml_split_expected-4-05.xml"/>
+    </elt2>
+    <elt2>
+        <elt2>
+            <xi:include href="t/test_xml_split/test_xml_split_expected-4-06.xml"/>
+            <xi:include href="t/test_xml_split/test_xml_split_expected-4-07.xml"/>
+        </elt2>
+        <xi:include href="t/test_xml_split/test_xml_split_expected-4-08.xml"/>
+        <xi:include href="t/test_xml_split/test_xml_split_expected-4-09.xml"/>
+    </elt2>
+</doc>

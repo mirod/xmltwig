@@ -1,0 +1,2 @@
+<!DOCTYPE doc SYSTEM "t/test_expand_external_entities.dtd">
+<doc><p>&ent1;</p>&ent2;<p>more &ent1;</p></doc>

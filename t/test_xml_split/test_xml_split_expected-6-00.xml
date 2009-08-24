@@ -1,0 +1,7 @@
+<doc>
+    <elt1>elt1 content 1</elt1>
+    <elt1>elt1 content 2</elt1>
+    <elt1>elt1 content 3</elt1>
+    <xi:include href="t/test_xml_split/test_xml_split_expected-6-01.xml"/>
+    <xi:include href="t/test_xml_split/test_xml_split_expected-6-03.xml" subdocs="1"/>
+</doc>

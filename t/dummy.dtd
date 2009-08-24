@@ -1,0 +1,9 @@
+<!ELEMENT doc  (elt1|elt2|elt3)*>
+<!ELEMENT elt1 (#PCDATA)>
+<!ELEMENT elt2 (#PCDATA)>
+<!ELEMENT elt3 (#PCDATA)>
+<!ENTITY  ent1 "[text of ent1]">
+<!ENTITY  ent2 "[text of ent2]">
+<!ENTITY  ent3 "[text of ent3]">
+<!ENTITY  ent4 "[text of ent4]">
+<!ENTITY  ent5 "[text of ent5]">

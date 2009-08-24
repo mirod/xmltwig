@@ -1,0 +1,23 @@
+#!/usr/bin/perl -w
+use strict; 
+
+my $run=<<RUN;
+HARNESS_PERL_SWITCHES=-MDevel::Cover make test
+cover
+cover -report text > cover_report.txt
+RUN
+
+unless( @ARGV) { system "cover -delete; $run"; exit; }
+
+foreach (@ARGV)
+  { s{^t/}{};
+		unless( -f "t/$_") { die "cannot find test t/$_"; }
+	}
+	
+rename 't', 'saved_t';
+mkdir 't';
+foreach (@ARGV) { system "cp saved_t/$_* t/"; }
+system $run;
+system "rm -rf t/ ; mv saved_t t";
+
+

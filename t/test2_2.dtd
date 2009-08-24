@@ -1,0 +1,14 @@
+<!ELEMENT doc     (section+, annex*)>
+<!ATTLIST doc     id ID #IMPLIED>
+<!ELEMENT section (intro?, title, (para|note)+)>
+<!ATTLIST section id ID #IMPLIED>
+<!ELEMENT intro   (para+)>
+<!ATTLIST intro   id ID #IMPLIED>
+<!ELEMENT note    (para+)>
+<!ATTLIST note    id ID #IMPLIED>
+<!ELEMENT para    (#PCDATA)>
+<!ATTLIST para    id ID #IMPLIED>
+<!ELEMENT title   (#PCDATA)>
+<!ATTLIST title   id ID #IMPLIED>
+
+<!NOTATION gif PUBLIC "gif">

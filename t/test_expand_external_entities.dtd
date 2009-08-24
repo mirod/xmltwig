@@ -1,0 +1,5 @@
+<!ELEMENT doc (p*)>
+<!ELEMENT p (#PCDATA)>
+<!ENTITY  ent1 "ent1 text">
+<!ENTITY  ent2 "<p>ent2 text</p>">
+

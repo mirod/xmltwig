@@ -1,0 +1,241 @@
+#!/usr/bin/perl -w
+use strict;
+use XML::Twig;
+
+my $right_after_name=0; # so I can get the first para as the title
+
+my $handlers= 
+  { Document    => sub { $_->set_tag( 'html'); 
+				                 $_->insert( 'body' => { onLoad => "init_toc()" });
+												 { local undef $/;
+											     my $head= XML::Twig::Elt->parse( <DATA>); 
+												   $head->paste( first_child => $_);
+												 } 
+			                 },
+    head1       => sub { process_title( @_, 1); },
+    head2       => sub { process_title( @_, 2); },
+    Para        => sub { $_->set_tag( 'p');
+                      if( $right_after_name)
+                        { my $head= XML::Twig::Elt->new( 'head');
+                          my $title= $head->insert( 'title');
+                          $title->set_text( $_->text);
+                        }
+                    },
+    'L[@type="pod"]'  => \&store_link,
+    'L[@type="url"]'  => sub{ $_->set_tag( 'a');
+                              my $href= $_->att( 'to');
+                              $_->del_atts;
+                              $_->set_att( href => $href);
+                            },
+    F           => sub { if( my $a= $_->first_child( 'a'))
+                           { my $link_text= $_->first_child( '#PCDATA');
+                             $link_text->cut;
+                             $a->set_text( $link_text->text);
+                           }
+                         else
+                           { $_->set_tag( 'i'); }
+                       },
+    Verbatim    => sub { $_->set_tag( 'pre'); },
+    C           => sub { $_->set_tag( 'tt');  
+				                 if( $_->text eq '$optional_condition')
+												   { $_->wrap_in( a => { href => '#METHODS_cond' }); }
+		                   },
+    B           => sub { $_->set_tag( 'b');  },
+    I           => sub { $_->set_tag( 'i');  },
+    'over-text' => sub { $_->set_tag( 'ul'); },
+    'item-text' => sub { process_title( @_, $_->level + 1); },
+    _all_       => sub { $_->del_att( 'start_line'); }, 
+    _default_   => sub { warn "unknown tag ", $_->sprint, "\n"; },
+  };
+
+my $t= XML::Twig->new( twig_handlers => $handlers,
+                        pretty_print => 'indented',
+                     );
+open( XML, "perldoc -oxml -T $ARGV[0] |") or die $!;
+$t->parse( \*XML);
+          
+process_links( $t);
+foreach my $ul ($t->descendants( 'ul'))
+  { next unless( $ul->level( 'ul') > 1);
+    $ul->sort_children_by_value;
+  } 
+
+$t->print;
+
+sub process_title
+  { my( $t, $h, $level)= @_;
+    $h->set_tag( "h$level");
+    my $name= $_->text;
+    if( $name=~ m{^\s*NAME\s*$}i) { $right_after_name=1; }
+    my $id= id_ify( $h, $level-1);
+    my $a= $h->insert( 'a', { name => $id});
+    gen_toc( $t, $name, $id, $level);
+  }
+
+BEGIN{ my $toc;
+  my $current_ul;
+  my $current_level=1;           
+  sub gen_toc
+    { my( $t, $name, $id, $level)=@_;
+      unless( $toc) 
+        { $toc= XML::Twig::Elt->new( div => { id => "toc" } );
+          $toc->paste( $t->root);
+          $current_ul= $toc->insert( 'ul');
+          my $hr= XML::Twig::Elt->new( hr => '#EMPTY');
+          $hr->paste( last_child => $toc);
+        }
+
+      my $li =  XML::Twig::Elt->new( 'li');
+      my $a  = $li->insert( 'a');
+      $a->set_att( href => "#$id");
+      $name=~ s{\(.*\)}{};
+      $a->set_text( $name);
+      if( $level < $current_level)
+        { while( $level < $current_level) 
+            { $current_level--; $current_ul= $current_ul->parent( 'ul') || $current_ul; 
+	    }
+        }
+      elsif( $level > $current_level)
+        { my $new_ul= XML::Twig::Elt->new( ul => { style => 'display:block;' });
+          my $current_li=  $current_ul->last_child( 'li');
+          $new_ul->paste( last_child => $current_li);
+					my $button= XML::Twig::Elt->new( img => { class => "collapsed", src => "/img/plus.png",
+									                                  height => 20, width => 20,
+																									 	alt => "Show Next ToC level", onclick => "expand(this)",
+																										style => "display:none",
+																									}
+																					);
+					$button->paste( after => $current_li->first_child( 'a'));
+          $current_ul= $new_ul;
+        }
+	#warn"  level: /$level/ - current_level: /$current_level/\n";
+      $li->paste( last_child => $current_ul);
+      $current_level= $level;
+    }
+}
+
+{ my %seen; # complete_id => 1 
+  my @id;   # store current titles for level 1 to 3
+  my %to;   # id (not complete) => [ complete id's]
+  my @link;
+  sub id_ify
+    { my( $h, $level)= @_;
+      my $text= name_ify( $h->text);
+      $#id= $level;
+      $id[$level]= $text;
+      my $id= join( '_',grep { $_}  @id); 
+      if( $seen{$id}) { warn "duplicate id $id\nlevel: ", $h->level, "\n"; }
+      $seen{$id}++;
+      push @{$to{$text}}, $id;
+      return $id
+    }
+
+sub name_ify
+  { my $text= shift or return '';
+    $text=~ s{\(.*\)}{};
+    $text=~ s{[\W_]+}{_}g;
+    $text=~ s{^_}{};
+    $text=~ s{_$}{};
+    return $text;
+  }
+
+  sub store_link 
+    { my( $t, $l)= @_;
+      my @loc= @id;
+      push @link, {elt => $l, loc => \@loc };
+    }
+
+  sub process_links
+    { my $t= shift;
+      foreach my $link (@link)
+        { my $elt= $link->{elt};
+          my @loc= $link->{loc};
+          $elt->set_tag( 'a');
+          my $to= name_ify( $elt->att( 'to'));
+          $elt->del_atts;
+          pop @loc; 
+          push @loc, $to;
+          my $target= join( '_',grep { $_}  @loc );
+          if( $seen{$target} or ( $target= $to{$to}->[0]))
+            {  $elt->set_att( href => "#$target"); }
+          else
+            { warn "no target found for /$to/"; }
+        }
+    }
+}
+
+__DATA__
+<head>
+  <title>XML::Twig - Development version</title>
+	
+  <!-- scripts -->
+	<script language="Javascript" type="text/javascript">
+
+	// set the display style for the element to display (block or none usually)
+   function set_display( elt, display)
+			{ var style_att= elt.getAttributeNode( "style");
+				if( ! style_att)
+					{ style_att= document.createAttribute( "style");
+						child.setAttributeNode( style_att);
+					}
+				var style= "display:" + display;
+				style_att.value= style; 
+			}
+
+	// return the first node child of elt with a nodeName of name
+  function first_child( elt, name)
+	  { var child= elt.firstChild;
+		  while( child)
+			  { if( child.nodeName.toLowerCase() == name)
+				    { return child; }
+					child= child.nextSibling;
+				}
+			return "";
+		}
+			
+	// set the display type for the ul after a button
+	function hide_next_ul (img, display)
+	  { var ul= first_child( img.parentNode, "ul");
+		  set_display( ul, display)
+		}
+
+	function collapse_section (img)
+	  { img.className= "collapsed";
+		  img.src= "/img/plus.png";
+		  img.alt= "show next ToC level"
+			set_display( first_child( img.parentNode, "ul"), "none");
+		}
+
+	function expand_section (img)
+	  { img.className= "expanded";
+		  img.src= "/img/minus.png";
+		  img.alt= "hide next ToC level"
+			set_display( first_child( img.parentNode, "ul"), "block");
+		}
+
+    // expands or collapse the Toc
+    // v == 1 -> expand (set display to 'block' in the first rule
+    // v == 0 -> collapse (set display to 'none' in the first rule
+    function expand (img)
+      { if( img.className == "expanded")
+          { collapse_section( img); }
+        else
+          { expand_section( img); }
+      }
+
+	function init_toc ()
+	  { // show buttons
+		  var imgs= document.getElementsByTagName( "img");
+      for( var i = 0; imgs.length > i ; i++)
+        { var img= imgs.item(i);
+				  if( (img.className == "expanded") || (img.className == "collapsed") )
+					  { set_display( img, "inline");
+						  collapse_section( img);
+						}
+				}
+		}
+			
+  </script>
+</head>
+
+

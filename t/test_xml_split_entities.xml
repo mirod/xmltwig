@@ -1,0 +1,4 @@
+<doc>
+    <elt>text with &lt; &gt; &amp; and &apos;</elt>
+    <elt><![CDATA[[text with < > & and ']]></elt>
+</doc>

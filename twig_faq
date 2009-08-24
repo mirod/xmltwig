@@ -1,0 +1,202 @@
+#!/usr/bin/perl -w
+
+# this script generates an HTML FAQ from an the XML version
+
+use strict;
+use XML::Twig;
+
+my $file= shift || die "usage twig_faq <xml_file>";
+
+# those 2 globals are grabed from the xml header and used to
+# generate the html header
+my $g_title;   # title 
+my $g_version; # version
+
+my $qnb=0;     # question index
+my $toc;       # the element containing the ToC
+
+my $t= XML::Twig->new( twig_handlers =>
+                          { title       => \&title,
+                            date        => \&date,
+                            header      => \&header,
+                            credits     => \&section,
+                            overview    => \&section,
+                            'q'         => \&q,
+                            question    => \&question,
+                            answer      => \&answer,
+                            code        => sub { $_->set_gi( 'pre'); $_->remove_cdata; },
+                            copyright   => \&copyright,
+                            markup      => \&markup,         
+                          },
+                       pretty_print   => 'indented',
+                       keep_spaces_in => ['pre'],
+                       empty_tags     => 'html',
+                       error_context  => 2,
+                     );
+
+$t->parsefile( $file);
+
+
+my $faq= $t->root;
+$faq->set_gi( 'html');
+$faq->insert( 'body');
+
+# create the html header
+my $title= new XML::Twig::Elt( 'title', "$g_title - version $g_version");
+my $html_header= new XML::Twig::Elt( 'head', $title);
+
+$html_header->paste( $faq);
+
+$faq->print;
+
+exit;
+
+sub title
+  { my( $t, $title)= @_;
+    $title->set_gi( 'h1');      # title -> h1
+    $g_title= $title->text;     # store the title
+  }
+    
+sub date
+  { my( $t, $date)= @_;
+    my $version= $date->prev_sibling( 'version');
+    $version->set_gi( 'h2');    # version -> h2
+    $g_version= $version->text; # store the version
+    $version->prefix( 'Version ');
+    $version->suffix( ' - ' . $date->text);
+    $date->cut;
+  }
+    
+
+sub author
+  { my( $t, $author)= @_; }
+
+sub header
+  { my( $t, $header)= @_;
+    $header->set_gi( 'div');
+    $header->set_att( style => "text-align: center;");
+
+    # add the appropriate text around the authors
+    my @author= $header->children( 'author');
+    my $first_author= shift @author;
+    if( $first_author)
+      { my $by= new XML::Twig::Elt( '#PCDATA', "by ");
+        $by->paste( 'before', $first_author);
+        $first_author->set_gi( 'b');      # author -> b
+      }
+    my $last_author= pop @author;
+    if( $last_author)
+      { my $and= new XML::Twig::Elt( '#PCDATA', " and ");
+        $and->paste( 'before', $last_author);
+        $last_author->set_gi( 'b');      # author -> b
+      }
+    foreach my $author( @author)
+      { my $comma= new XML::Twig::Elt( '#PCDATA', ", ");
+        $comma->paste( 'before', $author);
+        $author->set_gi( 'b');      # author -> b
+      }
+
+  }
+    
+sub section
+  { my( $t, $section)= @_;
+    # add an <hr> 
+    my $hr= new XML::Twig::Elt( 'hr');
+    $hr->paste( $section);
+    # add the title
+    my $section_title= ucfirst( $section->gi);
+    my $title= new XML::Twig::Elt( 'h2', $section_title);
+    $title->paste( 'after', $hr);
+    $section->set_gi( 'div');
+  }
+
+sub q
+  { my( $t, $q)= @_;
+    $q->erase;
+  }
+
+
+sub question
+  { my( $t, $question)= @_;
+
+    # add an <hr> 
+    my $hr= new XML::Twig::Elt( 'hr');
+    $hr->paste( 'before', $question);
+
+    # create the ToC if need be
+    unless( $toc)
+      { my $q= $question->parent;
+        $toc= XML::Twig::Elt->new( 'ul');
+        $toc->paste( 'before', $q);
+        my $toc_title=  XML::Twig::Elt->new( 'h2', 'Content');
+        $toc_title->paste( 'before', $toc);
+	my $hr= XML::Twig::Elt->new( 'hr');
+	$hr->paste( 'before', $toc_title);
+      }
+
+    # add the question number
+    $qnb++;
+    my $target= "Q$qnb";
+    my $number= XML::Twig::Elt->new( '#PCDATA', "$target: ");
+
+    # add a target element (so the ToC can link there)
+    my $a= XML::Twig::Elt->new( 'a');
+    $a->set_att( name => $target);
+    $a->paste( 'before', $question);
+
+    # create the toc entry
+    generate_toc_entry( $target, $question->first_child_text( 'p') ||  $question->text);
+
+
+    if( my $p= $question->first_child( 'p'))
+      { $p->set_gi( 'h2');
+	$question->erase;
+	$number->paste( first_child => $p)
+      }
+    else
+      { $question->set_gi( 'h2');
+        $number->paste( $question);
+      }
+  }
+
+sub answer
+  { my( $t, $answer)= @_;
+    # replace the answer by a 'p' 
+    # unless the first child is already a 'p'
+    my $first_child= $answer->first_child;
+    my $prefix= XML::Twig::Elt->new( b => "Answer: ");
+    if( $first_child->gi eq 'p')
+      { $answer->erase; 
+	$prefix->paste( first_child => $first_child);
+      }
+    else
+      { $answer->set_gi( 'p'); 
+	$prefix->paste( first_child => $answer);
+      }
+  }
+
+sub copyright
+  { my( $t, $copyright)= @_;
+
+    # add an <hr />
+    my $hr= new XML::Twig::Elt(  'hr');
+    $hr->paste( 'before', $copyright);
+
+    $copyright->set_gi( 'p');
+  }
+  
+sub generate_toc_entry
+  { my( $target, $text)= @_;
+    my $entry= XML::Twig::Elt->parse(  "<li><a href=\"#$target\">$text</a></li>");
+    $entry->paste( 'last_child', $toc);
+  }
+
+# replace markup by pre and replace the cdata children by pcdata
+sub markup
+  { my( $t, $markup)= @_;
+    # replace the CDATA in markup by PCDATA with the same text
+    $markup->set_gi( 'pre');
+    $markup->remove_cdata;
+  }
+
+        

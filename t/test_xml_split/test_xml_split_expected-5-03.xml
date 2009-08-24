@@ -1,0 +1,5 @@
+<elt2>
+        <?merge  subdocs = 0 :t/test_xml_split/test_xml_split_expected-5-02.xml?>
+        <elt1>elt1 content 8</elt1>
+        <elt1>elt1 content 9</elt1>
+    </elt2>

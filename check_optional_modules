@@ -1,0 +1,33 @@
+#!/bin/perl -w
+
+# $Id: /xmltwig/trunk/check_optional_modules 4 2007-03-16T12:16:25.259192Z mrodrigu  $
+
+use strict;
+
+exit if( $] >= 5.008);
+
+if( $] >=  5.0060)
+{ unless( eval 'require Scalar::Util' or eval 'require WeakRef' )
+      { warn "Neither Scalar::Util  nor WeakRef is  installed. ",
+             "Installing  one of these modules  would  improve ",
+             "XML::Twig memory management and eliminate memory ",
+             "leaks when re-using twigs.\n";
+      }
+    else
+      { warn "weaken is available\n"; }
+  }
+
+unless( eval 'require Text::Iconv')
+  { my $version= `iconv -V` || '';
+    if($version)
+      { warn "The iconv library was found on your system ",
+             "but the Text::Iconv module is not installed. ",
+             "Installing Text::Iconv would make character ",
+             "encoding translations fast and efficient.\n";
+      }
+    else
+      { warn "Did not find iconv\n"; }
+  }
+else
+  { warn "Text::Iconv is installed\n"; }
+

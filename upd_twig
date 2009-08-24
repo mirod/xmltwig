@@ -1,0 +1,69 @@
+#!/usr/bin/perl -w
+# $Id: /xmltwig/trunk/upd_twig 16 2007-06-01T07:15:22.216978Z mrodrigu  $
+use strict;
+use File::stat;
+use Getopt::Long;
+
+use XML::Twig;
+
+my $cp= 'rsync';
+
+my( $message, $commit);
+GetOptions( 'message=s' => \$message, 'commit!' => \$commit); 
+$message="web update" unless( defined $message);
+$commit= 0 unless( defined $commit);
+
+my $MIRROR_DIR = "/web/xmltwig/infotree/xmltwig";
+
+my $version  = $XML::Twig::VERSION;
+my $tar      = "XML-Twig-$version.tar.gz";
+my $dev_text = "dev.txt";
+my $dev_html = "dev.html";
+my $readme   = "XML-Twig-$version.README";
+my $cover    = "cover";
+
+system "make clean;";
+system 'rm Twig.pm; perl speedup Twig_pm.slow > Twig.pm; echo "y\ny\ny\n" | perl Makefile.PL -y; make';
+#system "sudo make install";
+system "make tardist";
+system "pod2text Twig.pm > $dev_text; ./my_pod2html Twig.pm > $dev_html";
+
+system "$cp $tar $dev_text $dev_html Changes $MIRROR_DIR/";
+
+system "$cp $dev_text $MIRROR_DIR/dv.txt";
+system "$cp $dev_html $MIRROR_DIR/dv.html";
+system "$cp $dev_text $MIRROR_DIR/twig_dev.txt";
+system "$cp $dev_html $MIRROR_DIR/twig_dev.html";
+
+system "$cp README $MIRROR_DIR/$readme";
+system "$cp -r tools $MIRROR_DIR/";
+system "$cp cover_db/*.css $MIRROR_DIR/$cover/";
+
+foreach my $html (glob( "cover_db/*.html"))
+  { system "cp $html $MIRROR_DIR/$cover/" unless( $html=~ m{/-[^/]*$});  } 
+
+
+if( mtime( "faq.xml") > mtime( "faq.html") )
+  { warn "generating faq\n";
+    system "perl twig_faq faq.xml > faq.html";
+	  system "$cp faq.html XML-Twig-FAQ.html ; $cp faq.html XML-Twig-FAQ.html $MIRROR_DIR/";
+		fill_updated_time( faq_updated => "$MIRROR_DIR/index.html"); 
+  }
+
+system qq{svk ci -m"$message"} if( $commit);
+
+chdir $MIRROR_DIR;
+
+fill_updated_time( index_updated => "$MIRROR_DIR/index.html"); 
+
+system qq{cd /web/xmltwig/tools && ./apply_template -v xmltwig/};
+
+system qq{~/bin/rsync_web --message "xmltwig update"};
+
+sub mtime
+  { warn "testing time for '$_[0]'\n"; return stat( $_[0])->mtime; }
+
+sub fill_updated_time
+  { my( $class, $file)= @_;
+		system qq{perl -p -i -e's{(?<=<span class="$class">)[^<]*(?=</span>)}{ scalar localtime()}ge;' $file};
+	}

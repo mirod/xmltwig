@@ -1,0 +1,17 @@
+<doc>
+    <?merge  subdocs = 0 :t/test_xml_split/test_xml_split_expected-3-01.xml?>
+    <?merge  subdocs = 0 :t/test_xml_split/test_xml_split_expected-3-02.xml?>
+    <?merge  subdocs = 0 :t/test_xml_split/test_xml_split_expected-3-03.xml?>
+    <elt2>
+        <?merge  subdocs = 0 :t/test_xml_split/test_xml_split_expected-3-04.xml?>
+        <?merge  subdocs = 0 :t/test_xml_split/test_xml_split_expected-3-05.xml?>
+    </elt2>
+    <elt2>
+        <elt2>
+            <?merge  subdocs = 0 :t/test_xml_split/test_xml_split_expected-3-06.xml?>
+            <?merge  subdocs = 0 :t/test_xml_split/test_xml_split_expected-3-07.xml?>
+        </elt2>
+        <?merge  subdocs = 0 :t/test_xml_split/test_xml_split_expected-3-08.xml?>
+        <?merge  subdocs = 0 :t/test_xml_split/test_xml_split_expected-3-09.xml?>
+    </elt2>
+</doc>

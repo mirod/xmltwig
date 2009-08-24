@@ -1,0 +1,9 @@
+use XML::Twig;
+
+use strict;
+
+my( $perl, $infile)= @ARGV;
+
+open( FH, "$perl -p -e1 $infile |") or die $!; 
+XML::Twig->nparse( \*FH); 
+die "OK\n";

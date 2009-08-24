@@ -1,0 +1,5 @@
+<elt2>
+        <xi:include href="t/test_xml_split/test_xml_split_expected-6-02.xml"/>
+        <elt1>elt1 content 8</elt1>
+        <elt1>elt1 content 9</elt1>
+    </elt2>
