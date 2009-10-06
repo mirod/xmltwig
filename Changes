@@ -51,6 +51,7 @@ fix:  improved speed when parsing big elements, RT#35672, reported by Seth
       http://rt.cpan.org/Ticket/Display.html?id=35672
 fix:  RT #47257, minor doc bug, spotted by David Steinbrunner
       http://rt.cpan.org/Ticket/Display.html?id=47257
+improved: speed, somewhat
 
 version: 3.32
 date: 

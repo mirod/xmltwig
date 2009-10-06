@@ -4432,8 +4432,8 @@ sub new
     if( $atts && defined $atts->{'#CDATA'})
       { delete $atts->{'#CDATA'};
 
-        my $cdata= new( $class, '#CDATA', @_);
-        return new( $class, $gi, $atts, $cdata);
+        my $cdata= $class->new( '#CDATA', @_);
+        return $class->new( $gi, $atts, $cdata);
       }
 
     if( $gi eq PCDATA)
@@ -4473,6 +4473,17 @@ sub new
     return $elt;
   }
 
+# optimized version of $elt->new( PCDATA, $text);
+sub _new_pcdata
+  { my $class= $_[0];
+    $class= ref $class || $class;
+    my $elt  = {};
+    bless $elt, $class;
+    $elt->set_gi( PCDATA);
+    $elt->_set_pcdata( $_[1]);
+    return $elt;
+  }
+    
 # this function creates an XM:::Twig::Elt from a string
 # it is quite clumsy at the moment, as it just creates a
 # new twig then returns its root
@@ -7557,11 +7568,8 @@ BEGIN {
         { my $atts= join $att_sep, map  { my $output_att_name= $ns_map ? _restore_original_prefix( $ns_map, $_) : $_;
                                           if( $output_text_filter)
                                             { $output_att_name=  $output_text_filter->( $output_att_name); }
-                                          sprintf( "%s=%s%s%s", $output_att_name, 
-                                                                $quote,
-                                                                 _att_xml_string( $att->{$_}, $replace_in_att_value), 
-                                                                 $quote
-                                                 );
+                                          $output_att_name . '=' . $quote . _att_xml_string( $att->{$_}, $replace_in_att_value) . $quote
+
                                         } 
                                         @att_names
                                    ;
@@ -8349,7 +8357,7 @@ sub set_text
     foreach my $child (@{[$elt->_children]})
       { $child->delete; }
 
-    my $pcdata= $elt->new( PCDATA, $string);
+    my $pcdata= $elt->_new_pcdata( $string);
     $pcdata->paste( $elt);
 
     $elt->set_not_empty;
@@ -8388,8 +8396,6 @@ sub set_content
       }
 
     # delete the children
-    # WARNING: potential problem here if the children are used
-    # somewhere else (where?). Will be solved when I use weak refs
     foreach my $child (@{[$elt->_children]})
       { $child->delete; }
 
@@ -8406,7 +8412,7 @@ sub set_content
               }
             else
               { # previous child is not a string: creat a new pcdata element
-                $pcdata= $elt->new( PCDATA, $child);
+                $pcdata= $elt->_new_pcdata( $child);
                 $pcdata->paste( 'last_child', $elt);  
               }
           }
@@ -8577,7 +8583,7 @@ sub prefix
         $elt->_first_child->set_pcdata( $prefix . $elt->_first_child->pcdata); 
       }
     else
-      { my $new_elt= $elt->new( PCDATA, $prefix);
+      { my $new_elt= $elt->_new_pcdata( $prefix);
         $new_elt->paste( $elt);
         if( $asis) { $new_elt->set_asis; }
       }
@@ -8598,7 +8604,7 @@ sub suffix
          )
       { $elt->_last_child->set_pcdata( $elt->_last_child->pcdata . $suffix); }
     else
-      { my $new_elt= $elt->new( PCDATA, $suffix);
+      { my $new_elt= $elt->_new_pcdata( $suffix);
         $new_elt->paste( 'last_child', $elt);
         if( $asis) { $new_elt->set_asis; }
       }
