@@ -1,11 +1,11 @@
-#!/bin/perl 
+#!/usr/bin/perl 
 
-# $Id: /xmltwig/trunk/speedup 31 2007-11-13T19:55:41.920709Z mrodrigu  $
-
-
-$FIELD="parent|first_child|last_child|prev_sibling|next_sibling|pcdata|cdata|ent|data|target|cdata|pcdata|comment|flushed";
-$FIELD2="parent|first_child|last_child|prev_sibling|next_sibling|pcdata|cdata|comment|_extra_data_in_pcdata|_extra_data_before_end_tag"; # _$field is inlined
-$SET_FIELD="first_child|next_sibling|ent|data|target|comment|flushed";
+my $FIELD     = join( '|', qw( parent first_child last_child prev_sibling next_sibling pcdata cdata ent data target cdata pcdata comment flushed));
+my $PRIVATE   = join( '|', qw( parent first_child last_child prev_sibling next_sibling pcdata cdata comment 
+                               extra_data_in_pcdata extra_data_before_end_tag
+                             )
+                    ); # _$private is inlined
+my $SET_FIELD = join( '|', qw( first_child next_sibling ent data target comment flushed));
 # depending on the version of perl use either qr or ""
 print STDERR "perl version is $]\n";
 
@@ -28,7 +28,7 @@ while( <>)
 
     s/$var->set_($SET_FIELD)\(([^)]*)\)/$1\->\{$2\}= $3/g;
     s/$var->($FIELD)\b(?!\()/$1\->\{$2\}/g;
-    s/$var->_($FIELD2)\b(?!\()/$1\->\{$2\}/g;
+    s/$var->_($PRIVATE)\b(?!\()/$1\->\{$2\}/g;
 
     s{($elt)->set_(parent|prev_sibling)\(\s*($set_to)\s*\)}{$1\->{$2}=$3; if( \$XML::Twig::weakrefs) { weaken( $1\->{$2});} }g;
     s{($elt)->set_(first_child)\(\s*($set_to)\s*\)}{ $1\->set_not_empty; $1\->{$2}=$3; }g;
@@ -51,13 +51,15 @@ while( <>)
     s/$var->is_ent/(exists $1\->{'ent'})/g; 
     s/(\$,a-z][a-z_]*(?:\[\d\])?)->is_text/((exists $1\->{'pcdata'}) || (exists $1\->{'cdata'}))/g; 
 
-    s/$var->is_empty/($1\->{'empty'} || 0)/g;
+    s/$var->is_empty/$1\->{'empty'}/g;
     s/$var->set_empty(?:\(([^)]*)\))?(?!_)/"$1\->{empty}= " . ($2 || 1)/ge;
     s/$var->set_not_empty/delete $1\->{empty}/g;
 
     s/$var->_is_private/( (substr( \$XML::Twig::index2gi\[$1\->{'gi'}\], 0, 1) eq '#') && (substr( \$XML::Twig::index2gi\[$1\->{'gi'}\], 0, 9) ne '#default:') )/g;
-    s/_is_private_name\(\s*$var\s*\)/( (substr( $1, 0, 1) eq '#') && (substr( $1, 0, 9) ne '#default:') )/g;
+    #s/_is_private_name\(\s*$var\s*\)/( (substr( $1, 0, 1) eq '#') && (substr( $1, 0, 9) ne '#default:') )/g;
+    s/_is_private_name\(\s*$var\s*\)/( $1=~ m{^#(?!default:)} )/g;
 
+    s{_is_fh\(\s*$var\)}{isa( $1, 'GLOB') || isa( $1, 'IO::Scalar')}g;
 
     print $_ ;
   }
