@@ -56,14 +56,14 @@ chdir $MIRROR_DIR;
 
 fill_updated_time( index_updated => "$MIRROR_DIR/index.html"); 
 
-system qq{cd /web/xmltwig/tools && ./apply_template -v xmltwig/};
+system qq{~/bin/apply_template -v xmltwig/};
 
-system qq{~/bin/rsync_web --message "xmltwig update"};
+#system qq{~/bin/rsync_web --message "xmltwig update"};
 
 sub mtime
   { warn "testing time for '$_[0]'\n"; return stat( $_[0])->mtime; }
 
 sub fill_updated_time
   { my( $class, $file)= @_;
-		system qq{perl -p -i -e's{(?<=<span class="$class">)[^<]*(?=</span>)}{ scalar localtime()}ge;' $file};
-	}
+    system qq{perl -p -i -e's{(?<=<span class="$class">)[^<]*(?=</span>)}{ scalar localtime()}ge;' $file};
+  }
