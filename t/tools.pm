@@ -120,10 +120,11 @@ if( grep /^-v$/, @ARGV) { $DEBUG= 1; }
         }
     }
 
+  my $devnull = File::Spec->devnull;
   sub sys_ok
     { my $message=pop;
       $test_nb++; 
-      my $status= system join " ", @_, "2>/dev/null";
+      my $status= system join " ", @_, "2>$devnull";
       if( !$status)
         { print "ok $test_nb"; 
           print " $message" if( $DEBUG); 

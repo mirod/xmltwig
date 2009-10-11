@@ -8,11 +8,11 @@ use File::Spec;
 use lib File::Spec->catdir(File::Spec->curdir,"t");
 use tools;
 use Config;
-
+my $devnull = File::Spec->devnull;
 my $DEBUG=1;
 
 # be cautious: run this only on systems I have tested it on
-my %os_ok=( linux => 1, solaris => 1, darwin => 1);
+my %os_ok=( linux => 1, solaris => 1, darwin => 1, MSWin32 => 1);
 if( !$os_ok{$^O}) { print "1..1\nok 1\n"; warn "skipping, test runs only on some OSs\n"; exit; }
 
 if( $] < 5.006) { print "1..1\nok 1\n"; warn "skipping, xml_merge runs only on perl 5.6 and later\n"; exit; }
@@ -21,7 +21,7 @@ print "1..13\n";
 
 my $perl= $Config{perlpath};
 if ($^O ne 'VMS') { $perl .= $Config{_exe} unless $perl =~ m/$Config{_exe}$/i; }
-
+$perl = "$^X -Mblib ";
 my $xml_split = File::Spec->catfile( "tools", "xml_split", "xml_split");
 my $xml_merge = File::Spec->catfile( "tools", "xml_merge", "xml_merge");
 

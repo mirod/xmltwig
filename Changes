@@ -12,7 +12,8 @@ added: XML::Twig::Elt method lc_attnames which lower cases the names
 added: better error message if find_nodes or get_xpath are called instead
       of findnodes when using XML::Twig::XPath (suggested by Zed Pobre)
 added: indented_close_tag pretty_print option (suggested by H.Merijn Brand)
-
+added: RT #49692 xml_split test on win 32 systems. Patch sent through RT 
+       http://rt.cpan.org/Ticket/Display.html?id=49692
 fix:  RT #48616 handler condition of foo/* crashed the module
       reported by Osfameron
       http://rt.cpan.org/Public/Bug/Display.html?id=48616
