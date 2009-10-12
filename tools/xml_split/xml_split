@@ -435,7 +435,7 @@ sub file_name
   { my( $state)= @_;
     my $nb= sprintf( "%0$state->{nb_digits}d", $state->{seq_nb});
     my $file_name= "$state->{base}-$nb$state->{ext}";
-    $file_name =~ s~\\~/~g; # 2009-09-14- 07:52:56
+    $file_name =~ s{\\}{/}g; 
     return $file_name;
   }
 

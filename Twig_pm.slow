@@ -376,7 +376,7 @@ use vars qw( %filter);
 
 
 # trigger types (used to sort them)
-my ($XPATH_TRIGGER, $REGEXP_TRIGGER, $LEVEL_TRIGGER)=(1..3);
+my ($LEVEL_TRIGGER, $REGEXP_TRIGGER, $XPATH_TRIGGER)=(1..3);
 
 sub new
   { my ($class, %args) = @_;
@@ -1023,9 +1023,13 @@ sub add_stylesheet
       if( $disallowed{$module})   { return 0; }
       if( $used{$module})         { return 1; }
       if( eval "require $module") { import $module; $used{$module}= 1; 
-                                    no strict 'refs';
-                                    if( ${"${module}::VERSION"} >= $version ) { return 1; }
-                                    else                                      { return 0; }
+                                    if( $version)
+                                      { no strict 'refs';
+                                        if( ${"${module}::VERSION"} >= $version ) { return 1; }
+                                        else                                      { return 0; }
+                                      }
+                                    else
+                                      { return 1; }
                                   }
       else                        {                          $used{$module}= 0; return 0; }
     }
@@ -1234,14 +1238,15 @@ sub _add_handler
 
     push @handlers, $handler_data if( $handler_data->{handler});
     
-
-    @handlers= sort {    (($a->{score}->{type}        || 0)  <=>  ($b->{score}->{type}        || 0))
-                      || (($b->{score}->{anchored}    || 0)  <=>  ($a->{score}->{anchored}    || 0))
-                      || (($b->{score}->{steps}       || 0)  <=>  ($a->{score}->{steps}       || 0))
-                      || (($b->{score}->{predicates}  || 0)  <=>  ($a->{score}->{predicates}  || 0))
-                      || (($b->{score}->{tests}       || 0)  <=>  ($a->{score}->{tests}       || 0))
-                      || ($a->{path} cmp $a->{path})
-                    } @handlers;
+    if( @handlers > 1)
+      { @handlers= sort {    (($b->{score}->{type}        || 0)  <=>  ($a->{score}->{type}        || 0))
+                          || (($b->{score}->{anchored}    || 0)  <=>  ($a->{score}->{anchored}    || 0))
+                          || (($b->{score}->{steps}       || 0)  <=>  ($a->{score}->{steps}       || 0))
+                          || (($b->{score}->{predicates}  || 0)  <=>  ($a->{score}->{predicates}  || 0))
+                          || (($b->{score}->{tests}       || 0)  <=>  ($a->{score}->{tests}       || 0))
+                          || ($a->{path} cmp $b->{path})
+                        } @handlers;
+      }
 
     $handlers->{xpath_handler}->{$tag}= \@handlers;
   }
@@ -1503,6 +1508,7 @@ sub _set_handlers
     my $set_handlers= {};
     foreach my $path (keys %{$handlers})
       { _set_handler( $set_handlers, $path, $handlers->{$path}); }
+    
     return $set_handlers;
   }
     
@@ -1649,13 +1655,13 @@ sub _add_or_discard_stored_spaces
   { my $t= shift;
     my %option= @_;
    
-    return unless( $t->{twig_current}); # ugly hack, with ignore on, twig_current can disappear 
+    my $current= $t->{twig_current} or return; # ugly hack, with ignore on, twig_current can disappear 
     if( $t->{twig_stored_spaces} || $option{force} || $t->{twig_preserve_space})
-      { if( $t->{twig_current}->is_pcdata)
-          { $t->{twig_current}->append_pcdata($t->{twig_stored_spaces}); }
+      { if( $current->is_pcdata)
+          { $current->append_pcdata($t->{twig_stored_spaces}); }
         else
-          { my $current_gi= $t->{twig_current}->gi;
-            unless( defined( $t->{twig_space_policy}->{$current_gi}))
+          { my $current_gi= $current->gi;
+            if( ! defined( $t->{twig_space_policy}->{$current_gi}))
               { $t->{twig_space_policy}->{$current_gi}= _space_policy( $t, $current_gi); }
 
             if(    $t->{twig_space_policy}->{$current_gi} ||  ($t->{twig_stored_spaces}!~ m{\n})
@@ -2081,7 +2087,7 @@ sub _twig_char
         $elt->append_cdata( $t->{twig_stored_spaces} . $string);
       } 
     elsif( $t->{twig_in_pcdata})
-      { # text is the continuation of a previously created cdata
+      { # text is the continuation of a previously created pcdata
         if( $t->{extra_data})
           { $elt->_push_extra_data_in_pcdata( $t->{extra_data}, length( $elt->{pcdata}));
             $t->{extra_data}='';
@@ -4741,7 +4747,6 @@ sub set_pcdata
     if( $elt->_extra_data_in_pcdata)
       { _try_moving_extra_data( $elt, $pcdata);
       }
-    $elt->set_not_empty;
     $elt->{pcdata}= $pcdata;
     return $elt; 
   }
@@ -5321,7 +5326,7 @@ sub set_atts
   { my $elt= shift;
     my %atts;
     tie %atts, 'Tie::IxHash' if( keep_atts_order());
-    %atts= ( isa( $_[0] || '', 'HASH')) ? %{$_[0]} : @_;
+    %atts= ( (ref( $_[0] || '') eq 'HASH') || isa( $_[0] || '', 'HASH')) ? %{$_[0]} : @_;
     $elt->{att}= \%atts;
     if( exists $atts{$ID}) { $elt->_set_id( $atts{$ID}); }
     return $elt;
@@ -7978,7 +7983,12 @@ BEGIN {
     { my $elt= shift;
       if( defined( my $string= $elt->{pcdata}) )
         { 
-          if( $elt->_extra_data_in_pcdata)
+          if( ! $elt->_extra_data_in_pcdata)
+            { 
+              $string=~ s/([$replaced_ents])/$XML::Twig::base_ent{$1}/g unless( $keep_encoding || $elt->{asis});  
+              $string=~ s{\Q]]>}{]]&gt;}g;
+            }
+          else
             { _gen_mark( $string); # used by _(un)?protect_extra_data
               foreach my $data (reverse @{$elt->_extra_data_in_pcdata})
                 { my $substr= substr( $string, $data->{offset});
@@ -7993,11 +8003,6 @@ BEGIN {
                   $string=~ s{\Q]]>}{]]&gt;}g;
                   _unprotect_extra_data( $string);
                 }
-            }
-          else
-            { 
-              $string=~ s/([$replaced_ents])/$XML::Twig::base_ent{$1}/g unless( $keep_encoding || $elt->{asis});  
-              $string=~ s{\Q]]>}{]]&gt;}g;
             }
           return $output_text_filter ? $output_text_filter->( $string) : $string;
         }
