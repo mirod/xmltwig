@@ -1653,10 +1653,9 @@ sub _reset_twig
 
 sub _add_or_discard_stored_spaces
   { my $t= shift;
-    my %option= @_;
    
     my $current= $t->{twig_current} or return; # ugly hack, with ignore on, twig_current can disappear 
-    if( $t->{twig_stored_spaces} || $option{force} || $t->{twig_preserve_space})
+    if( $t->{twig_stored_spaces} || $t->{twig_preserve_space})
       { if( $current->is_pcdata)
           { $current->append_pcdata($t->{twig_stored_spaces}); }
         else
@@ -1665,7 +1664,7 @@ sub _add_or_discard_stored_spaces
               { $t->{twig_space_policy}->{$current_gi}= _space_policy( $t, $current_gi); }
 
             if(    $t->{twig_space_policy}->{$current_gi} ||  ($t->{twig_stored_spaces}!~ m{\n})
-                || $option{force} || $t->{twig_preserve_space}
+                || $t->{twig_preserve_space}
               )
               { _insert_pcdata( $t, $t->{twig_stored_spaces} ); }
             $t->{twig_stored_spaces}='';
@@ -2638,7 +2637,7 @@ sub _twig_insert_ent
     my $ent=  $t->{twig_elt_class}->new( '#ENT');
     $ent->set_ent( $string);
 
-    _add_or_discard_stored_spaces( $t, force => 0);
+    _add_or_discard_stored_spaces( $t);
     
     if( $t->{twig_in_pcdata})
       { # create the node as a sibling of the #PCDATA
@@ -6984,13 +6983,13 @@ sub mark
         { $text= pop @matches;
           if( $previous_match)
             { # match, not the first one, create a new text ($gi) element
-              _utf8_ify( $pre_match);
+              _utf8_ify( $pre_match) if( $[ < 5.010);
               $elt= $elt->insert_new_elt( after => $gi, $pre_match);
               push @result, $elt if( $return_all);
             }
           else
             { # first match in $elt, re-use $elt for the first sub-string
-               _utf8_ify( $pre_match);
+               _utf8_ify( $pre_match) if( $[ < 5.010);
               $elt->set_text( $pre_match);
               $previous_match++;                # store the fact that there was a match
               push @result, $elt if( $return_all);
@@ -7002,7 +7001,7 @@ sub mark
               my $i=0;
               foreach my $match (@matches)
                 { # create new element, text is the match
-                  _utf8_ify( $match);
+                  _utf8_ify( $match) if( $[ < 5.010);
                   my $tag  = $tags[$i]->{tag};
                   my $atts = \%{$tags[$i]->{atts}} || {};
                   $elt= $elt->insert_new_elt( after => $tag, $atts, $match);
