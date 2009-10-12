@@ -145,9 +145,9 @@ import XML::Twig::Entity_list;
 
 # gi => index
 # do NOT use => or the constants become quoted!
-%XML::Twig::gi2index=( PCDATA, 0, CDATA, 1, PI, 2, COMMENT, 3, ENT, 4); 
+%XML::Twig::gi2index=( '', 0, PCDATA, 1, CDATA, 2, PI, 3, COMMENT, 4, ENT, 5); 
 # list of gi's
-@XML::Twig::index2gi=( PCDATA, CDATA, PI, COMMENT, ENT);
+@XML::Twig::index2gi=( '', PCDATA, CDATA, PI, COMMENT, ENT);
 
 # gi's under this value are special 
 $XML::Twig::SPECIAL_GI= @XML::Twig::index2gi;
