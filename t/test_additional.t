@@ -1,4 +1,4 @@
-#!/bin/perl -w
+#!/usr/bin/perl -w
 
 # $Id: /xmltwig/trunk/t/test_additional.t 25 2007-07-17T15:29:09.659907Z mrodrigu  $
 

@@ -1,3 +1,5 @@
+#!/usr/bin/perl -w
+
 use FindBin qw($Bin); BEGIN { unshift @INC, $Bin; } use xmlxpath_tools;
 
 use Test;

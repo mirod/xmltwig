@@ -1,3 +1,7 @@
+#!/usr/bin/perl -w
+
+use strict;
+
 use strict;
 
 use File::Spec;

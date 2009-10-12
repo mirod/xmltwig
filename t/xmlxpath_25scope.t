@@ -1,3 +1,7 @@
+#!/usr/bin/perl -w
+
+use strict;
+
 # $Id: /xmltwig/trunk/t/xmlxpath_25scope.t 4 2007-03-16T12:16:25.259192Z mrodrigu  $
 
 use strict;

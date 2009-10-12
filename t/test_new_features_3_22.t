@@ -1,4 +1,4 @@
-# !/usr/bin/perl -w
+#!/usr/bin/perl -w
 use strict;
 
 # $Id: /xmltwig/trunk/t/test_new_features_3_22.t 23 2007-06-21T08:52:17.136221Z mrodrigu  $

@@ -1,4 +1,4 @@
-#!/bin/perl -w
+#!/usr/bin/perl -w
 
 # $Id: /xmltwig/trunk/t/test_need_use_bytes.t 4 2007-03-16T12:16:25.259192Z mrodrigu  $
 

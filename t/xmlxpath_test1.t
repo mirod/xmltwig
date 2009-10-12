@@ -1,4 +1,4 @@
-#!/bin/perl -w
+#!/usr/bin/perl -w
 
 # $Id: /xmltwig/trunk/t/xmlxpath_test1.t 4 2007-03-16T12:16:25.259192Z mrodrigu  $
 
