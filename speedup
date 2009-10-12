@@ -62,6 +62,9 @@ while( <>)
 
     s{_is_fh\(\s*$var\)}{isa( $1, 'GLOB') || isa( $1, 'IO::Scalar')}g;
 
+    # $var->set_gi( $gi): set the gi, but if it doesn't exist, call the original set_gi
+    s/$var->set_gi\s*\(\s*([^)]*)\s*\)/$1\->{gi}=\$XML::Twig::gi2index{$2} or $1->set_gi( $2)/g;
+
     s/$var->xml_string/$1->sprint( 1)/g;
 
     print $_ ;
