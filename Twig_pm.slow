@@ -13,7 +13,7 @@ BEGIN
   sub ::CDATA  { '#CDATA'  } 
 }
 
-use UNIVERSAL qw(isa);
+use UNIVERSAL();
 
 use strict;
 use warnings; # > perl 5.5
@@ -27,12 +27,12 @@ require 5.004;
 use utf8; # > perl 5.5
 
 use vars qw($VERSION @ISA %valid_option);
-use Carp;
 
+use Carp;
 use File::Spec;
 use File::Basename;
 
-use UNIVERSAL qw(isa);
+*isa= *UNIVERSAL::isa;
 
 # constants: element types
 use constant (PCDATA  => '#PCDATA');
@@ -4151,7 +4151,8 @@ sub _dump
 ######################################################################
 package XML::Twig::Entity_list;
 ######################################################################
-use UNIVERSAL qw(isa);
+
+*isa= *UNIVERSAL::isa;
 
 sub new
   { my $class = shift;
@@ -4242,7 +4243,8 @@ sub list
 ######################################################################
 package XML::Twig::Entity;
 ######################################################################
-use UNIVERSAL qw(isa);
+
+*isa= *UNIVERSAL::isa;
 
 sub new
   { my( $class, $name, $val, $sysid, $pubid, $ndata, $param)= @_;
@@ -4319,9 +4321,9 @@ sub _dump
 ######################################################################
 package XML::Twig::Elt;
 ######################################################################
-use Carp;
 
-use UNIVERSAL qw(isa);
+use Carp;
+*isa= *UNIVERSAL::isa;
 
 use constant  PCDATA  => '#PCDATA'; 
 use constant  CDATA   => '#CDATA'; 
