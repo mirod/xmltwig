@@ -13,7 +13,7 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=49;
+my $TMAX=50;
 print "1..$TMAX\n";
 
 # escape_gt option
@@ -241,6 +241,10 @@ ok( !$t->root->att_exists( 'a5'), 'att_exists, non existent att');
   $result='';
   XML::Twig->parse( twig_handlers => { 'foo/*[@c="t"]' => sub { $result .= $_->text; } }, $doc);
   is( $result, 'ac', 'foo/*[@c="t"] condition');
+}
+
+{ my $ok= eval { XML::Twig->new->setTwigHandler( 'foo[2]' => sub {}); };
+  matches( $@, 'position selector \[2\] not supported on twig_handlers', 'position selector in handler trigger');
 }
 
 1;

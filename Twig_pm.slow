@@ -501,7 +501,7 @@ sub new
       }
       
     if( $args{TwigPrintOutsideRoots})
-      { croak "cannot use TwigPrintOutsideRoots without TwigRoots"
+      { croak "cannot use twig_print_outside_roots without twig_roots"
           unless( $self->{twig_roots});
         # if the arg is a filehandle then store it
         if( _is_fh( $args{TwigPrintOutsideRoots}) )
@@ -1364,6 +1364,7 @@ sub _parse_xpath_handler
         if( $predicate)
           { if( $DEBUG_HANDLER >= 2)  { warn "predicate is: '$predicate'\n"; }
             # changes $predicate (from an XPath expression to a Perl one)
+            if( $predicate=~ m{^\s*$REG_NUMBER\s*$}) { croak "position selector [$predicate] not supported on twig_handlers"; }
             _parse_predicate_in_handler( $predicate, $flag, $score);
             if( $DEBUG_HANDLER >= 2) { warn "predicate becomes: '$predicate'\n"; }
           }
@@ -6673,7 +6674,7 @@ sub simplify
                    );
     my %allowed_options= map { $_ => 1 } @allowed_options;
     foreach my $option (keys %options)
-      { warn "invalid option $option\n" unless( $allowed_options{$option}); }
+      { carp "invalid option $option\n" unless( $allowed_options{$option}); }
 
     $options{normalise_space} ||= $options{normalize_space} || 0;
     

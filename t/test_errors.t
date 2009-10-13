@@ -80,7 +80,7 @@ my $init_warn= $SIG{__WARN__};
 
 
 { eval {XML::Twig->new( twig_print_outside_roots => 1)};
-  matches( $@, "^cannot use TwigPrintOutsideRoots without TwigRoots", "invalid option");
+  matches( $@, "^cannot use twig_print_outside_roots without twig_roots", "invalid option");
 }
 
 { eval {XML::Twig->new( keep_spaces => 1, discard_spaces => 1 )};
