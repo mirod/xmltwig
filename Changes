@@ -14,6 +14,8 @@ added: better error message if find_nodes or get_xpath are called instead
 added: indented_close_tag pretty_print option (suggested by H.Merijn Brand)
 added: RT #49692 xml_split test on win 32 systems. Patch sent through RT 
        http://rt.cpan.org/Ticket/Display.html?id=49692
+added: using position selector (eg foo[2]) in handler triggers now raises 
+      an error
 fix:  RT #48616 handler condition of foo/* crashed the module
       reported by Osfameron
       http://rt.cpan.org/Public/Bug/Display.html?id=48616
@@ -47,7 +49,7 @@ fix:  Makefile.PL doesn't nag the poor tester anymore when running with
       $AUTOMATED_TESTING set
 fix:  bug calling set_text when using XML::Twig::XPath, spotted by Ted Sung
 fix:  improved speed when parsing big elements, RT#35672, reported by Seth 
-      Viebrock (fix is to explicitely return null from the character handler,
+      Viebrock (fi is to explicitely return null from the character handler,
       instead of the text already parsed... a few hundred thousand times)
       http://rt.cpan.org/Ticket/Display.html?id=35672
 fix:  RT #47257, minor doc bug, spotted by David Steinbrunner
