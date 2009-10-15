@@ -7146,8 +7146,10 @@ sub merge_text
         unless( isa( $e2, 'XML::Twig::Elt'));
     croak "invalid merge: can only merge 2 text elements" 
         unless( $e1->is_text && $e2->is_text && ($e1->gi eq $e2->gi));
-    my $text1= $e1->text;
-    my $text2= $e2->text;
+
+    my $text1= $e1->text; if( ! defined $text1) { $text1= ''; }
+    my $text2= $e2->text; if( ! defined $text2) { $text2= ''; }
+
     $e1->set_text( $text1 . $text2);
 
     my $extra_data= $e1->_extra_data_before_end_tag . $e2->extra_data;
