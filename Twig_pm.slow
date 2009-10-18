@@ -1,22 +1,17 @@
-# $Id: /xmltwig/trunk/Twig_pm.slow 33 2008-04-30T08:03:41.004487Z mrodrigu  $ 
-#
-# Copyright (c) 1999-2004 Michel Rodriguez
-# All rights reserved.
-#
-# This program is free software; you can redistribute it and/or
-# modify it under the same terms as Perl itself.
-#
+use strict;
+use warnings; # > perl 5.5
 
 # This is created in the caller's space
+# I realize (now!) that it's not clean, but it's been there for 10 years...
 BEGIN
-{ sub ::PCDATA { '#PCDATA' } 
-  sub ::CDATA  { '#CDATA'  } 
+{ sub ::PCDATA { '#PCDATA' }  ## no critic (Subroutines::ProhibitNestedSubs);
+  sub ::CDATA  { '#CDATA'  }  ## no critic (Subroutines::ProhibitNestedSubs);
 }
 
 use UNIVERSAL();
 
-use strict;
-use warnings; # > perl 5.5
+## if a sub returns a scalar, it better not bloody disappear in list context
+## no critic (Subroutines::ProhibitExplicitReturnUndef);
 
 ######################################################################
 package XML::Twig;
@@ -720,7 +715,7 @@ sub _parse_inplace
 
     select $original_fh;
     close $tmpfh;
-    my $mode= (stat( $file))[2] & 07777;
+    my $mode= (stat( $file))[2] & oct(7777);
     chmod $mode, $tmpfile or croak "cannot change temp file mode to $mode: $!";
 
     if( $suffix) 
@@ -1007,24 +1002,26 @@ sub add_stylesheet
 { my %used;       # module => 1 if require ok, 0 otherwise
   my %disallowed; # for testing, refuses to _use modules in this hash
 
-  sub _disallow_use
+  sub _disallow_use ## no critic (Subroutines::ProhibitNestedSubs);
     { my( @modules)= @_;
       $disallowed{$_}= 1 foreach (@modules);
     }
 
-  sub _allow_use
+  sub _allow_use  ## no critic (Subroutines::ProhibitNestedSubs);
     { my( @modules)= @_;
       $disallowed{$_}= 0 foreach (@modules);
     }
 
-  sub _use
+  sub _use  ## no critic (Subroutines::ProhibitNestedSubs);
     { my( $module, $version)= @_;
       $version ||= 0;
       if( $disallowed{$module})   { return 0; }
       if( $used{$module})         { return 1; }
       if( eval "require $module") { import $module; $used{$module}= 1; 
                                     if( $version)
-                                      { no strict 'refs';
+                                      { 
+                                        ## no critic (TestingAndDebugging::ProhibitNoStrict);
+                                        no strict 'refs';
                                         if( ${"${module}::VERSION"} >= $version ) { return 1; }
                                         else                                      { return 0; }
                                       }
@@ -1036,7 +1033,8 @@ sub add_stylesheet
 }
 
 # used to solve the [n] predicates while avoiding getting the entire list
-sub _first_n(&$@)        # needs a prototype to accept passing bare blocks
+# needs a prototype to accept passing bare blocks
+sub _first_n(&$@)       ## nocritic (Subroutines::ProhibitSubroutinePrototypes);
   { my $coderef= shift;
     my $n= shift;         
     my $i=0;
@@ -1105,7 +1103,7 @@ sub _parseurl
         else
          { # child
             close README; # no need to read
-            $|=1;
+            local $|=1;
             $agent    ||= LWP::UserAgent->new;
             my $request  = HTTP::Request->new( GET => $url);
             # _pass_url_content is called with chunks of data the same size as
@@ -1118,7 +1116,7 @@ sub _parseurl
           }
       } 
     else 
-      { $|=1;
+      { local $|=1;
         $agent    ||= LWP::UserAgent->new;
         my $request  = HTTP::Request->new( GET => $url);
         my $response = $agent->request( $request);
@@ -2402,9 +2400,8 @@ sub _space_policy
   }
 
 
-sub _twig_entity($$$$$$)
+sub _twig_entity
    { # warn " in _twig_entity...\n"; # DEBUG handler
-    
     my( $p, $name, $val, $sysid, $pubid, $ndata, $param)= @_;
     my $t=$p->{twig};
 
@@ -2760,24 +2757,24 @@ sub model
   { my $t= shift;
     my $elt= shift;
     return $t->dtd->{model}->{$elt} if( $elt);
-    return sort keys %{$t->dtd->{model}};
+    return (sort keys %{$t->dtd->{model}});
   }
 
         
 # return the entity_list object 
-sub entity_list($)
+sub entity_list
   { my $t= shift;
     return $t->{twig_entity_list};
   }
 
 # return the list of entity names 
-sub entity_names($)
+sub entity_names
   { my $t= shift;
     return $t->entity_list->entity_names;
   }
 
 # return the entity object 
-sub entity($$)
+sub entity
   { my $t= shift;
     my $entity_name= shift;
     return $t->entity_list->ent( $entity_name);
@@ -2787,6 +2784,7 @@ sub entity($$)
 sub print_prolog
   { my $t= shift;
     my $fh=  _is_fh($_[0])  ? shift : $t->{twig_output_fh} || select() || \*STDOUT;
+    ## no critic (TestingAndDebugging::ProhibitNoStrict);
     no strict 'refs';
     print {$fh} $t->prolog( @_);
   }
@@ -3114,6 +3112,7 @@ sub create_accessors
     my $elt_class= ref $twig_or_class ? $twig_or_class->{twig_elt_class}
                                       : 'XML::Twig::Elt'
                                       ;
+    ## no critic (TestingAndDebugging::ProhibitNoStrict);
     no strict 'refs';
     foreach my $att (@_)
       { _croak( "attempt to redefine existing method $att using create_accessors")
@@ -3310,7 +3309,9 @@ BEGIN
                            base current_element element_index 
                            position_in_context);
     foreach my $method (@expat_methods)
-      { no strict 'refs';
+      { 
+        ## no critic (TestingAndDebugging::ProhibitNoStrict);
+        no strict 'refs';
         *{$method}= sub { my $t= shift;
                           _croak( "calling $method after parsing is finished") unless( $t->{twig_parsing}); 
                           return $t->{twig_parser}->$method(@_); 
@@ -3592,7 +3593,9 @@ sub _twig_start_check_roots
                                       : '';
 
     if( $p->depth == 0)
-      { no strict 'refs';
+      { 
+        ## no critic (TestingAndDebugging::ProhibitNoStrict);
+        no strict 'refs';
         print {$fh} $tag if( $tag);
         pop @{$t->{_twig_context_stack}}; # will be pushed back in _twig_start
         _twig_start( $p, $gi, @_);
@@ -3607,11 +3610,14 @@ sub _twig_start_check_roots
           { $last_handler_res= $handler->($t, $gi, %att);
             last unless $last_handler_res;
           }
+        ## no critic (TestingAndDebugging::ProhibitNoStrict);
         no strict 'refs';
         print {$fh} $tag if( $tag && (!@handlers || $last_handler_res));   
       }
     else
-      { no strict 'refs';
+      { 
+        ## no critic (TestingAndDebugging::ProhibitNoStrict);
+        no strict 'refs';
         print {$fh} $tag if( $tag); 
       }  
     return;    
@@ -3640,6 +3646,7 @@ sub _twig_end_check_roots
           }
       }
     {
+      ## no critic (TestingAndDebugging::ProhibitNoStrict);
       no strict 'refs';
       print {$fh} $tag if( defined $tag);
     }
@@ -3673,7 +3680,9 @@ sub _twig_pi_check_roots
         @{$t}{@flags}= @save;;   # restore flag
       }
     else
-      { no strict 'refs';
+      { 
+        ## no critic (TestingAndDebugging::ProhibitNoStrict);
+        no strict 'refs';
         print  {$fh} $pi if( defined( $pi));
       }
     return;    
@@ -4227,9 +4236,9 @@ sub text
   }
 
 # return the list of entity names 
-sub entity_names($)
+sub entity_names
   { my $ent_list= shift;
-    return sort keys %{$ent_list->{entities}} ;
+    return (sort keys %{$ent_list->{entities}}) ;
   }
 
 
@@ -4244,7 +4253,7 @@ sub list
 package XML::Twig::Entity;
 ######################################################################
 
-*isa= *UNIVERSAL::isa;
+#*isa= *UNIVERSAL::isa;
 
 sub new
   { my( $class, $name, $val, $sysid, $pubid, $ndata, $param)= @_;
@@ -4585,7 +4594,7 @@ BEGIN
                     );
  
     #sub get_namespace
-    sub namespace
+    sub namespace ## no critic (Subroutines::ProhibitNestedSubs);
       { my $elt= shift;
         my $prefix= defined $_[0] ? shift() : $elt->ns_prefix;
         my $ns_att= $prefix ? "xmlns:$prefix" : "xmlns";
@@ -4593,7 +4602,7 @@ BEGIN
         return $expanded;
       }
 
-    sub declare_missing_ns
+    sub declare_missing_ns ## no critic (Subroutines::ProhibitNestedSubs);
       { my $root= shift;
         my %missing_prefix;
         my $map= $root->_current_ns_prefix_map;
@@ -5334,9 +5343,9 @@ sub set_atts
     return $elt;
   }
 
-sub atts      { return $_[0]->{att};           }
-sub att_names { return sort keys %{$_[0]->{att}};   }
-sub del_atts  { $_[0]->{att}={}; return $_[0]; }
+sub atts      { return $_[0]->{att};                }
+sub att_names { return (sort keys %{$_[0]->{att}}); }
+sub del_atts  { $_[0]->{att}={}; return $_[0];      }
 
 # get or set a single attribute (set works for several atts)
 sub set_att 
@@ -5419,10 +5428,10 @@ BEGIN
 { my $id_nb   = "0001";
   my $id_seed = "twig_id_";
 
-  sub set_id_seed
+  sub set_id_seed ## no critic (Subroutines::ProhibitNestedSubs);
     { $id_seed= $_[1]; $id_nb=1; }
 
-  sub add_id
+  sub add_id ## no critic (Subroutines::ProhibitNestedSubs);
     { my $elt= shift; 
       if( defined $elt->id)
         { return $elt->id; }
@@ -5586,7 +5595,7 @@ sub current_ns_prefixes
         $elt= $elt->_parent;
       }
 
-    return sort keys %prefix;
+    return (sort keys %prefix);
   }
 
 # kinda counter-intuitive actually:
@@ -5601,7 +5610,7 @@ sub current_ns_prefixes
 sub next_elt
   { my $elt= shift;
     my $subtree_root= 0;
-    $subtree_root= shift if( defined $_[0] and ref( $_[0]) && isa( $_[0], 'XML::Twig::Elt'));
+    $subtree_root= shift if( ref( $_[0]) && isa( $_[0], 'XML::Twig::Elt'));
     my $cond= shift;
     my $next_elt;
 
@@ -6504,7 +6513,7 @@ BEGIN
     
     # paste elt somewhere around ref
     # pos can be first_child (default), last_child, before, after or within
-    sub paste
+    sub paste ## no critic (Subroutines::ProhibitNestedSubs);
       { my $elt= shift;
         if( $elt->_parent) 
           { croak "cannot paste an element that belongs to a tree"; }
@@ -6971,7 +6980,7 @@ sub mark
             { push @tags, { tag => $tag }; }
         }
 
-      unless( @tags) { @tags= { tag => $elt->parent( '#ELT')->gi }; }
+      unless( @tags) { @tags= { tag => $elt->_parent->gi }; }
           
       my @result;                                 # the returned list of elements
       my $text= $elt->text;
@@ -7318,7 +7327,7 @@ BEGIN {
 
 
   # returns those pesky "global" variables so you can switch between twigs 
-  sub global_state
+  sub global_state ## no critic (Subroutines::ProhibitNestedSubs);
     { return
        { pretty                    => $pretty,
          quote                     => $quote,
@@ -7419,7 +7428,7 @@ BEGIN {
     }
 
   sub _pretty_print_styles
-    { return sort { $pretty_print_style{$a} <=> $pretty_print_style{$b} || $a cmp $b } keys %pretty_print_style; }
+    { return (sort { $pretty_print_style{$a} <=> $pretty_print_style{$b} || $a cmp $b } keys %pretty_print_style); }
       
   sub set_quote
     { my $style= $_[1] || $_[0];
@@ -8143,7 +8152,7 @@ BEGIN {
       $pcdata= $elt->last_descendant( '#TEXT');
       ($pcdata_text= $pcdata->text)=~ s{\s+$}{};
       $pcdata->set_text( $pcdata_text);
-      foreach $pcdata ($elt->descendants( '#TEXT'))
+      foreach my $pcdata ($elt->descendants( '#TEXT'))
         { ($pcdata_text= $pcdata->text)=~ s{\s+}{ }g;
           $pcdata->set_text( $pcdata_text);
         }
@@ -8818,8 +8827,8 @@ sub cmp
 
     # easy cases
     return  0 if( $a == $b);    
-    return 1 if( $a->in($b)); # a starts after b 
-    return -1 if( $b->in($a)); # a starts before b
+    return  1 if( $a->in($b)); # a in b => a starts after b 
+    return -1 if( $b->in($a)); # b in a => a starts before b
 
     # ancestors does not include the element itself
     my @a_pile= ($a, $a->ancestors); 
