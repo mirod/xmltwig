@@ -202,7 +202,7 @@ sub create_twig
           { # in this case add the proper twig_roots option
             my $cond= (keys %{$options{twig_roots}})[0];
             (my $root= $cond)=~ s{\[[^\]]*\]$}{};
-            warn "cond: '$cond' - root: '$root'\n";
+            #warn "cond: '$cond' - root: '$root'\n";
             delete $options{twig_roots};
             delete $options{twig_handlers};
             @paths= ($cond);

@@ -7,4 +7,4 @@ if( $@)
     exit;
   }
 
-pod_coverage_ok( "XML::Twig");
+pod_coverage_ok( "XML::Twig", { trustme => [ 'isa' ] });

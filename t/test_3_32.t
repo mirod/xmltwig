@@ -1,8 +1,6 @@
 #!/usr/bin/perl -w
 use strict;
 
-# $Id: /xmltwig/trunk/t/test_3_30.t 27 2007-08-30T08:07:25.079327Z mrodrigu  $
-
 use strict;
 use Carp;
 use File::Spec;
@@ -18,7 +16,7 @@ my $TMAX=1;
 print "1..$TMAX\n";
 
 if( $] >= 5.008)
-  { # test non ascii letters at the beginning of a 
+  { # test non ascii letters at the beginning of an element name in a selector
     # can't use non ascii chars in script, so the tag name needs to come from the doc!
     my $doc=q{<doc><tag>&#233;t&#233;</tag><elt>summer</elt><elt>estate</elt></doc>};
     my $t= XML::Twig->parse( $doc);

@@ -2,7 +2,7 @@
 
 # $Id: /xmltwig/trunk/t/test_need_io_scalar.t 33 2008-04-30T08:03:41.004487Z mrodrigu  $
 
-# tests that require IO::Scalar to run
+# tests that require IO::String to run
 use strict;
 use Carp;
 
@@ -16,34 +16,28 @@ my $DEBUG=0;
 use XML::Twig;
 
 BEGIN 
-  { eval "require IO::Scalar";
+  { eval "require IO::String";
     if( $@) 
       { print "1..1\nok 1\n"; 
-        warn "skipping, need IO::Scalar\n";
+        warn "skipping, need IO::String\n";
         exit;
       } 
     else
-      { import IO::Scalar; 
-        if( $IO::Scalar::VERSION < 2.0)
-          { print "1..1\nok 1\n"; 
-            warn "skipping, need IO::Scalar v 2.0+\n";
-            exit;
-          } 
-      }
+      { import IO::String; }
   }
 
 print "1..1772\n";
 
 { # test autoflush
   my $out=''; 
-  my $fh= IO::Scalar->new( \$out);  
+  my $fh= IO::String->new( \$out);  
   my $doc= "<doc><elt/></doc>";
   my $t= XML::Twig->nparse( twig_handlers => { elt => sub { $_->flush( $fh) } }, $doc);
   is( $out, $doc, "autoflush, no args");
 }
 
 { my $out=''; 
-  my $fh= new IO::Scalar \$out;  
+  my $fh= new IO::String \$out;  
   my $doc= "<doc><elt/></doc>";
   my $t= XML::Twig->nparse( twig_handlers => { elt => sub { $_->flush( $fh, empty_tags => "expand") } }, $doc);
   is( $out, "<doc><elt></elt></doc>", "autoflush, no args, expand empty tags");
@@ -51,7 +45,7 @@ print "1..1772\n";
 
 { # test bug on comments after the root element RT #17064
   my $out=''; 
-  my $fh= new IO::Scalar \$out;  
+  my $fh= new IO::String \$out;  
   my $doc= q{<doc/><!-- comment1 --><?t pi?><!--comment2 -->};
   XML::Twig->nparse( $doc)->print( $fh);
   is( $out, $doc, 'comment after root element');
@@ -78,12 +72,12 @@ print "1..1772\n";
           is( XML::Twig->nparse( %$options, $doc)->sprint, $doc, "sprint cpi $options_text $doc");
           is( XML::Twig->nparse( %$options, keep_encoding => 1, $doc)->sprint, $doc, "sprint cpi keep_encoding $options_text $doc");
           { my $out='';
-            my $fh= new IO::Scalar \$out;
+            my $fh= new IO::String \$out;
             XML::Twig->nparse( %$options, $doc)->flush( $fh);
             is( $out, $doc, "flush cpi $options_text $doc");
           }
           { my $out='';
-            my $fh= new IO::Scalar \$out;
+            my $fh= new IO::String \$out;
             XML::Twig->nparse( keep_encoding => 1, %$options, $doc)->flush( $fh);
             is( $out, $doc, "flush cpi keep_encoding $options_text $doc");
           }
@@ -93,7 +87,7 @@ print "1..1772\n";
 
 
 { my $out=''; 
-  my $fh= new IO::Scalar \$out;
+  my $fh= new IO::String \$out;
   my $doc=q{<doc><link/><link></link><script/><script></script><elt>foo</elt><elt /><elt2/><link/><link></link><script/><script></script></doc>};
   my $t= XML::Twig->new( pretty_print => 'indented', empty_tags => 'expand',
                          twig_handlers => { elt => sub { $_[0]->flush( $fh, pretty_print => 'none',
@@ -111,7 +105,7 @@ print "1..1772\n";
 }
   
 { my $out=''; 
-  my $fh= new IO::Scalar \$out;
+  my $fh= new IO::String \$out;
   select $fh;
   my $doc=q{<doc><link/><link></link><script/><script></script><elt>foo</elt><elt /><elt2/><link/><link></link><script/><script></script></doc>};
   my $t= XML::Twig->new( pretty_print => 'indented', empty_tags => 'expand',
@@ -131,7 +125,7 @@ print "1..1772\n";
 }
   
 { my $out=''; 
-  my $fh= new IO::Scalar \$out;
+  my $fh= new IO::String \$out;
   select $fh;
   my $doc=q{<doc><elt>foo</elt><elt /><elt2/></doc>};
   my $t= XML::Twig->new( pretty_print => 'indented', empty_tags => 'expand',
@@ -151,34 +145,35 @@ print "1..1772\n";
 }
   
 
-{ my $out=''; my $out2='';
-  my $fh= new IO::Scalar \$out;
-  my $fh2= new IO::Scalar \$out2;
+{ my $out=''; my $out2=''; my $out3=''; my $out4='';
+  my $fh= new IO::String \$out;
+  my $fh2= new IO::String \$out2;
+  my $fh3= new IO::String \$out3;
+  my $fh4= new IO::String \$out4;
   my $t= XML::Twig->new( empty_tags => 'expand', pretty_print => 'none')->parse( '<doc><elt/></doc>');
   $t->print( $fh);
   is( $out, "<doc><elt></elt></doc>", "empty_tags expand"); 
   $t->print( $fh2, empty_tags => 'normal', pretty_print => 'indented' );
   is( $out2, "<doc>\n  <elt/>\n</doc>\n", "print with args"); 
-  $out='';
-  $t->print( $fh);
-  is( $out, "<doc><elt></elt></doc>", "print without args"); 
-  
+
+  $t->print( $fh3);
+  is( $out3, "<doc><elt></elt></doc>", "print without args"); 
   is( $t->sprint( empty_tags => 'normal'), "<doc><elt/></doc>", "empty_tags normal"); 
-  $out=''; $t->print( $fh);
+  $t->print( $fh4);
   is( $t->sprint( pretty_print => 'indented', empty_tags => 'normal'), "<doc>\n  <elt/>\n</doc>\n", "empty_tags expand"); 
   $t->set_pretty_print( 'none');
   $t->set_empty_tag_style( 'normal');
 }
 
 { my $out=''; my $out2='';
-  my $fh= new IO::Scalar \$out;
-  my $fh2= new IO::Scalar \$out2;
+  my $fh= new IO::String \$out;
+  my $fh2= new IO::String \$out2;
   my $t= XML::Twig->new( empty_tags => 'expand', pretty_print => 'none')->parse( '<doc><elt/></doc>');
   $t->root->print( $fh);
   is( $out, "<doc><elt></elt></doc>", "empty_tags expand"); 
   $t->root->print( $fh2, 'indented');
   is( $out2, "<doc>\n  <elt></elt>\n</doc>\n", "print elt indented"); 
-  $out=''; $t->root->print( $fh);
+  $out=''; $fh= new IO::String \$out; $t->root->print( $fh);
   is( $out, "<doc><elt></elt></doc>", "back to default"); 
   $t->set_pretty_print( 'none');
   $t->set_empty_tag_style( 'normal');
@@ -187,8 +182,8 @@ print "1..1772\n";
 
 
 { my $out=''; my $out2='';
-  my $fh= new IO::Scalar \$out;
-  my $fh2= new IO::Scalar \$out;
+  my $fh= new IO::String \$out;
+  my $fh2= new IO::String \$out;
   my $t= XML::Twig->new( empty_tags => 'expand', pretty_print => 'none');
   $t->parse( '<doc><elt/></doc>')->flush( $fh);
   is( $out, "<doc><elt></elt></doc>", "empty_tags expand"); 
@@ -201,7 +196,7 @@ print "1..1772\n";
 }
 
 { my $out='';
-  my $fh= new IO::Scalar \$out;
+  my $fh= new IO::String \$out;
   my $doc= q{<doc><sect><p>p1</p><p>p2</p><flush/></sect></doc>};
   my $t= XML::Twig->new( twig_handlers => { flush => sub { $_->flush( $fh) } } );
   $t->{twig_autoflush}=0;
@@ -210,7 +205,7 @@ print "1..1772\n";
   close $fh;
 
   $out="";
-  $fh= new IO::Scalar \$out;
+  $fh= new IO::String \$out;
   $t= XML::Twig->new( twig_handlers => { flush => sub { $_[0]->flush_up_to( $_->prev_sibling, $fh) } } );
   $t->{twig_autoflush}=0;
   $t->parse( $doc);
@@ -222,7 +217,7 @@ print "1..1772\n";
 }
 
 { my $out='';
-  my $fh= new IO::Scalar \$out;
+  my $fh= new IO::String \$out;
   my $t= XML::Twig->new()->parse( q{<!DOCTYPE doc [<!ELEMENT doc (#PCDATA)*>]><doc>toto</doc>});
   $t->dtd_print( $fh);
   is( $out, "<!DOCTYPE doc [\n<!ELEMENT doc (#PCDATA)*>\n\n]>\n", "dtd_print"); 
@@ -230,7 +225,7 @@ print "1..1772\n";
 }
 
 { my $out="";
-  my $fh= new IO::Scalar \$out;
+  my $fh= new IO::String \$out;
   my $t= XML::Twig->new( twig_handlers => { stop => sub { print $fh "[X]"; $_->set_text( '[Y]'); $_[0]->flush( $fh); $_[0]->finish_print( $fh); } });
   $t->{twig_autoflush}=0;
   $t->parse( q{<doc>before<stop/>finish</doc>});
@@ -248,7 +243,7 @@ package main;
 
 { 
   my $out='';
-  my $fh= new IO::Scalar \$out;
+  my $fh= new IO::String \$out;
   my $stdout= select $fh;
   XML::Twig::_twig_print_original_default( test_handlers->new);
   select $stdout;
@@ -256,7 +251,7 @@ package main;
   is( $out, 'original_string', 'twig_print_original_default'); 
 
   $out='';
-  $fh= new IO::Scalar \$out;
+  $fh= new IO::String \$out;
   select $fh;
   XML::Twig::_twig_print( test_handlers->new);
   select $stdout;
@@ -264,7 +259,7 @@ package main;
   is( $out, 'recognized_string', 'twig_print_default'); 
 
   $out='';
-  $fh= new IO::Scalar \$out;
+  $fh= new IO::String \$out;
   select $fh;
   XML::Twig::_twig_print_end_original( test_handlers->new);
   select $stdout;
@@ -272,7 +267,7 @@ package main;
   is( $out, 'original_string', 'twig_print_end_original'); 
 
   $out='';
-  $fh= new IO::Scalar \$out;
+  $fh= new IO::String \$out;
   select $fh;
   XML::Twig::_twig_print( test_handlers->new);
   select $stdout;
@@ -297,7 +292,7 @@ XML::Twig::_twig_print_entity(); # does nothing!
 
       foreach my $ent (@entities)
         { my $out='';
-          my $fh= new IO::Scalar \$out;
+          my $fh= new IO::String \$out;
           my $stdout= select $fh;
           $ent->print;
           close $fh;
@@ -305,7 +300,7 @@ XML::Twig::_twig_print_entity(); # does nothing!
           is( normalize_xml( $out), $ent_text{$ent->name}, "print $ent->{name}"); 
         }
       my $out='';
-      my $fh= new IO::Scalar \$out;
+      my $fh= new IO::String \$out;
       my $stdout= select $fh;
       $t->entity_list->print;
       close $fh;
@@ -315,9 +310,9 @@ XML::Twig::_twig_print_entity(); # does nothing!
 }
 
 { my( $out1, $out2, $out3);
-  my $fh1= new IO::Scalar \$out1;
-  my $fh2= new IO::Scalar \$out2;
-  my $fh3= new IO::Scalar \$out3;
+  my $fh1= new IO::String \$out1;
+  my $fh2= new IO::String \$out2;
+  my $fh3= new IO::String \$out3;
 
   my $stdout= select $fh3; 
   my $t= XML::Twig->new( twig_handlers => { e => sub { $_->print( $fh2); 
@@ -338,7 +333,7 @@ XML::Twig::_twig_print_entity(); # does nothing!
 
 { my $doc= '<doc><![CDATA[toto]]>tata<!-- comment -->t<?pi data?> more</doc>';
   my $out;
-  my $fh= new IO::Scalar \$out;
+  my $fh= new IO::String \$out;
   my $t= XML::Twig->new( comments => 'process', pi => 'process')->parse( $doc);
   $t->flush( $fh);
   is( $out, $doc, 'flush with cdata');
@@ -346,7 +341,7 @@ XML::Twig::_twig_print_entity(); # does nothing!
 
 { my $out=''; 
 
-  my $fh= new IO::Scalar \$out;
+  my $fh= new IO::String \$out;
   my $doc='<doc><elt>text</elt><elt1/><elt2/><elt3>text</elt3></doc>';
   my $t= XML::Twig->new( twig_roots=> { elt2 => 1 },
                           start_tag_handlers => { elt  => sub { print $fh '<e1/>'; } },  
@@ -359,7 +354,7 @@ XML::Twig::_twig_print_entity(); # does nothing!
             'twig_print_outside_roots, start/end_tag_handlers, keep_encoding');
   close $fh;
   $out='';
-  $fh= new IO::Scalar \$out;
+  $fh= new IO::String \$out;
   $t= XML::Twig->new( twig_roots=> { elt2 => 1 },
                       start_tag_handlers => { elt  => sub { print $fh '<e1/>'; } },  
                       end_tag_handlers   => { elt3 => sub { print $fh '<e2/>'; } },  
@@ -382,7 +377,7 @@ XML::Twig::_twig_print_entity(); # does nothing!
 }
 
 { my $out=''; 
-  my $fh= new IO::Scalar \$out;
+  my $fh= new IO::String \$out;
   select $fh;
   my $doc='<?xml version="1.0"?><!DOCTYPE doc [ <!ELEMENT doc (#PCDATA)> <!ENTITY foo "bar">]><doc/>';
   my( $expected)= $doc=~ m{(<!DOCTYPE.*?\]>)};
@@ -392,7 +387,7 @@ XML::Twig::_twig_print_entity(); # does nothing!
 }
 
 { my $out=''; 
-  my $fh= new IO::Scalar \$out;
+  my $fh= new IO::String \$out;
   select $fh;
   my $doc='<doc><elt1/><elt2/></doc>';
   XML::Twig->new( twig_handlers => { elt1 => sub { $_[0]->finish_print; } })->parse( $doc);
@@ -401,7 +396,7 @@ XML::Twig::_twig_print_entity(); # does nothing!
 }
 
 { my $out=''; 
-  my $fh= new IO::Scalar \$out;
+  my $fh= new IO::String \$out;
   select $fh;
   my $doc='<doc><elt1/><elt2/></doc>';
   XML::Twig->new( keep_encoding => 1, twig_handlers => { elt1 => sub { $_[0]->finish_print; } })->parse( $doc);

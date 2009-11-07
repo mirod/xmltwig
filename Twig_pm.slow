@@ -1677,6 +1677,8 @@ sub _add_or_discard_stored_spaces
 sub _twig_start
    { # warn " in _twig_start...\n"; # DEBUG handler
     
+    #foreach my $s (@_) { next if ref $s; warn "$s: ", is_utf8( $s) ? "has flag" : "FLAG NOT SET"; } # YYY
+
     my ($p, $gi, @att)= @_;
     my $t=$p->{twig};
 
@@ -1708,7 +1710,7 @@ sub _twig_start
     # filter the input data if need be  
     if( my $filter= $t->{twig_input_filter})
       { $gi= $filter->( $gi);
-        @att= map { $filter->($_) } @att; 
+        foreach my $att (@att) { $att= $filter->($att); } 
       }
 
     if( $t->{twig_map_xmlns}) { _replace_ns( $t, \$gi, \@att); }
@@ -1787,6 +1789,7 @@ sub _twig_start
       }
 
     if( $elt->att( 'xml:space') && (  $elt->att( 'xml:space') eq 'preserve')) { $t->{twig_preserve_space}++; }
+    
 
     return;
   }
@@ -2131,7 +2134,7 @@ sub _twig_cdatastart
     my $twig_current= $t->{twig_current};
 
     if( $t->{twig_in_pcdata})
-      { # create the node as a sibling of the #PCDATA
+      { # create the node as a sibling of the PCDATA
         $cdata->set_prev_sibling( $twig_current);
         $twig_current->set_next_sibling( $cdata);
         my $parent= $twig_current->_parent;
@@ -2293,7 +2296,7 @@ sub _twig_pi_comment
           { $t->_add_cpi_outside_of_root( leading_cpi => $elt);
           }
         elsif( $t->{twig_in_pcdata})
-          { # create the node as a sibling of the #PCDATA
+          { # create the node as a sibling of the PCDATA
             $elt->paste_after( $twig_current);
             $t->{twig_in_pcdata}=0;
           }
@@ -2369,7 +2372,7 @@ sub _twig_final
 
 sub _insert_pcdata
   { my( $t, $string)= @_;
-    # create a new #PCDATA element
+    # create a new PCDATA element
     my $parent= $t->{twig_current};    # always defined
     my $elt=  $t->{twig_elt_class}->new( PCDATA);
     $elt->_set_pcdata( $string);
@@ -2895,6 +2898,8 @@ sub print
     my $old_select    = defined $fh                  ? select $fh                                 : undef;
     my $old_pretty    = defined ($args{PrettyPrint}) ? $t->set_pretty_print( $args{PrettyPrint})  : undef;
     my $old_empty_tag = defined ($args{EmptyTags})   ? $t->set_empty_tag_style( $args{EmptyTags}) : undef;
+
+    #if( !$t->{encoding} || lc( $t->{encoding}) eq 'utf-8') { my $out= $fh || \*STDOUT; binmode $out, ':utf8'; }
 
      print  $t->prolog( %args) . $t->_leading_cpi( %args);
      $t->{twig_root}->print;
@@ -4929,7 +4934,7 @@ sub set_pi
   { my $elt= shift;
     unless( $elt->{gi} == $XML::Twig::gi2index{'#PI'})
       { $elt->cut_children;
-        $elt->set_gi( '#PI');
+        $elt->set_gi( PI);
       }
     return $elt->_set_pi( @_);
   }
@@ -4951,7 +4956,7 @@ sub set_comment
   { my $elt= shift;
     unless( $elt->{gi} == $XML::Twig::gi2index{'#COMMENT'})
       { $elt->cut_children;
-        $elt->set_gi( '#COMMENT');
+        $elt->set_gi( COMMENT);
       }
     return $elt->_set_comment( @_);
   }
@@ -5436,7 +5441,10 @@ BEGIN
       if( defined $elt->id)
         { return $elt->id; }
       else
-        { $elt->set_id( $_[0] && ref( $_[0]) && isa( $_[0], 'CODE') ? $_[0]->( $elt) : $id_seed . $id_nb++); }
+        { my $id= $_[0] && ref( $_[0]) && isa( $_[0], 'CODE') ? $_[0]->( $elt) : $id_seed . $id_nb++; 
+          $elt->set_id( $id);
+          return $id;
+        }
     }
 }
 
@@ -7557,7 +7565,8 @@ BEGIN {
 
   sub start_tag
     { my( $elt, $option)= @_;
-  
+ 
+ 
       return if( $elt->{gi} < $XML::Twig::SPECIAL_GI);
 
       my $extra_data= $elt->{extra_data} || '';
@@ -7599,6 +7608,7 @@ BEGIN {
   
       $tag .= "\n" if($pretty==$NSGMLS);
 
+
       # force empty if suitable HTML tag, otherwise use the value from the input tree
       if( ($empty_tag_style eq $HTML) && !$elt->_first_child && !$elt->_extra_data_before_end_tag && $html_empty_elt{$gi})
         { $elt->{empty}= 1; }
@@ -7613,6 +7623,8 @@ BEGIN {
             ;
 
       if( $elt->_is_private) { $tag= ''; }
+
+#warn "TRACE: ", $tag,": ", Encode::is_utf8( $tag) ? "has flag" : "FLAG NOT SET";
 
       unless( $pretty) { return defined( $extra_data) ? $extra_data . $tag : $tag;  }
 
@@ -7767,7 +7779,7 @@ BEGIN {
   # opening tag
   sub print
     { my $elt= shift;
-  
+
       my $pretty;
       my $fh= _is_fh( $_[0]) ? shift : undef;
       my $old_select= defined $fh ? select $fh : undef;
@@ -7788,11 +7800,14 @@ BEGIN {
 
           if( ( ($pretty== $WRAPPED) || ($pretty==$INDENTEDC)) && !$xml_space_preserve)
             { $sprint= _wrap_text( $sprint); }
-
-          print $sprint;
+          print  $sprint;
         }
       else
-        { print @sprint; }
+        { 
+#foreach my $s (@sprint) { print "TRACE s $s: ", Encode::is_utf8( $s) ? "has flag\n" : "FLAG NOT SET\n"; }
+          print @sprint; 
+#warn "FATTO";
+        }
 
       $xml_space_preserve= 0;
     
