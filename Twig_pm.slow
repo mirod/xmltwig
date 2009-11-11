@@ -347,7 +347,7 @@ my $ID= 'id'; # default value, set by the Id argument
       DiscardSpacesIn       => 1, KeepSpacesIn          => 1, 
       PrettyPrint           => 1, EmptyTags             => 1, 
       EscapeGt              => 1,
-      Quote                 => 'double',
+      Quote                 => 1,
       Comments              => 1, Pi                    => 1, 
       OutputFilter          => 1, InputFilter           => 1,
       OutputTextFilter      => 1, 
@@ -602,7 +602,6 @@ sub new
 
     if( $args{PrettyPrint})    { $self->set_pretty_print( $args{PrettyPrint}); }
     if( $args{EscapeGt})       { $self->escape_gt( $args{EscapeGt});           }
-    if( $args{Quote})          { $self->set_quote( $args{Quote});              } 
     if( $args{EmptyTags})      { $self->set_empty_tag_style( $args{EmptyTags}) }
 
     if( exists $args{Id})      { $ID= $args{Id};                     delete $args{ID};             }
@@ -616,6 +615,8 @@ sub new
     if( my $output_encoding= $args{OutputEncoding}) { $self->set_output_encoding( $output_encoding); delete $args{OutputFilter}; }
 
     if( my $tdh= $args{TopDownHandlers}) { $self->{twig_tdh}=1; delete $args{TopDownHandlers}; }
+
+    $self->set_quote( $args{Quote} || 'double');
 
     # set handlers
     if( $self->{twig_roots})
@@ -7576,7 +7577,7 @@ BEGIN {
                   :                       ' '
                   ;
 
-      my $replace_in_att_value= $replaced_ents;
+      my $replace_in_att_value= $replaced_ents . $quote;
       if( $option->{escape_gt} && $replaced_ents !~ m{>}) { $replace_in_att_value.= '>'; }
 
       my $tag;

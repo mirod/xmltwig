@@ -104,7 +104,6 @@ t/test_bugs_3_18.t
 t/test_bugs_3_19.t
 t/test_bugs_3_21.t
 t/test_bugs_3_22.t
-t/test_bugs_3_23.t
 t/test_error_with_unicode_layer
 t/test_new_features_3_15.t
 t/test_new_features_3_16.t

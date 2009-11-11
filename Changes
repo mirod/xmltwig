@@ -16,6 +16,9 @@ added: RT #49692 xml_split test on win 32 systems. Patch sent through RT
        http://rt.cpan.org/Ticket/Display.html?id=49692
 added: using position selector (eg foo[2]) in handler triggers now raises 
       an error, spotted by Selvakumar
+fix:  RT #51432 attributes containing quote character don't escape properly
+      found, and patch provided by Jeremy Kahn
+      https://rt.cpan.org/Ticket/Display.html?id=51432
 fix:  RT #48616 handler condition of foo/* crashed the module
       reported by Osfameron
       http://rt.cpan.org/Public/Bug/Display.html?id=48616
