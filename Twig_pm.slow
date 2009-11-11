@@ -29,25 +29,6 @@ use File::Basename;
 
 *isa= *UNIVERSAL::isa;
 
-# constants: element types
-use constant (PCDATA  => '#PCDATA');
-use constant (CDATA   => '#CDATA');
-use constant (PI      => '#PI');
-use constant (COMMENT => '#COMMENT');
-use constant (ENT     => '#ENT');
-
-# element classes
-use constant (ELT     => '#ELT');
-use constant (TEXT    => '#TEXT');
-
-# element properties
-use constant (ASIS    => '#ASIS');
-use constant (EMPTY   => '#EMPTY');
-
-# used in parseurl to set the buffer size to the same size as in XML::Parser::Expat
-use constant (BUFSIZE => 32768);
-
-
 # used to store the gi's
 my %gi2index;   # gi => index
 my @index2gi;   # list of gi's
@@ -104,6 +85,9 @@ my( $FB_HTMLCREF, $FB_XMLCREF);
 
 my $NO_WARNINGS= $] >= 5.006 ? 'no warnings' : 'local $^W=0';
 
+# constants
+my( $PCDATA, $CDATA, $PI, $COMMENT, $ENT, $ELT, $TEXT, $ASIS, $EMPTY, $BUFSIZE);
+
 BEGIN
 { 
 $VERSION = '3.33';
@@ -138,11 +122,29 @@ import XML::Twig::Entity_list;
 # should be set for each twig really, at least when there are several
 # the init ensures that special gi's are always the same
 
+# constants: element types
+$PCDATA  = '#PCDATA';
+$CDATA   = '#CDATA';
+$PI      = '#PI';
+$COMMENT = '#COMMENT';
+$ENT     = '#ENT';
+
+# element classes
+$ELT     = '#ELT';
+$TEXT    = '#TEXT';
+
+# element properties
+$ASIS    = '#ASIS';
+$EMPTY   = '#EMPTY';
+
+# used in parseurl to set the buffer size to the same size as in XML::Parser::Expat
+$BUFSIZE = 32768;
+
+
 # gi => index
-# do NOT use => or the constants become quoted!
-%XML::Twig::gi2index=( '', 0, PCDATA, 1, CDATA, 2, PI, 3, COMMENT, 4, ENT, 5); 
+%XML::Twig::gi2index=( '', 0, $PCDATA => 1, $CDATA => 2, $PI => 3, $COMMENT => 4, $ENT => 5); 
 # list of gi's
-@XML::Twig::index2gi=( '', PCDATA, CDATA, PI, COMMENT, ENT);
+@XML::Twig::index2gi=( '', $PCDATA, $CDATA, $PI, $COMMENT, $ENT);
 
 # gi's under this value are special 
 $XML::Twig::SPECIAL_GI= @XML::Twig::index2gi;
@@ -989,7 +991,7 @@ sub _indent_xhtml
 sub add_stylesheet
   { my( $t, $type, $href)= @_;
     my %text_type= map { $_ => 1 } qw( xsl css);
-    my $ss= $t->{twig_elt_class}->new( '#PI');
+    my $ss= $t->{twig_elt_class}->new( $PI);
     if( $text_type{$type}) 
       { $ss->_set_pi( 'xml-stylesheet', qq{type="text/$type" href="$href"}); }
     else
@@ -1109,7 +1111,7 @@ sub _parseurl
             # _pass_url_content is called with chunks of data the same size as
             # the XML::Parser buffer 
             my $response = $agent->request( $request, 
-                             sub { _pass_url_content( \*WRITEME, @_); }, BUFSIZE);
+                             sub { _pass_url_content( \*WRITEME, @_); }, $BUFSIZE);
             $response->is_success or croak "$url ", $response->message;
             close WRITEME;
             CORE::exit(); # CORE is there for mod_perl (which redefines exit)
@@ -1208,7 +1210,7 @@ sub _set_handler
 
 sub _set_special_handler
   { my( $handlers, $path, $handler, $prev_handler)= @_;
-    if( $path =~ m{^\s*($ALL|$DEFAULT|#COMMENT)\s*$}io )
+    if( $path =~ m{^\s*($ALL|$DEFAULT|$COMMENT)\s*$}io )
       { $handlers->{handlers}->{$1}= $handler; 
         return 1;
       }
@@ -1253,7 +1255,7 @@ sub _set_pi_handler
   { my( $handlers, $path, $handler, $prev_handler)= @_;
     # PI conditions ( '?target' => \&handler or '?' => \&handler
     #             or '#PItarget' => \&handler or '#PI' => \&handler)
-    if( $path=~ /^\s*(?:\?|#PI)\s*(?:([^\s]*)\s*)$/)
+    if( $path=~ /^\s*(?:\?|$PI)\s*(?:([^\s]*)\s*)$/)
       { my $target= $1 || '';
         # update the path_handlers count, knowing that
         # either the previous or the new handler can be undef
@@ -2130,7 +2132,7 @@ sub _twig_cdatastart
     my $t=$p->{twig};
 
     $t->{twig_in_cdata}=1;
-    my $cdata=  $t->{twig_elt_class}->new( '#CDATA');
+    my $cdata=  $t->{twig_elt_class}->new( $CDATA);
     my $twig_current= $t->{twig_current};
 
     if( $t->{twig_in_pcdata})
@@ -2180,11 +2182,11 @@ sub _twig_cdataend
     my $cdata= $elt->cdata;
     $elt->_set_cdata( $cdata);
 
-    push @{$t->{_twig_context_stack}}, { _tag => '#CDATA' };
+    push @{$t->{_twig_context_stack}}, { _tag => $CDATA };
 
     if( $t->{twig_handlers})
       { # look for handlers
-        my @handlers= _handler( $t, $t->{twig_handlers}, CDATA);
+        my @handlers= _handler( $t, $t->{twig_handlers}, $CDATA);
         local $_= $elt; # so we can use $_ in the handlers
         foreach my $handler ( @handlers) { $handler->($t, $elt) || last; }
       }
@@ -2217,13 +2219,13 @@ sub _pi_text_handler
 
 sub _comment_elt_handler
   { my( $t, $comment)= @_; 
-    if( my $handler= $t->{twig_handlers}->{handlers}->{'#COMMENT'})
+    if( my $handler= $t->{twig_handlers}->{handlers}->{$COMMENT})
       { local $_= $comment; $handler->($t, $comment); }
   }
 
 sub _comment_text_handler
   { my( $t, $comment)= @_; 
-    if( my $handler= $t->{twig_handlers}->{handlers}->{'#COMMENT'})
+    if( my $handler= $t->{twig_handlers}->{handlers}->{$COMMENT})
       { $comment= $handler->($t, $comment); 
         if( !defined $comment || $comment eq '') { return ''; }
       }
@@ -2240,7 +2242,7 @@ sub _twig_comment
 
     if( $t->{twig_keep_encoding}) { $comment_text= substr( $p->original_string(), 4, -3); }
     
-    $t->_twig_pi_comment( $p, '#COMMENT', $t->{twig_keep_comments}, $t->{twig_process_comments},
+    $t->_twig_pi_comment( $p, $COMMENT, $t->{twig_keep_comments}, $t->{twig_process_comments},
                           '_set_comment', '_comment_elt_handler', '_comment_text_handler', $comment_text
                         );
     return;
@@ -2257,7 +2259,7 @@ sub _twig_pi
         ($target, $data)= split( /\s+/, $pi_text, 2);
       }
 
-    $t->_twig_pi_comment( $p, '#PI', $t->{twig_keep_pi}, $t->{twig_process_pi},
+    $t->_twig_pi_comment( $p, $PI, $t->{twig_keep_pi}, $t->{twig_process_pi},
                           '_set_pi', '_pi_elt_handlers', '_pi_text_handler', $target, $data
                         );
     return;
@@ -2374,7 +2376,7 @@ sub _insert_pcdata
   { my( $t, $string)= @_;
     # create a new PCDATA element
     my $parent= $t->{twig_current};    # always defined
-    my $elt=  $t->{twig_elt_class}->new( PCDATA);
+    my $elt=  $t->{twig_elt_class}->new( $PCDATA);
     $elt->_set_pcdata( $string);
     my $prev_sibling= $parent->_last_child;
     if( $prev_sibling) 
@@ -2635,7 +2637,7 @@ sub _twig_insert_ent
 
     my $twig_current= $t->{twig_current};
 
-    my $ent=  $t->{twig_elt_class}->new( '#ENT');
+    my $ent=  $t->{twig_elt_class}->new( $ENT);
     $ent->set_ent( $string);
 
     _add_or_discard_stored_spaces( $t);
@@ -2667,7 +2669,7 @@ sub _twig_insert_ent
       }
 
     # meant to trigger entity handler, does not seem to be activated at this time
-    #if( my $handler= $t->{twig_handlers}->{gi}->{'#ENT'})
+    #if( my $handler= $t->{twig_handlers}->{gi}->{$ENT})
     #  { local $_= $ent; $handler->( $t, $ent); }
 
     return $ent;
@@ -2881,10 +2883,6 @@ sub _trailing_cpi_text
 sub print_to_file
   { my( $t, $filename)= (shift, shift);
     open( TWIG_PRINT_TO_FILE, ">$filename") or _croak( "cannot create file $filename: $!");
-    if( $] > 5.006 && ! $t->{twig_keep_encoding}) 
-      { if( grep /useperlio=define/, `$^X -V`) # we can only use binmode :utf8 if perl was compiled with useperlio
-          { binmode( TWIG_PRINT_TO_FILE, ":utf8" ); }
-      }
     $t->print( \*TWIG_PRINT_TO_FILE, @_);
     close TWIG_PRINT_TO_FILE;
     return $t;
@@ -2900,6 +2898,11 @@ sub print
     my $old_empty_tag = defined ($args{EmptyTags})   ? $t->set_empty_tag_style( $args{EmptyTags}) : undef;
 
     #if( !$t->{encoding} || lc( $t->{encoding}) eq 'utf-8') { my $out= $fh || \*STDOUT; binmode $out, ':utf8'; }
+
+    if( $] > 5.006 && ! $t->{twig_keep_encoding}) 
+      { if( grep /useperlio=define/, `$^X -V`) # we can only use binmode :utf8 if perl was compiled with useperlio
+          { binmode( $fh || \*STDOUT, ":utf8" ); }
+      }
 
      print  $t->prolog( %args) . $t->_leading_cpi( %args);
      $t->{twig_root}->print;
@@ -4339,27 +4342,14 @@ package XML::Twig::Elt;
 use Carp;
 *isa= *UNIVERSAL::isa;
 
-use constant  PCDATA  => '#PCDATA'; 
-use constant  CDATA   => '#CDATA'; 
-use constant  PI      => '#PI'; 
-use constant  COMMENT => '#COMMENT'; 
-use constant  ENT     => '#ENT'; 
+my $CDATA_START    = "<![CDATA[";
+my $CDATA_END      = "]]>";
+my $PI_START       = "<?";
+my $PI_END         = "?>";
+my $COMMENT_START  = "<!--";
+my $COMMENT_END    = "-->";
 
-use constant  ASIS    => '#ASIS';    # pcdata elements not to be XML-escaped
-
-use constant  ELT     => '#ELT'; 
-use constant  TEXT    => '#TEXT'; 
-use constant  EMPTY   => '#EMPTY'; 
-
-use constant CDATA_START    => "<![CDATA[";
-use constant CDATA_END      => "]]>";
-use constant PI_START       => "<?";
-use constant PI_END         => "?>";
-use constant COMMENT_START  => "<!--";
-use constant COMMENT_END    => "-->";
-
-use constant XMLNS_URI      => 'http://www.w3.org/2000/xmlns/';
-my $XMLNS_URI               = XMLNS_URI;
+my $XMLNS_URI      = 'http://www.w3.org/2000/xmlns/';
 
 
 BEGIN
@@ -4451,29 +4441,29 @@ sub new
 
     my $atts= ref $_[0] eq 'HASH' ? shift : undef;
 
-    if( $atts && defined $atts->{'#CDATA'})
-      { delete $atts->{'#CDATA'};
+    if( $atts && defined $atts->{$CDATA})
+      { delete $atts->{$CDATA};
 
-        my $cdata= $class->new( '#CDATA', @_);
+        my $cdata= $class->new( $CDATA => @_);
         return $class->new( $gi, $atts, $cdata);
       }
 
-    if( $gi eq PCDATA)
-      { if( grep { ref $_ } @_) { croak "element #PCDATA can only be created from text"; }
+    if( $gi eq $PCDATA)
+      { if( grep { ref $_ } @_) { croak "element $PCDATA can only be created from text"; }
         $elt->_set_pcdata( join( '', @_)); 
       }
-    elsif( $gi eq ENT)
+    elsif( $gi eq $ENT)
       { $elt->set_ent( shift); }
-    elsif( $gi eq CDATA)
-      { if( grep { ref $_ } @_) { croak "element #CDATA can only be created from text"; }
+    elsif( $gi eq $CDATA)
+      { if( grep { ref $_ } @_) { croak "element $CDATA can only be created from text"; }
         $elt->_set_cdata( join( '', @_)); 
       }
-    elsif( $gi eq COMMENT)
-      { if( grep { ref $_ } @_) { croak "element #COMMENT can only be created from text"; }
+    elsif( $gi eq $COMMENT)
+      { if( grep { ref $_ } @_) { croak "element $COMMENT can only be created from text"; }
         $elt->_set_comment( join( '', @_)); 
       }
-    elsif( $gi eq PI)
-      { if( grep { ref $_ } @_) { croak "element #PI can only be created from text"; }
+    elsif( $gi eq $PI)
+      { if( grep { ref $_ } @_) { croak "element $PI can only be created from text"; }
         $elt->_set_pi( shift, join( '', @_));
       }
     else
@@ -4486,8 +4476,8 @@ sub new
 
     if( $atts)
       { # the attribute hash can be used to pass the asis status 
-        if( defined $atts->{'#ASIS'})  { $elt->set_asis(  $atts->{'#ASIS'} ); delete $atts->{'#ASIS'};  }
-        if( defined $atts->{'#EMPTY'}) { $elt->set_empty( $atts->{'#EMPTY'}); delete $atts->{'#EMPTY'}; }
+        if( defined $atts->{$ASIS})  { $elt->set_asis(  $atts->{$ASIS} ); delete $atts->{$ASIS};  }
+        if( defined $atts->{$EMPTY}) { $elt->set_empty( $atts->{$EMPTY}); delete $atts->{$EMPTY}; }
         if( keys %$atts) { $elt->set_atts( $atts); }
         $elt->_set_id( $atts->{$ID}) if( $atts->{$ID});
       }
@@ -4501,7 +4491,7 @@ sub _new_pcdata
     $class= ref $class || $class;
     my $elt  = {};
     bless $elt, $class;
-    $elt->set_gi( PCDATA);
+    $elt->set_gi( $PCDATA);
     $elt->_set_pcdata( $_[1]);
     return $elt;
   }
@@ -4671,7 +4661,7 @@ sub set_ns_as_default
 # return #ELT for an element and #PCDATA... for others
 sub get_type
   { my $gi_nb= $_[0]->{gi}; # the number, not the string
-    return ELT if( $gi_nb >= $XML::Twig::SPECIAL_GI);
+    return $ELT if( $gi_nb >= $XML::Twig::SPECIAL_GI);
     return $_[0]->gi;
   }
 
@@ -4731,7 +4721,7 @@ sub set_asis
     foreach my $descendant ($elt, $elt->_descendants )
       { $descendant->{asis}= 1;
         if( $descendant->is_cdata)
-          { $descendant->set_gi( PCDATA);
+          { $descendant->set_gi( $PCDATA);
             $descendant->_set_pcdata( $descendant->cdata);
           }
 
@@ -4932,9 +4922,9 @@ sub data { return $_[0]->{data}; }
 
 sub set_pi
   { my $elt= shift;
-    unless( $elt->{gi} == $XML::Twig::gi2index{'#PI'})
+    unless( $elt->{gi} == $XML::Twig::gi2index{$PI})
       { $elt->cut_children;
-        $elt->set_gi( PI);
+        $elt->set_gi( $PI);
       }
     return $elt->_set_pi( @_);
   }
@@ -4945,25 +4935,25 @@ sub _set_pi
     return $_[0]; 
   }
 
-sub pi_string { my $string= PI_START . $_[0]->target;
+sub pi_string { my $string= $PI_START . $_[0]->target;
                 my $data= $_[0]->data;
                 if( defined( $data) && $data ne '') { $string .= " $data"; }
-                $string .= PI_END ;
+                $string .= $PI_END ;
                 return $string;
               }
 
 sub set_comment
   { my $elt= shift;
-    unless( $elt->{gi} == $XML::Twig::gi2index{'#COMMENT'})
+    unless( $elt->{gi} == $XML::Twig::gi2index{$COMMENT})
       { $elt->cut_children;
-        $elt->set_gi( COMMENT);
+        $elt->set_gi( $COMMENT);
       }
     return $elt->_set_comment( @_);
   }
 
 sub _set_comment   { $_[0]->{comment}= $_[1]; return $_[0]; }
 sub comment        { return $_[0]->{comment}; }
-sub comment_string { return COMMENT_START . $_[0]->comment . COMMENT_END; }
+sub comment_string { return $COMMENT_START . $_[0]->comment . $COMMENT_END; }
 
 sub set_ent  { $_[0]->{ent}= $_[1]; return $_[0]; }
 sub ent      { return $_[0]->{ent}; }
@@ -4971,9 +4961,9 @@ sub ent_name { return substr( $_[0]->ent, 1, -1);}
 
 sub set_cdata 
   { my $elt= shift;
-    unless( $elt->{gi} == $XML::Twig::gi2index{'#CDATA'})
+    unless( $elt->{gi} == $XML::Twig::gi2index{$CDATA})
       { $elt->cut_children;
-        $elt->insert_new_elt( first_child => '#CDATA', @_);
+        $elt->insert_new_elt( first_child => $CDATA, @_);
         return $elt;
       }
     return $elt->_set_cdata( @_);
@@ -5073,9 +5063,9 @@ sub reset_cond_cache { %cond_cache=(); }
         { $test = qq{(\$_[0]->gi=~ /$cond/)}; }
       else
         { # the condition is a string
-          if( $cond eq ELT)     
+          if( $cond eq $ELT)     
             { $test = qq{\$_[0]->is_elt}; }
-          elsif( $cond eq TEXT) 
+          elsif( $cond eq $TEXT) 
             { $test = qq{\$_[0]->is_text}; }
           elsif( $cond=~ m{^\s*($REG_NAME_W)\s*$}o)                  
             { # gi
@@ -6483,9 +6473,9 @@ sub _move_extra_data_after_erase
       { my $target= $elt->_first_child || $elt->_next_sibling;
         if( $target)
           {
-            if( $target->is( '#ELT'))
+            if( $target->is( $ELT))
               { $target->set_extra_data( $extra_data . ($target->extra_data || '')); }
-            elsif( $target->is( '#TEXT'))
+            elsif( $target->is( $TEXT))
               { $target->_unshift_extra_data_in_pcdata( $extra_data, 0); }  # TO CHECK
           }
         else
@@ -6497,9 +6487,9 @@ sub _move_extra_data_after_erase
      # extra_data_before_end_tag
     if( my $extra_data= $elt->_extra_data_before_end_tag) 
       { if( my $target= $elt->_next_sibling)
-          { if( $target->is( '#ELT'))
+          { if( $target->is( $ELT))
               { $target->set_extra_data( $extra_data . ($target->extra_data || '')); }
-            elsif( $target->is( '#TEXT'))
+            elsif( $target->is( $TEXT))
               { 
                 $target->_unshift_extra_data_in_pcdata( $extra_data, 0);
              }
@@ -6667,7 +6657,7 @@ BEGIN
 
     sub paste_within
       { my( $elt, $ref, $offset)= @_;
-        my $text= $ref->is_text ? $ref : $ref->next_elt( '#TEXT', $ref);
+        my $text= $ref->is_text ? $ref : $ref->next_elt( $TEXT, $ref);
         my $new= $text->split_at( $offset);
         $elt->paste_before( $new);
         return $elt;
@@ -6931,7 +6921,7 @@ sub _store_var
 # split a text element at a given offset
 sub split_at
   { my( $elt, $offset)= @_;
-    my $text_elt= $elt->is_text ? $elt : $elt->first_child( TEXT) || return '';
+    my $text_elt= $elt->is_text ? $elt : $elt->first_child( $TEXT) || return '';
     my $string= $text_elt->text; 
     my $left_string= substr( $string, 0, $offset);
     my $right_string= substr( $string, $offset);
@@ -6949,7 +6939,7 @@ sub split
     my @text_chunks;
     my @result;
     if( $elt->is_text) { @text_chunks= ($elt); }
-    else               { @text_chunks= $elt->descendants( '#TEXT'); }
+    else               { @text_chunks= $elt->descendants( $TEXT); }
     foreach my $text_chunk (@text_chunks)
       { push @result, $text_chunk->_split( 1, @_); }
     return @result;
@@ -6962,7 +6952,7 @@ sub mark
     my @text_chunks;
     my @result;
     if( $elt->is_text) { @text_chunks= ($elt); }
-    else               { @text_chunks= $elt->descendants( '#TEXT'); }
+    else               { @text_chunks= $elt->descendants( $TEXT); }
     foreach my $text_chunk (@text_chunks)
       { push @result, $text_chunk->_split( 0, @_); }
     return @result;
@@ -7067,7 +7057,7 @@ sub mark
   
       my $replacement_string;
       my $is_string= _is_string( $replace);
-      foreach my $text_elt ($elt->descendants_or_self( '#TEXT'))
+      foreach my $text_elt ($elt->descendants_or_self( $TEXT))
         { if( $is_string)
             { my $text= $text_elt->text;
               $text=~ s{$regexp}{ _replace_var( $replace, $1, $2, $3, $4, $5, $6, $7, $8, $9)}egx;
@@ -8070,7 +8060,7 @@ BEGIN {
       if( $remove_cdata)
         { $cdata=~ s/([$replaced_ents])/$XML::Twig::base_ent{$1}/g; }
       else
-        { $cdata= CDATA_START . $cdata . CDATA_END; }
+        { $cdata= $CDATA_START . $cdata . $CDATA_END; }
       return $cdata;
    }
 
@@ -8161,13 +8151,13 @@ BEGIN {
 
   sub trim
     { my( $elt)= @_;
-      my $pcdata= $elt->first_descendant( '#TEXT');
+      my $pcdata= $elt->first_descendant( $TEXT);
       (my $pcdata_text= $pcdata->text)=~ s{^\s+}{}s;
       $pcdata->set_text( $pcdata_text);
-      $pcdata= $elt->last_descendant( '#TEXT');
+      $pcdata= $elt->last_descendant( $TEXT);
       ($pcdata_text= $pcdata->text)=~ s{\s+$}{};
       $pcdata->set_text( $pcdata_text);
-      foreach my $pcdata ($elt->descendants( '#TEXT'))
+      foreach my $pcdata ($elt->descendants( $TEXT))
         { ($pcdata_text= $pcdata->text)=~ s{\s+}{ }g;
           $pcdata->set_text( $pcdata_text);
         }
@@ -8178,7 +8168,7 @@ BEGIN {
   # remove cdata sections (turns them into regular pcdata) in an element 
   sub remove_cdata 
     { my $elt= shift;
-      foreach my $cdata ($elt->descendants_or_self( CDATA))
+      foreach my $cdata ($elt->descendants_or_self( $CDATA))
         { if( $keep_encoding)
             { my $data= $cdata->cdata;
               $data=~ s{([&<"'])}{$XML::Twig::base_ent{$1}}g;
@@ -8186,7 +8176,7 @@ BEGIN {
             }
           else
             { $cdata->set_pcdata( $cdata->cdata); }
-          $cdata->set_gi( PCDATA);
+          $cdata->set_gi( $PCDATA);
           undef $cdata->{cdata};
         }
     }
@@ -8199,7 +8189,7 @@ sub _is_private_name { return $_[0]=~ m{^#(?!default:)};                }
 
 sub normalize
   { my( $elt)= @_;
-    my @descendants= $elt->descendants( '#PCDATA');
+    my @descendants= $elt->descendants( $PCDATA);
     while( my $desc= shift @descendants)
       { while( @descendants && $desc->_next_sibling && $desc->_next_sibling== $descendants[0])
           { my $to_merge= shift @descendants;
@@ -8370,18 +8360,18 @@ sub contains_text
 sub set_text
   { my( $elt, $string, %option)= @_;
 
-    if( $elt->gi eq PCDATA) 
+    if( $elt->gi eq $PCDATA) 
       { return $elt->set_pcdata( $string); }
-    elsif( $elt->gi eq CDATA)  
+    elsif( $elt->gi eq $CDATA)  
       { if( $option{force_pcdata})
-          { $elt->set_gi( PCDATA);
+          { $elt->set_gi( $PCDATA);
             $elt->_set_cdata('');
             return $elt->set_pcdata( $string);
           }
         else
           { return $elt->_set_cdata( $string); }
       }
-    elsif( $elt->contains_a_single( PCDATA) )
+    elsif( $elt->contains_a_single( $PCDATA) )
       { # optimized so we have a slight chance of not loosing embedded comments and pi's
         $elt->_first_child->set_pcdata( $string);
         return $elt;
@@ -8413,17 +8403,17 @@ sub set_content
       }
 
     # check next argument for #EMPTY
-    if( !(ref $_[0]) && ($_[0] eq EMPTY) ) 
+    if( !(ref $_[0]) && ($_[0] eq $EMPTY) ) 
       { $elt->set_empty; return $elt; }
 
     # case where we really want to do a set_text, the element is '#PCDATA'
     # or contains a single PCDATA and we only want to add text in it
-    if( ($elt->gi eq PCDATA || $elt->contains_a_single( PCDATA)) 
+    if( ($elt->gi eq $PCDATA || $elt->contains_a_single( $PCDATA)) 
         && (@_ == 1) && !( ref $_[0]))
       { $elt->set_text( $_[0]);
         return $elt;
       }
-    elsif( ($elt->gi eq CDATA) && (@_ == 1) && !( ref $_[0]))
+    elsif( ($elt->gi eq $CDATA) && (@_ == 1) && !( ref $_[0]))
       { $elt->_set_cdata( $_[0]);
         return $elt;
       }
