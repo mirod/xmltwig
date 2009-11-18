@@ -9037,7 +9037,7 @@ The document can also be transformed through the use of the L<cut|/cut>,
 L<copy|/copy>, L<paste|/paste> and L<move|/move> methods: 
 C<< $title->cut; $title->paste( after => $p); >> for example
 
-And much, much more, see L<Elt|/Elt>.
+And much, much more, see L<XML::Twig::Elt>.
 
 =head2 Processing an XML document chunk by chunk
 
@@ -9063,7 +9063,7 @@ relevant element has been parsed.
   $t->parsefile( 'doc.xml');
   $t->flush; # don't forget to flush one last time in the end or anything
              # after the last </section> tag will not be output 
-    
+
   # the handler is called once a section is completely parsed, ie when 
   # the end tag for section is found, it receives the twig itself and
   # the element (including all its sub-elements) as arguments
@@ -9077,7 +9077,7 @@ relevant element has been parsed.
       $section->flush;            # outputs the section and frees memory
     }
 
-        
+
 There is of course more to it: you can trigger handlers on more elaborate 
 conditions than just the name of the element, C<section/title> for example.
 
@@ -9112,7 +9112,7 @@ Anything outside of the twig roots will just be ignored:
            }
                       );
   $t->parsefile( 'doc.xml');
-  
+
   sub print_n_purge 
     { my( $t, $elt)= @_;
       print $elt->text;    # print the text (including sub-element texts)
@@ -9137,7 +9137,7 @@ This would convert prices in $ to prices in Euro in a document:
            twig_print_outside_roots => 1,               # print the rest
                       );
   $t->parsefile( 'doc.xml');
- 
+
   sub convert 
     { my( $t, $price)= @_;
       my $currency=  $price->att( 'currency');          # get the currency
@@ -9188,7 +9188,7 @@ Finally:
 =over 4
 
 =item XML::Twig does B<NOT> work with expat 1.95.4
-  
+
 =item  XML::Twig only works with XML::Parser 2.27 in perl 5.6.*  
 
 Note that I can't compile XML::Parser 2.27 anymore, so I can't guarantee 
@@ -9381,7 +9381,7 @@ statement of the code to be copied and passed to the code managing handlers.
 It can really pay to have 1 instead of a long string returned.
 
 When an element is CLOSED the corresponding handler is called, with 2
-arguments: the twig and the C<L</Element|/Element> >. The twig includes the 
+arguments: the twig and the C<L<Element> >. The twig includes the 
 document tree that has been built so far, the element is the complete sub-tree
 for the element. This means that handlers for inner elements are called before
 handlers for outer elements.
@@ -9436,7 +9436,7 @@ Note: you can set handlers (twig_handlers) using twig_roots
                                    }
                                );
            $t->parsefile( file);
- 
+
 
 =item twig_print_outside_roots
 
@@ -9455,7 +9455,7 @@ value this will print the document outside of the C<twig_roots> elements.
                $title->print;
              }
            }
-               
+
 
 This example prints the document outside of the title element, calls 
 C<number_title> for each C<title> element, prints it, and then resumes printing
@@ -9775,7 +9775,7 @@ Note that to do this the module will generate a temporary file in the current
 directory. If this is a problem let me know and I will add an option to
 specify an alternate directory.
 
-See L<DTD Handling|DTD Handling> for more information
+See L<DTD Handling> for more information
 
 =item DTD_handler
 
@@ -9819,7 +9819,7 @@ This argument sets C<keep_spaces> to true but will cause the twig builder to
 discard spaces in the elements listed.
 
 The syntax for using this argument is:
- 
+
   XML::Twig->new( discard_spaces_in => [ 'elt1', 'elt2']);
 
 =item keep_spaces_in
@@ -10234,7 +10234,7 @@ whether it is a filehandle, a string, an HTML file, an HTML URL, an URL or a
 file.
 
 Examples:
- 
+
    XML::Twig->nparse( "file.xml");
    XML::Twig->nparse( error_context => 1, "file://file.xml");
 
@@ -10495,14 +10495,14 @@ memory when you C<purge>.
 
 Prints the whole document associated with the twig. To be used only AFTER the
 parse.
- 
+
 options: see C<flush>.
 
 =item print_to_file    ($filename, %options)
 
 Prints the whole document associated with the twig to file C<$filename>.
 To be used only AFTER the parse.
- 
+
 options: see C<flush>.
 
 =item sprint
@@ -11430,7 +11430,7 @@ DATA::dumper or YAML to dump the data structure)
 =item content_key
 
 =item forcearray 
-                             
+
 =item keyattr 
 
 =item noattr 
@@ -11461,7 +11461,7 @@ use C<< var => 'name' >> to get $prefix replaced by /usr/local in the
 generated data structure  
 
 By default variables are captured by the following regexp: /$(\w+)/
-    
+
 =item var_regexp (regexp)
 
 This option changes the regexp used to capture variables. The variable
@@ -11710,7 +11710,7 @@ All children are sorted.
 Return the element, with its children sorted.
 
 
-L<%options> are
+C<%options> are
 
   type  : numeric |  alpha     (default: alpha)
   order : normal  |  reverse   (default: normal)
@@ -11721,7 +11721,7 @@ Return the element, with its children sorted
 =item sort_children_on_att ($att, %options)
 
 Sort the children of the  element in place according to attribute C<$att>. 
-C<%options> are the same as for L<C<sort_children_on_value>>
+C<%options> are the same as for C<sort_children_on_value>
 
 Return the element.
 
@@ -11730,7 +11730,7 @@ Return the element.
 
 Sort the children of the element in place, according to the field C<$tag> (the 
 text of the first child of the child with this tag). C<%options> are the same
-as for L<C<sort_children_on_value>>.
+as for C<sort_children_on_value>.
 
 Return the element, with its children sorted
 
@@ -11785,7 +11785,7 @@ A subset of the XPATH abbreviated syntax is covered:
   expressions can start with . (search starts at the current element)
   // can be used to get all descendants instead of just direct children
   * matches any tag
-  
+
 So the following examples from the 
 F<XPath recommendationL<http://www.w3.org/TR/xpath.html#path-abbrev>> work:
 
@@ -11976,7 +11976,7 @@ return 1 if all children of the element pass the C<$optional_condition>,
 Return the depth of the element in the twig (root is 0).
 If C<$optional_condition> is given then only ancestors that match the condition are 
 counted.
- 
+
 B<WARNING>: in a tree created using the C<twig_roots> option this will not return
 the level in the document tree, level 0 will be the document root, level 1 
 will be the C<twig_roots> elements. During the parsing (in a C<twig_handler>)
@@ -12468,7 +12468,7 @@ Set the quotes used for attributes. can be 'C<double>' (default) or 'C<single>'
   Compare the order of the 2 elements in a twig.
 
   C<$a> is the <A>..</A> element, C<$b> is the <B>...</B> element
-  
+
   document                        $a->cmp( $b)
   <A> ... </A> ... <B>  ... </B>     -1
   <A> ... <B>  ... </B> ... </A>     -1
@@ -12933,7 +12933,7 @@ elements with mixed content that start with an embedded element:
     <b>b</b>toto<b>bold</b></elt>
 
 if you flush the twig when you find the C<< <b> >> element
-  
+
 
 =back
 
