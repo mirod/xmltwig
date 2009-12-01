@@ -51,6 +51,10 @@ my $REG_NAME       = q{(?:(?:[^\W\d]|[:#])(?:[\w.-]*:)?[\w.-]*)};     # does not
 my $REG_NAME_W     = q{(?:(?:[^\W\d]|[:#])(?:[\w.-]*:)?[\w.-]*|\*)}; # does not work for leading non-ascii letters
    $REG_NAME_W     = q{(?:(?:[[:alpha:]:#])(?:[\w.-]*:)?[\w.-]*|\*)}; # > perl 5.5
 
+# name or wildcard (* or '') (leading # allowed) with optional class
+my $REG_NAME_WC    = q{(?:(?:[^\W\d]|[:#])(?:[\w.-]*:)?[\w.-]*|\*)?(?:\.[\w.-]+)?}; # does not work for leading non-ascii letters
+   $REG_NAME_WC    = q{(?:(?:[[:alpha:]:#])(?:[\w.-]*:)?[\w.-]*|\*)?(?:\.[\w.-]+)?}; # > perl 5.5
+
 my $REG_REGEXP     = q{(?:/(?:[^\\/]|\\.)*/[eimsox]*)};               # regexp
 my $REG_REGEXP_EXP = q{(?:(?:[^\\/]|\\.)*)};                          # content of a regexp
 my $REG_REGEXP_MOD = q{(?:[eimso]*)};                                 # regexp modifiers
@@ -361,7 +365,7 @@ my $ID= 'id'; # default value, set by the Id argument
       Namespaces            => 1, NoExpand              => 1,
       Stream_Delimiter      => 1, ParseParamEnt         => 1,
       NoLWP                 => 1, Non_Expat_Options     => 1,
-      Xmlns                 => 1,
+      Xmlns                 => 1, Css                   => 1,
     );
 
 # predefined input and output filters
@@ -5068,37 +5072,21 @@ sub reset_cond_cache { %cond_cache=(); }
             { $test = qq{\$_[0]->is_elt}; }
           elsif( $cond eq $TEXT) 
             { $test = qq{\$_[0]->is_text}; }
-          elsif( $cond=~ m{^\s*($REG_NAME_W)\s*$}o)                  
-            { # gi
-              if( $1 ne '*')
-                { # 2 options, depending on whether the gi exists in gi2index
-                  # start optimization
-                  my $gi= $XML::Twig::gi2index{$1};
-                  if( $gi)
-                    { # the gi exists, use its index as a faster shortcut
-                      $test = qq{ \$_[0]->{gi} == $XML::Twig::gi2index{$1}};
-                    }
-                  else
-                  # end optimization
-                    { # it does not exist (but might be created later), compare the strings
-                      $test = qq{ \$_[0]->gi eq "$1"}; 
-                    }
-                }
-              else
-                { $test = qq{ (1) } }
-            }
+          elsif( $cond=~ m{^\s*($REG_NAME_WC)\s*$}o)                  
+            { $test= _gi_test( $1); } 
           elsif( $cond=~ m{^\s*($REG_REGEXP)\s*$}o)
             { # /regexp/
               $test = qq{ \$_[0]->gi=~ $1 }; 
             }
-          elsif( $cond=~ m{^\s*($REG_NAME_W)?\s*  # $1
+          elsif( $cond=~ m{^\s*($REG_NAME_WC)?\s*  # $1
                            \[\s*(-?)\s*(\d+)\s*\] #   [$2]
                            \s*$}xo
                )
             { my( $gi, $neg, $index)= ($1, $2, $3);
               my $siblings= $neg ? q{$_[0]->_next_siblings} : q{$_[0]->_prev_siblings};
               if( $gi && ($gi ne '*')) 
-                { $test= qq{((\$_[0]->gi eq "$gi") && (scalar( grep { \$_->gi eq "$gi" } $siblings) + 1 == $index))}; }
+                #{ $test= qq{((\$_[0]->gi eq "$gi") && (scalar( grep { \$_->gi eq "$gi" } $siblings) + 1 == $index))}; }
+                { $test= _and( _gi_test( $gi), qq{ (scalar( grep { \$_->gi eq "$gi" } $siblings) + 1 == $index)}); }
               else
                 { $test= qq{(scalar( $siblings) + 1 == $index)}; }
             }
@@ -5107,10 +5095,9 @@ sub reset_cond_cache { %cond_cache=(); }
               my $class= $1;
               $test = qq{(\$_[0]->in_class( "$class")) }; 
             }
-          elsif( $cond=~ m{^\s*($REG_NAME_W?)\s*($REG_PREDICATE)\s*$})
-            { my( $tag, $predicate)= ( $1, $2);
-              $test= ( $tag && $tag ne '*') ? qq{ (\$_[0]->gi eq "$tag") && } : '';
-              $test .=   _parse_predicate_in_step( $predicate);
+          elsif( $cond=~ m{^\s*($REG_NAME_WC?)\s*($REG_PREDICATE)\s*$})
+            { my( $gi, $predicate)= ( $1, $2);
+              $test = _and( _gi_test( $gi), _parse_predicate_in_step( $predicate));
             }
           elsif( $cond=~ m{^\s*($REG_NAKED_PREDICATE)\s*$})
             { $test .=   _parse_predicate_in_step( $1); }
@@ -5127,6 +5114,36 @@ sub reset_cond_cache { %cond_cache=(); }
         { croak "wrong navigation condition '$original_cond' ($@);" }
       return $s;
     }
+
+  sub _gi_test
+    { my( $full_gi)= @_;
+      my( $gi, $class)= $full_gi=~ m{^(.*?)(?:\.([^.]*))?$};
+      my $gi_test='';
+      if( $gi && $gi ne '*' )
+        { # 2 options, depending on whether the gi exists in gi2index
+          # start optimization
+          my $index= $XML::Twig::gi2index{$1};
+          if( $index)
+            { # the gi exists, use its index as a faster shortcut
+              $gi_test = qq{\$_[0]->{gi} == $index};
+            }
+          else
+          # end optimization
+            { # it does not exist (but might be created later), compare the strings
+              $gi_test = qq{ \$_[0]->gi eq "$gi"}; 
+            }
+        }
+      else
+        { $gi_test= 1; }
+
+      my $class_test='';
+      #warn "class: '$class'";
+      if( $class)
+        { $class_test = qq{ defined( \$_[0]->{att}->{class}) && \$_[0]->{att}->{class}=~ m{\\b$class\\b} }; }
+      #warn "gi_test: '$gi_test' - class_test: '$class_test' returning ",  _and( $gi_test, $class_test);
+      return _and( $gi_test, $class_test);
+  }
+
 
   # input: the original predicate
   sub _parse_predicate_in_step
@@ -8938,9 +8955,11 @@ sub _short_text
     return substr( $string, 0, $l1) . ' ... ' . substr( $string, -$l2);
   }
 
+
+sub _and { return _join_defined( ' && ',  @_); }
+sub _join_defined { return join( shift(), grep { $_ } @_); }
+
 1;
-
-
 __END__
 
 =head1 NAME

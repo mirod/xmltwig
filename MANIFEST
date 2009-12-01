@@ -31,6 +31,7 @@ t/is_field.t
 t/test_nav.t
 t/test_additional.t
 t/test_class_methods.t
+t/test_class_selector.t
 t/test_with_lwp.t
 t/test_with_lwp.xml
 t/test_with_lwp_not_wf.xml

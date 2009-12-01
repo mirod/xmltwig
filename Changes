@@ -16,6 +16,11 @@ added: RT #49692 xml_split test on win 32 systems. Patch sent through RT
        http://rt.cpan.org/Ticket/Display.html?id=49692
 added: using position selector (eg foo[2]) in handler triggers now raises 
       an error, spotted by Selvakumar
+added: you can use css like selectors for class in navigation: 'p.title' will
+      select p elements with a class that contains title. 
+      In order to preserve backward compatibility and to allow the use of
+      elements with a dot in their name, if there are already parsed elements
+      with a tag name of 'p.title' then they will be selected instead
 fix:  RT #51432 attributes containing quote character don't escape properly
       found, and patch provided by Jeremy Kahn
       https://rt.cpan.org/Ticket/Display.html?id=51432
