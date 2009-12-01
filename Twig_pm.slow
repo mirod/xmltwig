@@ -52,8 +52,8 @@ my $REG_NAME_W     = q{(?:(?:[^\W\d]|[:#])(?:[\w.-]*:)?[\w.-]*|\*)}; # does not 
    $REG_NAME_W     = q{(?:(?:[[:alpha:]:#])(?:[\w.-]*:)?[\w.-]*|\*)}; # > perl 5.5
 
 # name or wildcard (* or '') (leading # allowed) with optional class
-my $REG_NAME_WC    = q{(?:(?:[^\W\d]|[:#])(?:[\w.-]*:)?[\w.-]*|\*)?(?:\.[\w.-]+)?}; # does not work for leading non-ascii letters
-   $REG_NAME_WC    = q{(?:(?:[[:alpha:]:#])(?:[\w.-]*:)?[\w.-]*|\*)?(?:\.[\w.-]+)?}; # > perl 5.5
+my $REG_NAME_WC    = q{(?:(?:[^\W\d]|[:#])(?:[\w.-]*:)?[\w.-]*|\*)?(?:\.[\w-]+)?}; # does not work for leading non-ascii letters
+   $REG_NAME_WC    = q{(?:(?:[[:alpha:]:#])(?:[\w.-]*:)?[\w.-]*|\*)?(?:\.[\w-]+)?}; # > perl 5.5
 
 my $REG_REGEXP     = q{(?:/(?:[^\\/]|\\.)*/[eimsox]*)};               # regexp
 my $REG_REGEXP_EXP = q{(?:(?:[^\\/]|\\.)*)};                          # content of a regexp
