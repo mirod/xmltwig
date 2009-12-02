@@ -13,7 +13,7 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=53;
+my $TMAX=54;
 print "1..$TMAX\n";
 
 # escape_gt option
@@ -251,6 +251,9 @@ ok( !$t->root->att_exists( 'a5'), 'att_exists, non existent att');
   is( XML::Twig->parse( quote => 'single', q{<e foo='"'></e>})->sprint, qq{<e foo='"'></e>\n}, "single quote");
   is( XML::Twig->parse( quote => 'single', q{<e foo="'"></e>})->sprint, qq{<e foo='&apos;'></e>\n}, "quote in attribute (single quote)");
 }
+
+{ is( XML::Twig->parse( "<d><e>nope</e><e>foo or bar</e></d>")->first_elt( "e[text()=~/oo or b/]")->text, "foo or bar", "or in a regexp"); }
+
 
 1;
 

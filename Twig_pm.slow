@@ -52,8 +52,9 @@ my $REG_NAME_W     = q{(?:(?:[^\W\d]|[:#])(?:[\w.-]*:)?[\w.-]*|\*)}; # does not 
    $REG_NAME_W     = q{(?:(?:[[:alpha:]:#])(?:[\w.-]*:)?[\w.-]*|\*)}; # > perl 5.5
 
 # name or wildcard (* or '') (leading # allowed) with optional class
-my $REG_NAME_WC    = q{(?:(?:[^\W\d]|[:#])(?:[\w.-]*:)?[\w.-]*|\*)?(?:\.[\w-]+)?}; # does not work for leading non-ascii letters
-   $REG_NAME_WC    = q{(?:(?:[[:alpha:]:#])(?:[\w.-]*:)?[\w.-]*|\*)?(?:\.[\w-]+)?}; # > perl 5.5
+my $REG_NAME_WC    = q{(?(?:(?:[^\W\d]|[:#])(?:[\w.-]*:)?[\w.-]*|\*)(?:\.[\w-]+)?|(?:\.[\w-]+))}; # does not work for leading non-ascii letters
+   $REG_NAME_WC    = q{(?:(?:(?:[[:alpha:]:#])(?:[\w.-]*:)?[\w.-]*|\*)(?:\.[\w-]+)?|(?:\.[\w-]+))}; # > perl 5.5
+
 
 my $REG_REGEXP     = q{(?:/(?:[^\\/]|\\.)*/[eimsox]*)};               # regexp
 my $REG_REGEXP_EXP = q{(?:(?:[^\\/]|\\.)*)};                          # content of a regexp
@@ -328,7 +329,8 @@ my %twig_noexpand_handlers= ( ExternEnt => undef, Default => \&_twig_default );
 
 my @saved_default_handler;
 
-my $ID= 'id'; # default value, set by the Id argument
+my $ID= 'id';  # default value, set by the Id argument
+my $css_sel=0; # set through the css_sel option to allow .class selectors in triggers 
 
 # all allowed options
 %valid_option=
@@ -365,7 +367,7 @@ my $ID= 'id'; # default value, set by the Id argument
       Namespaces            => 1, NoExpand              => 1,
       Stream_Delimiter      => 1, ParseParamEnt         => 1,
       NoLWP                 => 1, Non_Expat_Options     => 1,
-      Xmlns                 => 1, Css                   => 1,
+      Xmlns                 => 1, CssSel                => 1,
     );
 
 # predefined input and output filters
@@ -400,6 +402,10 @@ sub new
     bless $self, $class;
 
     $self->{_twig_context_stack}= [];
+
+    # allow tag.class selectors in handler triggers
+    $css_sel= $args{CssSel} || 0; 
+
 
     if( exists $args{TwigHandlers})
       { $handlers= $args{TwigHandlers};
@@ -591,7 +597,6 @@ sub new
       }
     else
       { $self->set_output_text_filter( 0); }
-
 
     if( exists $args{KeepAttsOrder})
       { $self->{keep_atts_order}= $args{KeepAttsOrder};
@@ -1312,18 +1317,18 @@ sub _parse_xpath_handler
     if( $DEBUG_HANDLER >=1) { warn "\n\nparsing path '$xpath'\n"; }
 
     my $path_to_check= $xpath;
-    $path_to_check=~ s{/?/?$REG_NAME_W?\s*(?:$REG_PREDICATE\s*)?}{}g;
+    $path_to_check=~ s{/?/?$REG_NAME_WC?\s*(?:$REG_PREDICATE\s*)?}{}g;
     if( $DEBUG_HANDLER && $path_to_check=~ /\S/) { warn "left: $path_to_check\n"; }
     return if( $path_to_check=~ /\S/);
 
     (my $xpath_to_display= $xpath)=~ s{(["{}'\[\]\@\$])}{\\$1}g;
 
-    #my @xpath_steps= split /(?<!\\)(\/\/?)/, $xpath; 
     my @xpath_steps;
     my $last_token_is_sep;
+
     while( $xpath=~ s{^\s*
                        ( (//?)                                      # separator
-                        | (?:$REG_NAME_W\s*(?:$REG_PREDICATE\s*)?) # tag name and optional predicate
+                        | (?:$REG_NAME_WC\s*(?:$REG_PREDICATE\s*)?) # tag name and optional predicate
                         | (?:$REG_PREDICATE)                       # just a predicate
                        )
                      }
@@ -1360,7 +1365,7 @@ sub _parse_xpath_handler
     my $flag= { test_on_text => 0 };
     my $sep='/';  # '/' or '//'
     while( my $xpath_step= pop @xpath_steps)
-      { my( $tag, $predicate)= $xpath_step =~ m{^($REG_NAME_W)?(?:\[(.*)\])?\s*$};
+      { my( $tag, $predicate)= $xpath_step =~ m{^($REG_NAME_WC)?(?:\[(.*)\])?\s*$};
         $score->{steps}++;
         $tag||='*';
 
@@ -1374,9 +1379,10 @@ sub _parse_xpath_handler
             if( $DEBUG_HANDLER >= 2) { warn "predicate becomes: '$predicate'\n"; }
           }
 
-       my $tag_cond=  $tag ne '*' ? qq#(\$elt->{_tag} eq "$tag")# : '';
+       my $tag_cond=  _tag_cond( $tag);
        my $cond= join( " && ", grep { $_ } $tag_cond, $predicate) || 1;
 
+       if( $css_sel && $tag=~ m{\.}) { $tag=~s{\.[^.]*$}{}; $tag ||='*'; }
        $last_tag ||= $tag;
 
 
@@ -1438,6 +1444,17 @@ sub _parse_xpath_handler
     }
 
 sub _join_n { return join( "\n", @_, ''); }
+
+sub _tag_cond
+  { my( $full_tag)= @_;
+
+    my( $tag, $class)= $css_sel ? $full_tag=~ m{^(.*?)(?:\.([^.]*))?$} : ($full_tag, undef);
+    my $tag_cond= $tag && $tag ne '*' ? qq#(\$elt->{_tag} eq "$tag")# : '';
+    my $class_cond= defined $class ? qq#(\$elt->{_elt} && \$elt->{_elt}->{att}->{class}=~ m{\\b$class\\b})# : '';
+    my $full_cond= join( ' && ', grep { $_ } ( $tag_cond, $class_cond));
+    
+    return $full_cond;
+  }
 
 # input: the predicate ($_[0]) which will be changed in place
 #        flags, a hashref with various flags (like test_on_text)
@@ -5152,7 +5169,7 @@ sub reset_cond_cache { %cond_cache=(); }
 
       $cond=~ s{^\s*\[\s*}{};
       $cond=~ s{\s*\]\s*$}{};
-      $cond=~ s{(   ($REG_STRING)                        # strings
+      $cond=~ s{(   ($REG_STRING|$REG_REGEXP)            # strings or regexps
                    |\@($REG_NAME)(?=\s*(?:[><=!]|!~|=~)) # @att (followed by a comparison operator)
                    |\@($REG_NAME)                        # @att (not followed by a comparison operator)
                    |=~|!~                                # matching operators
