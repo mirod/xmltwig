@@ -5134,12 +5134,18 @@ sub reset_cond_cache { %cond_cache=(); }
 
   sub _gi_test
     { my( $full_gi)= @_;
+
+      # optimize if the gi exists, including the case where the gi includes a dot
+      my $index= $XML::Twig::gi2index{$full_gi};
+      if( $index) { return qq{\$_[0]->{gi} == $index}; }
+
       my( $gi, $class)= $full_gi=~ m{^(.*?)(?:\.([^.]*))?$};
+
       my $gi_test='';
       if( $gi && $gi ne '*' )
         { # 2 options, depending on whether the gi exists in gi2index
           # start optimization
-          my $index= $XML::Twig::gi2index{$1};
+          my $index= $XML::Twig::gi2index{$gi};
           if( $index)
             { # the gi exists, use its index as a faster shortcut
               $gi_test = qq{\$_[0]->{gi} == $index};

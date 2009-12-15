@@ -13,7 +13,7 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=54;
+my $TMAX=55;
 print "1..$TMAX\n";
 
 # escape_gt option
@@ -253,6 +253,8 @@ ok( !$t->root->att_exists( 'a5'), 'att_exists, non existent att');
 }
 
 { is( XML::Twig->parse( "<d><e>nope</e><e>foo or bar</e></d>")->first_elt( "e[text()=~/oo or b/]")->text, "foo or bar", "or in a regexp"); }
+
+{ is( XML::Twig->parse( '<d><e.a>foo</e.a></d>')->root->field( 'e.a'), 'foo', 'condition on a field with .'); }
 
 
 1;
