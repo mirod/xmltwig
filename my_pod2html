@@ -92,23 +92,22 @@ BEGIN{ my $toc;
       $a->set_text( $name);
       if( $level < $current_level)
         { while( $level < $current_level) 
-            { $current_level--; $current_ul= $current_ul->parent( 'ul') || $current_ul; 
-	    }
+            { $current_level--; $current_ul= $current_ul->parent( 'ul') || $current_ul; }
         }
       elsif( $level > $current_level)
         { my $new_ul= XML::Twig::Elt->new( ul => { style => 'display:block;' });
           my $current_li=  $current_ul->last_child( 'li');
           $new_ul->paste( last_child => $current_li);
-					my $button= XML::Twig::Elt->new( img => { class => "collapsed", src => "/img/plus.png",
-									                                  height => 20, width => 20,
-																									 	alt => "Show Next ToC level", onclick => "expand(this)",
-																										style => "display:none",
-																									}
-																					);
-					$button->paste( after => $current_li->first_child( 'a'));
+          my $button= XML::Twig::Elt->new( img => { class => "collapsed", src => "/img/plus.png",
+                                                    height => 20, width => 20,
+                                                    alt => "Show Next ToC level", onclick => "expand(this)",
+                                                    style => "display:none",
+                                                  }
+                                         );
+          $button->paste( after => $current_li->first_child( 'a'));
           $current_ul= $new_ul;
         }
-	#warn"  level: /$level/ - current_level: /$current_level/\n";
+      #warn"  level: /$level/ - current_level: /$current_level/\n";
       $li->paste( last_child => $current_ul);
       $current_level= $level;
     }
@@ -167,51 +166,51 @@ sub name_ify
 __DATA__
 <head>
   <title>XML::Twig - Development version</title>
-	
+
   <!-- scripts -->
-	<script language="Javascript" type="text/javascript">
+    <script language="Javascript" type="text/javascript">
 
-	// set the display style for the element to display (block or none usually)
-   function set_display( elt, display)
-			{ var style_att= elt.getAttributeNode( "style");
-				if( ! style_att)
-					{ style_att= document.createAttribute( "style");
-						child.setAttributeNode( style_att);
-					}
-				var style= "display:" + display;
-				style_att.value= style; 
-			}
+    // set the display style for the element to display (block or none usually)
+    function set_display( elt, display)
+      { var style_att= elt.getAttributeNode( "style");
+        if( ! style_att)
+          { style_att= document.createAttribute( "style");
+            child.setAttributeNode( style_att);
+          }
+        var style= "display:" + display;
+        style_att.value= style; 
+      }
 
-	// return the first node child of elt with a nodeName of name
-  function first_child( elt, name)
+    // return the first node child of elt with a nodeName of name
+    function first_child( elt, name)
 	  { var child= elt.firstChild;
-		  while( child)
-			  { if( child.nodeName.toLowerCase() == name)
-				    { return child; }
-					child= child.nextSibling;
-				}
-			return "";
-		}
+        while( child)
+          { if( child.nodeName.toLowerCase() == name)
+              { return child; }
+                child= child.nextSibling;
+          }
+        return "";
+      }
 			
-	// set the display type for the ul after a button
-	function hide_next_ul (img, display)
-	  { var ul= first_child( img.parentNode, "ul");
-		  set_display( ul, display)
-		}
+    // set the display type for the ul after a button
+    function hide_next_ul (img, display)
+      { var ul= first_child( img.parentNode, "ul");
+        set_display( ul, display)
+      }
 
-	function collapse_section (img)
-	  { img.className= "collapsed";
-		  img.src= "/img/plus.png";
-		  img.alt= "show next ToC level"
-			set_display( first_child( img.parentNode, "ul"), "none");
-		}
+    function collapse_section (img)
+      { img.className= "collapsed";
+        img.src= "/img/plus.png";
+        img.alt= "show next ToC level"
+        set_display( first_child( img.parentNode, "ul"), "none");
+      }
 
-	function expand_section (img)
-	  { img.className= "expanded";
-		  img.src= "/img/minus.png";
-		  img.alt= "hide next ToC level"
-			set_display( first_child( img.parentNode, "ul"), "block");
-		}
+    function expand_section (img)
+      { img.className= "expanded";
+        img.src= "/img/minus.png";
+        img.alt= "hide next ToC level"
+        set_display( first_child( img.parentNode, "ul"), "block");
+      }
 
     // expands or collapse the Toc
     // v == 1 -> expand (set display to 'block' in the first rule
@@ -223,18 +222,18 @@ __DATA__
           { expand_section( img); }
       }
 
-	function init_toc ()
-	  { // show buttons
-		  var imgs= document.getElementsByTagName( "img");
-      for( var i = 0; imgs.length > i ; i++)
-        { var img= imgs.item(i);
-				  if( (img.className == "expanded") || (img.className == "collapsed") )
-					  { set_display( img, "inline");
-						  collapse_section( img);
-						}
-				}
-		}
-			
+    function init_toc ()
+      { // show buttons
+        var imgs= document.getElementsByTagName( "img");
+        for( var i = 0; imgs.length > i ; i++)
+          { var img= imgs.item(i);
+            if( (img.className == "expanded") || (img.className == "collapsed") )
+              { set_display( img, "inline");
+                collapse_section( img);
+              }
+          }
+	  }
+
   </script>
 </head>
 
