@@ -68,6 +68,7 @@ fix:  RT #47257, minor doc bug, spotted by David Steinbrunner
       http://rt.cpan.org/Ticket/Display.html?id=47257
 fix:  bug in navigation conditions of the form elt[text()=~ /text with 'or' or 'and'/] 
 improved: speed, somewhat
+      put the project on github: http://github.com/mirod/xmltwig
 
 version: 3.32
 date: 

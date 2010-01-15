@@ -68,7 +68,7 @@ INSTALLATION
     make test
     make install
 
-DEPENDANCIES
+DEPENDENCIES
 
     XML::Twig needs XML::Parser (and the expat library) installed
    
@@ -80,16 +80,16 @@ DEPENDANCIES
       to do encoding conversions
     Tie::IxHash 
       to use the keep_atts_order option
-    XML::XPath 
+    XML::XPathEngine 
       to use XML::Twig::XPath
     LWP 
       to use parseurl
     HTML::Entities
       to use the html_encode filter
+    HTML::TreeBuilder
+      to process HTML instead of XML
 
 CHANGES
-
-    $Id: /xmltwig/trunk/README 4 2007-03-16T12:16:25.259192Z mrodrigu  $
 
     See the Changes file    
 
@@ -97,10 +97,11 @@ AUTHOR
 
     Michel Rodriguez (mirod@cpan.org)
     The Twig page is at http://www.xmltwig.com/xmltwig
+    git project repository: http://github.com/mirod/xmltwig
     See the XML::Twig tutorial at http://www.xmltwig.com/xmltwig/tutorial/index.html
 
 COPYRIGHT
 
-       Copyright (c) 1999-2005, Michel Rodriguez. All Rights Reserved.
+       Copyright (c) 1999-2010, Michel Rodriguez. All Rights Reserved.
        This library is free software; you can redistribute it and/or modify
        it under the same terms as Perl itself.

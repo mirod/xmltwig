@@ -13123,6 +13123,8 @@ Complete docs, including a tutorial, examples, an easier to use HTML version of
 the docs, a quick reference card and a FAQ are available at 
 L<http://www.xmltwig.com/xmltwig/>
 
+git repository at L<http://github.com/mirod/xmltwig>
+
 L<XML::Parser>, L<XML::Parser::Expat>, L<XML::XPath>, L<Encode>, 
 L<Text::Iconv>, L<Scalar::Utils>
 
@@ -13143,7 +13145,7 @@ frugal memory-wise.
 
 XML::Twig is older: when I started writing it XML::Parser/expat was the only 
 game in town. It implements XML and that's about it (plus a subset of XPath, 
-and you can use XML::Twig::XPath if you have XML::XPath installed for full 
+and you can use XML::Twig::XPath if you have XML::XPathEngine installed for full 
 support). It is slower and requires more memory for a full tree than 
 XML::LibXML. On the plus side (yes, there is a plus side!) it lets you process
 a big document in chunks, and thus let you tackle documents that couldn't be 
@@ -13170,7 +13172,7 @@ that lurk in XML::Twig, even though you are unlikely to be affected by them
 while I haven't looked much into XML::LibXML so it still looks shinny and clean
 to me.
 
-That said, ifyou need to process a document that is too big to fit memory
+That said, if you need to process a document that is too big to fit memory
 and XML::Twig is too slow for you, my reluctant advice would be to use "bare"
 XML::Parser.  It won't be as easy to use as XML::Twig: basically with XML::Twig
 you trade some speed (depending on what you do from a factor 3 to... none) 
