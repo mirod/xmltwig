@@ -680,7 +680,7 @@ sub parse
 
 sub parsefile
   { my $t= shift;
-    if( ! -s $_[0]) { return _checked_parse_result( undef, "empty file '$_[0]'"); }
+    if( -f $_[0] && ! -s $_[0]) { return _checked_parse_result( undef, "empty file '$_[0]'"); }
     $t= eval { $t->SUPER::parsefile( @_); };
     return _checked_parse_result( $t, $@);
   }

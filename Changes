@@ -22,6 +22,9 @@ added: you can use css like selectors for class in navigation: 'p.title' will
       elements with a dot in their name, if there are already parsed elements
       with a tag name of 'p.title' then they will be selected instead
 added: you can also use css class selectors in trigger handlers. 
+fix:  avoids expat (and XML::Parser) "Ran out of memory for input buffer"
+      error, and instead reports an "empty file" error (and does not attempt
+      to parse the file).
 fix:  RT #51432 attributes containing quote character don't escape properly
       found, and patch provided by Jeremy Kahn
       https://rt.cpan.org/Ticket/Display.html?id=51432

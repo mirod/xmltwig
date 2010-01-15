@@ -13,7 +13,7 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=55;
+my $TMAX=57;
 print "1..$TMAX\n";
 
 # escape_gt option
@@ -256,6 +256,15 @@ ok( !$t->root->att_exists( 'a5'), 'att_exists, non existent att');
 
 { is( XML::Twig->parse( '<d><e.a>foo</e.a></d>')->root->field( 'e.a'), 'foo', 'condition on a field with .'); }
 
+{ my $empty_file= "empty.xml";
+  open( EMPTY, ">$empty_file") or die "cannot create empty file '$empty_file': $!";
+  print EMPTY '';
+  close EMPTY;
+  my $t= XML::Twig->new->safe_parsefile( $empty_file);
+  is( $t, undef, 'safe_parsefile of an empty file, return value');
+  matches( $@, qr{^empty file}, 'parsefile of an empty file error message');
+  unlink $empty_file;
+}
 
 1;
 
