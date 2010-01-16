@@ -54,7 +54,7 @@ ok( @nodes, 2);
 ok( $t->findvalue('//attr:node/@attr:findme'), 'someval');
 
 ## added to test set_namespace
-if( !XML::Twig::XPath->can( 'set_strict_namespaces'))
+if( ! defined $XML::XPathEngine::VERSION )
   { my_skip( 5, "can only test set_strict_namespaces with XML::XPathEngine 0.09+ installed"); }
 else
   { my $xml= '<root xmlns="http://example.com/">

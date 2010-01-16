@@ -95,7 +95,7 @@ my( $PCDATA, $CDATA, $PI, $COMMENT, $ENT, $ELT, $TEXT, $ASIS, $EMPTY, $BUFSIZE);
 
 BEGIN
 { 
-$VERSION = '3.33';
+$VERSION = '3.34';
 
 use XML::Parser;
 my $needVersion = '2.23';
