@@ -124,7 +124,7 @@ ok( !$t->root->att_exists( 'a5'), 'att_exists, non existent att');
 }
 
 { my $d='<D ATTa="1" aTTB="2" Attc="3"/>';
-  (my $expected= $d)=~ s{(\w+=)}{\L$1}g;
+  (my $expected= $d)=~ s{(\w+)=}{\L$1=}g;
   is( XML::Twig->parse( $d)->root->lc_attnames->sprint, $expected, 'lc_attnames');
 }
 
