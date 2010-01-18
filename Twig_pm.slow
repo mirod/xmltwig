@@ -7041,7 +7041,7 @@ sub mark
             }
           else
             { # first match in $elt, re-use $elt for the first sub-string
-               _utf8_ify( $pre_match) if( $[ < 5.010);
+              _utf8_ify( $pre_match) if( $[ < 5.010);
               $elt->set_text( $pre_match);
               $previous_match++;                # store the fact that there was a match
               push @result, $elt if( $return_all);
@@ -7082,10 +7082,10 @@ sub mark
   # evil hack needed as sometimes 
   my $encode_is_loaded=0;   # so we only load Encode once
   sub _utf8_ify
-    { my $string= shift;
-      if( $] >= 5.008 and !_keep_encoding()) 
+    { 
+      if( $] >= 5.008 and $] < 5.010 and !_keep_encoding()) 
         { unless( $encode_is_loaded) { require Encode; import Encode; $encode_is_loaded++; }
-          Encode::_utf8_on( $string); # the flag should be set but is not
+          Encode::_utf8_on( $_[0]); # the flag should be set but is not
         }
     }
 

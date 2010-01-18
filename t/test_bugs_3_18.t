@@ -60,7 +60,7 @@ if( ($] == 5.008) || ($] < 5.006) || ($XML::Parser::VERSION <= 2.27) )
   }
 elsif( perl_io_layer_used())
   { skip( scalar keys %cdata, "cannot test parseurl when UTF8 perIO layer used "
-                            . "(due to PERL_UNICODE or -C option used)\n"
+                            . "(due to PERL_UNICODE being set or -C command line option being used)\n"
         );
   }
 else
@@ -572,17 +572,17 @@ sub fid { my $elt= $_[0]->elt_id( $_[1]) or return "unknown";
 
 { # test _keep_encoding even with perl > 5.8.0
   if( $] < 5.008)
-    { skip( 2 => "testing utf8 flag mongering only needed in perl 5.8.0"); }
+    { skip( 2 => "testing utf8 flag mongering only needed in perl 5.8.0+"); }
   else
     { require Encode; import Encode;
       my $s="a";
       Encode::_utf8_off( $s);
       nok( Encode::is_utf8( $s), "utf8 flag off");
-      $s= XML::Twig::Elt::_utf8_ify( $s);
-      if( $] == 5.008)
+      XML::Twig::Elt::_utf8_ify( $s);
+      if( $] >= 5.008 and $] < 5.010)
         { ok( Encode::is_utf8( $s), "utf8 flag back on"); }
       else
-        { nok( Encode::is_utf8( $s), "_keep_encoding is a noop"); }
+        { nok( Encode::is_utf8( $s), "_utf8_ify is a noop"); }
     }
 }
 
