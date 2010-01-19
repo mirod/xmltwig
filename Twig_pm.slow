@@ -9034,9 +9034,9 @@ to output the parts of it that have been completely processed.
 
 It allows minimal resource (CPU and memory) usage by building the tree
 only for the parts of the documents that need actual processing, through the 
-use of the C<L<twig_roots|/twig_roots> > and 
-C<L<twig_print_outside_roots|/twig_print_outside_roots> > options. The 
-C<L<finish|/finish> > and C<L<finish_print|/finish_print> > methods also help 
+use of the C<L<twig_roots> > and 
+C<L<twig_print_outside_roots> > options. The 
+C<L<finish> > and C<L<finish_print> > methods also help 
 to increase performances.
 
 XML::Twig tries to make simple things easy so it tries its best to takes care 
@@ -9065,22 +9065,22 @@ discarding them once they are processed.
 
 Other useful methods include:
 
-L<att|/att>: C<< $elt->att( 'foo') >> return the C<foo> attribute for an 
+L<att>: C<< $elt->att( 'foo') >> return the C<foo> attribute for an 
 element,
 
-L<set_att|/set_att> : C<< $elt->set_att( foo => "bar") >> sets the C<foo> 
+L<set_att> : C<< $elt->set_att( foo => "bar") >> sets the C<foo> 
 attribute to the C<bar> value,
 
-L<next_sibling|/next_sibling>: C<< $elt->next_sibling >> return the next sibling
+L<next_sibling>: C<< $elt->next_sibling >> return the next sibling
 in the document (in the example C<< $title->next_sibling >> is the first
 C<para>, you can also (and actually should) use 
 C<< $elt->next_sibling( 'para') >> to get it 
 
-The document can also be transformed through the use of the L<cut|/cut>, 
-L<copy|/copy>, L<paste|/paste> and L<move|/move> methods: 
+The document can also be transformed through the use of the L<cut>, 
+L<copy>, L<paste> and L<move> methods: 
 C<< $title->cut; $title->paste( after => $p); >> for example
 
-And much, much more, see L<XML::Twig::Elt>.
+And much, much more, see L<XML::Twig::Elt|/XML::Twig::Elt>.
 
 =head2 Processing an XML document chunk by chunk
 
@@ -9091,9 +9091,9 @@ memory-expensive, the expansion factor being often around 10).
 To do this you can define handlers, that will be called once a specific 
 element has been completely parsed. In these handlers you can access the
 element and process it as you see fit, using the navigation and the
-cut-n-paste methods, plus lots of convenient ones like C<L<prefix|/prefix> >.
-Once the element is completely processed you can then C<L<flush|/flush> > it, 
-which will output it and free the memory. You can also C<L<purge|/purge> > it 
+cut-n-paste methods, plus lots of convenient ones like C<L<prefix> >.
+Once the element is completely processed you can then C<L<flush> > it, 
+which will output it and free the memory. You can also C<L<purge> > it 
 if you don't need to output it (if you are just extracting some data from 
 the document for example). The handler will be called again once the next 
 relevant element has been parsed.
@@ -9139,9 +9139,9 @@ You can also trigger a handler on a test on an attribute:
                        );
                   ->parsefile( 'doc.xml');
 
-You can also use C<L<start_tag_handlers|/start_tag_handlers> > to process an 
-element as soon as the start tag is found. Besides C<L<prefix|/prefix> > you
-can also use C<L<suffix|/suffix> >, 
+You can also use C<L<start_tag_handlers> > to process an 
+element as soon as the start tag is found. Besides C<L<prefix> > you
+can also use C<L<suffix> >, 
 
 =head2 Processing just parts of an XML document
 
@@ -9254,16 +9254,16 @@ that you are running, is given by running C<t/zz_dump_config.t>
 =item Whitespaces
 
 Whitespaces that look non-significant are discarded, this behaviour can be 
-controlled using the C<L<keep_spaces|/keep_spaces> >, 
-C<L<keep_spaces_in|/keep_spaces_in> > and 
-C<L<discard_spaces_in|/discard_spaces_in> > options.
+controlled using the C<L<keep_spaces> >, 
+C<L<keep_spaces_in> > and 
+C<L<discard_spaces_in> > options.
 
 =item Encoding
 
 You can specify that you want the output in the same encoding as the input
 (provided you have valid XML, which means you have to specify the encoding
 either in the document or when you create the Twig object) using the 
-C<L<keep_encoding|/keep_encoding> > option
+C<L<keep_encoding> > option
 
 You can also use C<L<output_encoding>> to convert the internal UTF-8 format
 to the required encoding.
@@ -9283,8 +9283,8 @@ us humans.
 XML parsers are supposed to react violently when fed improper XML. 
 XML::Parser just dies.
 
-XML::Twig provides the C<L<safe_parse|/safe_parse> > and the 
-C<L<safe_parsefile|/safe_parsefile> > methods which wrap the parse in an eval
+XML::Twig provides the C<L<safe_parse> > and the 
+C<L<safe_parsefile> > methods which wrap the parse in an eval
 and return either the parsed twig or 0 in case of failure.
 
 =item Private attributes
@@ -9327,7 +9327,7 @@ C<L<XML::Twig::XPath::Elt>>
 
 A twig is a subclass of XML::Parser, so all XML::Parser methods can be
 called on a twig object, including parse and parsefile.
-C<setHandlers> on the other hand cannot be used, see C<L<BUGS|/BUGS> >
+C<setHandlers> on the other hand cannot be used, see C<L<BUGS> >
 
 
 =over 4
@@ -9413,7 +9413,7 @@ handler is called, except a C<_all_> handler which will be called anyway.
 
 If a handler returns a true value and other handlers apply, then the next
 applicable handler will be called. Repeat, rinse, lather..; The exception
-to that rule is when the C<L<do_not_chain_handlers|/do_not_chain_handlers>>
+to that rule is when the C<L<do_not_chain_handlers>>
 option is set, in which case only the first handler will be called.
 
 Note that it might be a good idea to explicitly return a short true value
@@ -9557,7 +9557,7 @@ appeared in the original document, if the handler returns a a C<false> value
 then the start tag will B<not> be printed (so you can print a modified string 
 yourself for example).
 
-Note that you can use the L<ignore|/ignore> method in C<start_tag_handlers> 
+Note that you can use the L<ignore> method in C<start_tag_handlers> 
 (and only there). 
 
 =item end_tag_handlers
@@ -9792,7 +9792,7 @@ attributes in a hash (or in a list attribute_name/attribute value).
 
 When this option is used external entities (that are defined) are expanded
 when the document is output using "print" functions such as C<L<print> >,
-C<L<sprint|/sprint> >, C<L<flush|/flush> > and C<L<xml_string|/xml_string> >. 
+C<L<sprint> >, C<L<flush> > and C<L<xml_string> >. 
 Note that in the twig the entity will be stored as an element with a 
 tag 'C<#ENT>', the entity will not be expanded there, so you might want to 
 process the entities before outputting it.
@@ -9834,7 +9834,7 @@ Does not output a prolog (XML declaration and DTD)
 This optional argument gives the name of an attribute that can be used as
 an ID in the document. Elements whose ID is known can be accessed through
 the elt_id method. id defaults to 'id'.
-See C<L<BUGS|/BUGS> >
+See C<L<BUGS> >
 
 =item discard_spaces
 
@@ -10492,7 +10492,7 @@ Performs a (very fast) global change. All elements C<$old_gi> are now
 C<$new_gi>. This is a bit dangerous though and should be avoided if
 < possible, as the new tag might be ignored in subsequent processing.
 
-See C<L<BUGS|/BUGS> >
+See C<L<BUGS> >
 
 =item flush            ($optional_filehandle, %options)
 
@@ -10965,11 +10965,11 @@ C<tag> and C<name> are synonyms of C<gi>.
 
 =item tag
 
-Same as C<L<gi|/gi>>
+Same as C<L<gi>>
 
 =item name
 
-Same as C<L<tag|/tag>>
+Same as C<L<tag>>
 
 =item set_gi         ($tag)
 
@@ -10977,11 +10977,11 @@ Set the gi (tag) of an element
 
 =item set_tag        ($tag)
 
-Set the tag (=C<L<tag|/tag>>) of an element
+Set the tag (=C<L<tag>>) of an element
 
 =item set_name       ($name)
 
-Set the name (=C<L<tag|/tag>>) of an element
+Set the name (=C<L<tag>>) of an element
 
 =item root 
 
@@ -11585,7 +11585,7 @@ and newly created ones)
 
 =item mark        ( $regexp, $optional_tag, $optional_attribute_ref)
 
-This method behaves exactly as L<split|/split>, except only the newly created 
+This method behaves exactly as L<split>, except only the newly created 
 elements are returned
 
 =item wrap_children ( $regexp_string, $tag, $optional_attribute_hashref)
@@ -11952,7 +11952,7 @@ set on the wrapping element:
 
 =item insert_new_elt ($opt_position, $tag, $opt_atts_hashref, @opt_content)
 
-Combines a C<L<new|/new> > and a C<L<paste|/paste> >: creates a new element using 
+Combines a C<L<new> > and a C<L<paste> >: creates a new element using 
 C<$tag>, C<$opt_atts_hashref >and C<@opt_content> which are arguments similar 
 to those for C<new>, then paste it, using C<$opt_position> or C<'first_child'>,
 relative to C<$elt>.
@@ -12343,7 +12343,7 @@ The options are passed as a hashref, setting C<escape_gt> to a true value will a
 =item set_id       ($id)
 
 Set the C<id> attribute of the element to the value.
-See C<L<elt_id|/elt_id> > to change the id attribute name
+See C<L<elt_id> > to change the id attribute name
 
 =item id
 
@@ -12599,8 +12599,8 @@ and interesting, not to mention useful, ways to do it.
 =head2 cond
 
 Most of the navigation functions accept a condition as an optional argument
-The first element (or all elements for C<L<children|/children> > or 
-C<L<ancestors|/ancestors> >) that passes the condition is returned.
+The first element (or all elements for C<L<children> > or 
+C<L<ancestors> >) that passes the condition is returned.
 
 The condition is a single step of an XPath expression using the XPath subset
 defined by C<L<get_xpath>>. Additional conditions are:
@@ -12932,10 +12932,10 @@ DTD.
 =item memory leak
 
 If you use a lot of twigs you might find that you leak quite a lot of memory
-(about 2Ks per twig). You can use the C<L<dispose|/dispose> > method to free 
+(about 2Ks per twig). You can use the C<L<dispose> > method to free 
 that memory after you are done.
 
-If you create elements the same thing might happen, use the C<L<delete|/delete>>
+If you create elements the same thing might happen, use the C<L<delete>>
 method to get rid of them.
 
 Alternatively installing the C<Scalar::Util> (or C<WeakRef>) module on a version 
