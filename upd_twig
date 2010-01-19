@@ -50,15 +50,14 @@ if( mtime( "faq.xml") > mtime( "faq.html") )
 		fill_updated_time( faq_updated => "$MIRROR_DIR/index.html"); 
   }
 
-system qq{svk ci -m"$message"} if( $commit);
+system qq{git push origin master};           # push to github
 
 chdir $MIRROR_DIR;
 
 fill_updated_time( index_updated => "$MIRROR_DIR/index.html"); 
 
-system qq{~/bin/apply_template -v xmltwig/};
-
-#system qq{~/bin/rsync_web --message "xmltwig update"};
+system qq{~/bin/apply_template -v xmltwig/}; # update local version of the web site
+system qq{~/bin/rsync_web};                  # update live web site
 
 sub mtime
   { warn "testing time for '$_[0]'\n"; return stat( $_[0])->mtime; }
