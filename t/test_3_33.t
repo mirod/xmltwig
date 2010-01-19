@@ -1,7 +1,6 @@
 #!/usr/bin/perl -w
 use strict;
 
-# $Id: /xmltwig/trunk/t/test_3_30.t 27 2007-08-30T08:07:25.079327Z mrodrigu  $
 
 use Carp;
 use File::Spec;

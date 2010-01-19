@@ -5,7 +5,6 @@ use File::Spec;
 use lib File::Spec->catdir(File::Spec->curdir,"t");
 use tools;
 
-# $Id: /xmltwig/trunk/t/test_keep_atts_order.t 4 2007-03-16T12:16:25.259192Z mrodrigu  $
 
 use XML::Twig;
 

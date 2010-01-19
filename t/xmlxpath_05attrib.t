@@ -1,5 +1,4 @@
 #!/usr/bin/perl -w
-# $Id: /xmltwig/trunk/t/xmlxpath_05attrib.t 4 2007-03-16T12:16:25.259192Z mrodrigu  $
 
 use Test;
 plan( tests => 6);

@@ -1,7 +1,6 @@
 #!/usr/bin/perl -w
 use strict; 
 
-# $Id: /xmltwig/trunk/t/test_safe_encode.t 31 2007-11-13T19:55:41.920709Z mrodrigu  $
 
 use File::Spec;
 use lib File::Spec->catdir(File::Spec->curdir,"t");

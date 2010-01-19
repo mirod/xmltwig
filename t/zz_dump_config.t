@@ -1,6 +1,5 @@
 #!/usr/bin/perl
 
-# $Id: /xmltwig/trunk/t/zz_dump_config.t 23 2007-06-21T08:52:17.136221Z mrodrigu  $
 
 my $ok; # global, true if the last call to version found the module, false otherwise
 use Config;

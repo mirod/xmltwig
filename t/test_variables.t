@@ -1,5 +1,4 @@
 #!/usr/bin/perl -w
-# $Id: /xmltwig/trunk/t/test_variables.t 4 2007-03-16T12:16:25.259192Z mrodrigu  $
 use strict;
 use XML::Twig;
 

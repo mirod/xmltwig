@@ -1,6 +1,5 @@
 #!/usr/bin/perl -w
 
-# $Id: /xmltwig/trunk/t/test_need_use_bytes.t 4 2007-03-16T12:16:25.259192Z mrodrigu  $
 
 # tests that require IO::Scalar to run
 use strict;

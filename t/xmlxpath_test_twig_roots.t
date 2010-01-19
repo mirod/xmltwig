@@ -2,7 +2,6 @@
 use strict;
 #use diagnostics;
 
-# $Id: /xmltwig/trunk/t/xmlxpath_test_twig_roots.t 4 2007-03-16T12:16:25.259192Z mrodrigu  $
 
 use strict;
 use Carp;

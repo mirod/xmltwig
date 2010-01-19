@@ -1,6 +1,5 @@
 #!/usr/bin/perl -w
 
-# $Id: /xmltwig/trunk/t/test_mark.t 4 2007-03-16T12:16:25.259192Z mrodrigu  $
 
 # test the mark method
 

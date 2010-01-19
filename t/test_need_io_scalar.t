@@ -1,6 +1,5 @@
 #!/usr/bin/perl -w
 
-# $Id: /xmltwig/trunk/t/test_need_io_scalar.t 33 2008-04-30T08:03:41.004487Z mrodrigu  $
 
 # tests that require IO::String to run
 use strict;

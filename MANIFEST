@@ -173,4 +173,5 @@ t/test_xml_split/test_xml_split_expected-8-02.xml
 t/test_autoencoding_conversion.t
 t/tools.pm
 t/zz_dump_config.t
+t/test_kwalitee.t
 META.yml                                Module meta-data (added by MakeMaker)
