@@ -1,6 +1,13 @@
 $Id: /xmltwig/trunk/Changes 33 2008-04-30T08:03:41.004487Z mrodrigu  $
 
 CHANGES
+
+version: 3.35
+date:
+# minor maintenance release
+fixed: documented the fact that latin1 is ISO-8859-15, see RT#37431
+       https://rt.cpan.org/Ticket/Display.html?id=37431
+
 version: 3.34
 date: 2010-01-18
 # minor maintenance release, test suite fixes

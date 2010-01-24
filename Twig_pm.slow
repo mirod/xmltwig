@@ -9683,7 +9683,9 @@ Pre-defined filters:
 
 uses either C<Encode>, C<Text::Iconv> or C<Unicode::Map8> and C<Unicode::String>
 or a regexp (which works only with XML::Parser 2.27), in this order, to convert 
-all characters to ISO-8859-1 (aka latin1)
+all characters to ISO-8859-15 (usually latin1 is synonym to ISO-8859-1, but
+in practice it seems that ISO-8859-15, which includes the euro sign, is more 
+useful and probably what most people want).
 
 =item html
 
