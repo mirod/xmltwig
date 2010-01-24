@@ -33,22 +33,19 @@ else
       }
   }
 
-(my $EUMM= $ExtUtils::MakeMaker::VERSION)=~ tr/_//d;
-my @license = $EUMM > 6.30 ? qw(LICENSE perl) : ();
-
 WriteMakefile1(
-  META_MERGE => {
-    resources => {
-      repository => 'http://github.com/mirod/xmltwig',
+    META_MERGE => {
+      resources => {
+        repository => 'http://github.com/mirod/xmltwig',
+      },
     },
-  },
-  #BUILD_REQUIRES => {
-  #},
+    #BUILD_REQUIRES => {
+    #},
 
     NAME	 => 'XML::Twig',
     ABSTRACT     => 'XML, The Perl Way',
     AUTHOR       => 'Michel Rodriguez <mirod@xmltwig.com>',
-     @license,
+    LICENSE      => 'perl',
     EXE_FILES    => [ map {"tools/$_/$_"} @programs],
     VERSION_FROM => 'Twig.pm', 
     PREREQ_PM    => { 'XML::Parser' => '2.23' },
