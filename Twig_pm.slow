@@ -154,7 +154,7 @@ $BUFSIZE = 32768;
 # gi's under this value are special 
 $XML::Twig::SPECIAL_GI= @XML::Twig::index2gi;
 
-%XML::Twig::base_ent= ( '>' => '&gt;', '<' => '&lt;', '&' => '&amp;', "'" => '&apos;', '"' => '&quot;',);
+%XML::Twig::base_ent= ( '>' => '&gt;', '<' => '&lt;', '&' => '&amp;', "'" => '&apos;', '"' => '&quot;', ']]>' => ']]&gt;',);
 
 # now set some aliases
 *find_nodes           = *get_xpath;               # same as XML::XPath
@@ -8045,8 +8045,7 @@ BEGIN {
         { 
           if( ! $elt->_extra_data_in_pcdata)
             { 
-              $string=~ s/([$replaced_ents])/$XML::Twig::base_ent{$1}/g unless( $keep_encoding || $elt->{asis});  
-              $string=~ s{\Q]]>}{]]&gt;}g;
+              $string=~ s/([$replaced_ents]|$CDATA_END)/$XML::Twig::base_ent{$1}/g unless( $keep_encoding || $elt->{asis});  
             }
           else
             { _gen_mark( $string); # used by _(un)?protect_extra_data
@@ -8059,8 +8058,7 @@ BEGIN {
                 }
               unless( $keep_encoding || $elt->{asis})
                 { 
-                  $string=~ s{([$replaced_ents])}{$XML::Twig::base_ent{$1}}g ;
-                  $string=~ s{\Q]]>}{]]&gt;}g;
+                  $string=~ s{([$replaced_ents]|$CDATA_END)}{$XML::Twig::base_ent{$1}}g ;
                   _unprotect_extra_data( $string);
                 }
             }
@@ -8131,8 +8129,7 @@ BEGIN {
               $string=~ s{&(?!(\w+|#\d+|[xX][0-9a-fA-F]+);)}{&amp;}g; # dodgy: escape & that do not start an entity
             }
           else
-            { $string=~ s{([$escape])}{$XML::Twig::base_ent{$1}}g; 
-              $string=~ s{\Q]]>}{]]&gt;}g;
+            { $string=~ s{($CDATA_END|[$escape])}{$XML::Twig::base_ent{$1}}g; 
             }
         }
 
@@ -13007,6 +13004,7 @@ these should cause no trouble:
                '&' => '&amp;',
                "'" => '&apos;',
                '"' => '&quot;',
+               ']]>' => ']]&gt;', # special case for CDATA sectio ends 
              );
   CDATA_START   = "<![CDATA[";
   CDATA_END     = "]]>";
