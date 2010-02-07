@@ -5,7 +5,9 @@ my $PRIVATE   = join( '|', qw( parent first_child last_child prev_sibling next_s
                                extra_data_in_pcdata extra_data_before_end_tag
                              )
                     ); # _$private is inlined
-my $SET_FIELD = join( '|', qw( first_child next_sibling ent data target comment flushed));
+my $SET_FIELD = join( '|', qw( first_child next_sibling ent data pctarget comment flushed));
+my $SET_NOT_EMPTY= join( '|', qw( pcdata cdata)); # set the field and mark as not empty
+
 # depending on the version of perl use either qr or ""
 print STDERR "perl version is $]\n";
 
@@ -47,6 +49,7 @@ while( <>)
     s/$var->atts/$1\->{att}/g;
 
     s/$var->append_(pcdata|cdata)\(([^)]*)\)/$1\->\{$2\}.= $3/g;
+    s/$var->set_(SET_NOT_EMPTY)\(([^)]*)\)/$1\->\{$2\}= $3; delete $1->\{empty\};/g;
 
     s/(\$[a-z][a-z_]*(?:\[\d\])?)->gi/\$XML::Twig::index2gi\[$1\->{'gi'}\]/g;
 

@@ -1,5 +1,4 @@
 #!/usr/bin/perl -w
-# $Id: /xmltwig/trunk/upd_twig 16 2007-06-01T07:15:22.216978Z mrodrigu  $
 use strict;
 use File::stat;
 use Getopt::Long;
@@ -50,7 +49,7 @@ if( mtime( "faq.xml") > mtime( "faq.html") )
 		fill_updated_time( faq_updated => "$MIRROR_DIR/index.html"); 
   }
 
-system qq{git push origin master};           # push to github
+system qq{git push origin master} if( $commit);           # push to github
 
 chdir $MIRROR_DIR;
 

@@ -154,7 +154,7 @@ $BUFSIZE = 32768;
 # gi's under this value are special 
 $XML::Twig::SPECIAL_GI= @XML::Twig::index2gi;
 
-%XML::Twig::base_ent= ( '>' => '&gt;', '<' => '&lt;', '&' => '&amp;', "'" => '&apos;', '"' => '&quot;', ']]>' => ']]&gt;',);
+%XML::Twig::base_ent= ( '>' => '&gt;', '<' => '&lt;', '&' => '&amp;', "'" => '&apos;', '"' => '&quot;',);
 
 # now set some aliases
 *find_nodes           = *get_xpath;               # same as XML::XPath
@@ -441,6 +441,7 @@ sub new
       }
 
     $self->{twig_elt_class}= $args{EltClass} || 'XML::Twig::Elt';
+    if( defined( $args{EltClass}) && $args{EltClass} ne 'XML::Twig::Elt') { $self->{twig_alt_elt_class}=0; }
     if( exists( $args{EltClass})) { delete $args{EltClass}; }
 
     if( exists( $args{MapXmlns}))
@@ -2399,8 +2400,14 @@ sub _insert_pcdata
   { my( $t, $string)= @_;
     # create a new PCDATA element
     my $parent= $t->{twig_current};    # always defined
-    my $elt=  $t->{twig_elt_class}->new( $PCDATA);
-    $elt->_set_pcdata( $string);
+    my $elt;
+    if( exists $t->{twig_alt_elt_class})
+      { $elt=  $t->{twig_elt_class}->new( $PCDATA);
+        $elt->_set_pcdata( $string);
+      }
+    else
+      { $elt= bless( { gi => $XML::Twig::gi2index{$PCDATA}, pcdata => $string }, 'XML::Twig::Elt'); }
+
     my $prev_sibling= $parent->_last_child;
     if( $prev_sibling) 
       { $prev_sibling->set_next_sibling( $elt); 
@@ -8045,7 +8052,8 @@ BEGIN {
         { 
           if( ! $elt->_extra_data_in_pcdata)
             { 
-              $string=~ s/([$replaced_ents]|$CDATA_END)/$XML::Twig::base_ent{$1}/g unless( $keep_encoding || $elt->{asis});  
+              $string=~ s/([$replaced_ents])/$XML::Twig::base_ent{$1}/g unless( $keep_encoding || $elt->{asis});  
+              $string=~ s{\Q]]>}{]]&gt;}g;
             }
           else
             { _gen_mark( $string); # used by _(un)?protect_extra_data
@@ -8058,7 +8066,8 @@ BEGIN {
                 }
               unless( $keep_encoding || $elt->{asis})
                 { 
-                  $string=~ s{([$replaced_ents]|$CDATA_END)}{$XML::Twig::base_ent{$1}}g ;
+                  $string=~ s{([$replaced_ents])}{$XML::Twig::base_ent{$1}}g ;
+                  $string=~ s{\Q]]>}{]]&gt;}g;
                   _unprotect_extra_data( $string);
                 }
             }
@@ -8129,7 +8138,8 @@ BEGIN {
               $string=~ s{&(?!(\w+|#\d+|[xX][0-9a-fA-F]+);)}{&amp;}g; # dodgy: escape & that do not start an entity
             }
           else
-            { $string=~ s{($CDATA_END|[$escape])}{$XML::Twig::base_ent{$1}}g; 
+            { $string=~ s{([$escape])}{$XML::Twig::base_ent{$1}}g; 
+              $string=~ s{\Q]]>}{]]&gt;}g;
             }
         }
 
@@ -13004,7 +13014,6 @@ these should cause no trouble:
                '&' => '&amp;',
                "'" => '&apos;',
                '"' => '&quot;',
-               ']]>' => ']]&gt;', # special case for CDATA sectio ends 
              );
   CDATA_START   = "<![CDATA[";
   CDATA_END     = "]]>";
