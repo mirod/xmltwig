@@ -1,15 +1,16 @@
-#!/usr/local/bin/perl -w
-# $Id: /xmltwig/trunk/tools/xml_grep/xml_grep 27 2007-08-30T08:07:25.079327Z mrodrigu  $
+#!/usr/bin/perl -w
 use strict;
 
 use Getopt::Long;
 use Pod::Usage;
 use XML::Twig;
 
-my $VERSION="0.7";
+my $VERSION="0.8";
 
 # options (all used globally in the script)
-my( $help, $man, @roots, @paths, $files, $count, $nb_results, $encoding, @exclude,
+my( $help, $man, @roots, @paths, $files, 
+    $count, $nb_results, $nb_results_per_file,
+    $encoding, @exclude,
     $wrap, $nowrap, $descr, $group, $pretty_print, $version, $text_only, $date, 
     $html, $verbose, $strict
   );
@@ -26,12 +27,13 @@ my $file_results = 0;
 GetOptions( 'help'            => \$help,
             'man'             => \$man,
             'Version'         => \$version,
+            'cond=s'          => \@paths,
             'exclude|v=s'     => \@exclude,
             'root=s'          => \@roots,
-            'cond=s'          => \@paths,
             'files'           => \$files,
             'count'           => \$count,
             'nb_results=i'    => \$nb_results,
+            'by_file=i'       => \$nb_results_per_file,
             'encoding=s'      => \$encoding,
             'wrap:s'          => \$wrap,
             'nowrap'          => \$nowrap,
@@ -84,6 +86,7 @@ if( !defined( $descr) and (@roots or @paths))
 my $current_file;
 my $count_file  = 0;
 my $count_total = 0;
+my $nb_results_left_in_current_file=0;
 
 # will be used to create the twig
 my %options;  
@@ -121,6 +124,9 @@ my $t= create_twig( %options);
 if( @ARGV)
   { foreach my $file (@ARGV)
       { $current_file= $file;
+
+        if( $nb_results_per_file) { $nb_results_left_in_current_file= $nb_results_per_file; }
+
         if( $verbose) { warn "parsing '$file'\n"; }
         my $ok= $html && ($current_file=~ m{^(http|ftp|file)://}) ? $t->safe_parseurl_html( $file) 
               : ($current_file=~ m{^(http|ftp|file)://})          ? $t->safe_parseurl( $file) 
@@ -224,14 +230,14 @@ sub twig_roots_handler
     return  sub 
               { my( $t, $root)= @_;
                 if( !@paths or $_->att( '#print'))
-                  { print result_start()        unless( $results); 
-                    print file_result_start()   unless( !$group or $file_results);
+                  { print result_start()        if( !$results); 
+                    print file_result_start()   if( $group && !$file_results);
                     if( $text_only)
                       { print $root->text, "\n"; }
                     else
                       { $root->print; }
-                    $nb_results--;
-                    unless( $nb_results) { $@= "XMLGREP: NB_RESULT_REACHED"; die; }
+                    if( ! -- $nb_results) { $@= "XMLGREP: NB_RESULT_REACHED"; die; }
+                    if( ! -- $nb_results_left_in_current_file) { $t->finish_now(); }
                   }
                 $t->purge; 
                 1;
@@ -371,6 +377,10 @@ encoding of the xml output (utf-8 by default)
 =item B<--nb_results> <nb>
 
 output only <nb> results
+
+=item B<--by_file>
+
+output only <nb> results by file 
 
 =item B<--wrap> <tag>
 

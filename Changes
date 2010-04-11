@@ -5,8 +5,15 @@ CHANGES
 version: 3.35
 date:
 # minor maintenance release
+added: the by_file option to xml_grep that limits
+       the number of hits per file
+fixed: after $elt->cut_children, $elt->empty is false RT#54570
+       spotted and patched by Andrew Pimlott
+       https://rt.cpan.org/Ticket/Display.html?id=54570
+
 fixed: documented the fact that latin1 is ISO-8859-15, see RT#37431
        https://rt.cpan.org/Ticket/Display.html?id=37431
+
 
 version: 3.34
 date: 2010-01-18

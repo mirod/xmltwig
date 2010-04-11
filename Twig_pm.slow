@@ -2,7 +2,7 @@ use strict;
 use warnings; # > perl 5.5
 
 # This is created in the caller's space
-# I realize (now!) that it's not clean, but it's been there for 10 years...
+# I realize (now!) that it's not clean, but it's been there for 10+ years...
 BEGIN
 { sub ::PCDATA { '#PCDATA' }  ## no critic (Subroutines::ProhibitNestedSubs);
   sub ::CDATA  { '#CDATA'  }  ## no critic (Subroutines::ProhibitNestedSubs);
@@ -28,12 +28,6 @@ use File::Spec;
 use File::Basename;
 
 *isa= *UNIVERSAL::isa;
-
-# used to store the gi's
-my %gi2index;   # gi => index
-my @index2gi;   # list of gi's
-my $SPECIAL_GI; # first non-special gi;
-#my %base_ent;   # base entity character => replacement
 
 # flag, set to true if the weaken sub is available
 use vars qw( $weakrefs);
@@ -89,6 +83,12 @@ my $parser_version;
 my( $FB_HTMLCREF, $FB_XMLCREF);
 
 my $NO_WARNINGS= $] >= 5.006 ? 'no warnings' : 'local $^W=0';
+
+# default namespaces, both ways
+my %DEFAULT_NS= ( xml   => "http://www.w3.org/XML/1998/namespace",
+                  xmlns => "http://www.w3.org/2000/xmlns/",
+                );
+my %DEFAULT_URI2NS= map { $DEFAULT_NS{$_} => $_ } keys %DEFAULT_NS;
 
 # constants
 my( $PCDATA, $CDATA, $PI, $COMMENT, $ENT, $ELT, $TEXT, $ASIS, $EMPTY, $BUFSIZE);
@@ -2068,7 +2068,7 @@ sub _replace_prefix
     # this should probably be an option
     if( !$uri and( $name!~/^xml/)) { $uri= $p->expand_ns_prefix( '#default'); }
     if( $uri)
-      { if (my $mapped_prefix= $t->{twig_map_xmlns}->{$uri})
+      { if (my $mapped_prefix= $t->{twig_map_xmlns}->{$uri} || $DEFAULT_URI2NS{$uri})
           { return "$mapped_prefix:$name"; }
         else
           { my $prefix= _a_proper_ns_prefix( $p, $uri);
@@ -4613,33 +4613,26 @@ sub _local_name
     return $local;
   }
 
-BEGIN 
-  { my %DEFAULT_NS= ( xml   => "http://www.w3.org/XML/1998/namespace",
-                      xmlns => "http://www.w3.org/2000/xmlns/",
-                    );
- 
-    #sub get_namespace
-    sub namespace ## no critic (Subroutines::ProhibitNestedSubs);
-      { my $elt= shift;
-        my $prefix= defined $_[0] ? shift() : $elt->ns_prefix;
-        my $ns_att= $prefix ? "xmlns:$prefix" : "xmlns";
-        my $expanded= $DEFAULT_NS{$prefix} || $elt->_inherit_att_through_cut( $ns_att) || '';
-        return $expanded;
+#sub get_namespace
+sub namespace ## no critic (Subroutines::ProhibitNestedSubs);
+  { my $elt= shift;
+    my $prefix= defined $_[0] ? shift() : $elt->ns_prefix;
+    my $ns_att= $prefix ? "xmlns:$prefix" : "xmlns";
+    my $expanded= $DEFAULT_NS{$prefix} || $elt->_inherit_att_through_cut( $ns_att) || '';
+    return $expanded;
+  }
+
+sub declare_missing_ns ## no critic (Subroutines::ProhibitNestedSubs);
+  { my $root= shift;
+    my %missing_prefix;
+    my $map= $root->_current_ns_prefix_map;
+
+    foreach my $prefix (keys %$map)
+      { my $prefix_att= $prefix eq '#default' ? 'xmlns' : "xmlns:$prefix";
+        if( ! $root->att( $prefix_att)) 
+          { $root->set_att( $prefix_att => $map->{$prefix}); }
       }
-
-    sub declare_missing_ns ## no critic (Subroutines::ProhibitNestedSubs);
-      { my $root= shift;
-        my %missing_prefix;
-        my $map= $root->_current_ns_prefix_map;
-
-        foreach my $prefix (keys %$map)
-          { my $prefix_att= $prefix eq '#default' ? 'xmlns' : "xmlns:$prefix";
-            if( ! $root->att( $prefix_att)) 
-              { $root->set_att( $prefix_att => $map->{$prefix}); }
-          }
-        return $root;
-      }
-
+    return $root;
   }
 
 sub _current_ns_prefix_map
@@ -4918,8 +4911,7 @@ sub _pos_offset
   }
 
 sub append_pcdata
-  { $_[0]->set_not_empty;
-    $_[0]->{'pcdata'}.= $_[1];
+  { $_[0]->{'pcdata'}.= $_[1];
     return $_[0]; 
   }
 
@@ -5000,8 +4992,7 @@ sub set_cdata
   }
   
 sub _set_cdata 
-  { $_[0]->set_not_empty;
-    $_[0]->{cdata}= $_[1]; 
+  { $_[0]->{cdata}= $_[1]; 
     return $_[0];
   }
 
@@ -5104,7 +5095,7 @@ sub reset_cond_cache { %cond_cache=(); }
               $test = qq{ \$_[0]->gi=~ $1 }; 
             }
           elsif( $cond=~ m{^\s*($REG_NAME_WC)?\s*  # $1
-                           \[\s*(-?)\s*(\d+)\s*\] #   [$2]
+                           \[\s*(-?)\s*(\d+)\s*\]  #   [$2]
                            \s*$}xo
                )
             { my( $gi, $neg, $index)= ($1, $2, $3);
@@ -5247,8 +5238,7 @@ sub parent
   }
 
 sub set_first_child 
-  { $_[0]->set_not_empty;
-    $_[0]->{'first_child'}= $_[1]; 
+  { $_[0]->{'first_child'}= $_[1]; 
   }
 
 sub first_child
@@ -5289,8 +5279,7 @@ sub set_field
   }
 
 sub set_last_child 
-  { $_[0]->set_not_empty;
-    $_[0]->{'last_child'}= $_[1];
+  { $_[0]->{'last_child'}= $_[1];
     if( $XML::Twig::weakrefs) { weaken( $_[0]->{'last_child'}); }
   }
 
@@ -6405,9 +6394,13 @@ sub cut
 
     if( $parent->_first_child == $elt)
       { $parent->set_first_child( $elt->_next_sibling);
-        unless( $elt->_next_sibling) { $parent->set_empty; }
+        # cutting can make the parent empty
+        if( ! $parent->_first_child) { $parent->set_empty( 1); }
       }
-    if( $parent->_last_child == $elt) { $parent->set_last_child( $elt->_prev_sibling); }
+
+    if( $parent->_last_child == $elt)
+      { $parent->set_last_child( $elt->_prev_sibling);
+      }
 
     if( $prev_sibling= $elt->_prev_sibling)
       { $prev_sibling->set_next_sibling( $elt->_next_sibling); }
@@ -6419,6 +6412,8 @@ sub cut
     $elt->set_prev_sibling( undef);
     $elt->set_next_sibling( undef);
 
+    # merge 2 (now) consecutive text nodes if they are of the same type 
+    # (type can be PCDATA or CDATA)
     if( $prev_sibling && $next_sibling && $prev_sibling->is_text && ( $prev_sibling->gi eq $next_sibling->gi))
       { $prev_sibling->merge_text( $next_sibling); }
 
@@ -6434,6 +6429,7 @@ sub cut_children
   { my( $elt, $exp)= @_;
     my @children= $elt->children( $exp);
     foreach (@children) { $_->cut; }
+    $elt->set_empty( 1);
     return @children;
   }
 
@@ -6673,7 +6669,6 @@ BEGIN
         my( $parent, $prev_sibling, $next_sibling );
         $parent= $ref;
         $next_sibling= $ref->_first_child;
-        $ref->set_not_empty;
 
         $elt->set_parent( $parent);
         $parent->set_first_child( $elt);
@@ -6691,7 +6686,6 @@ BEGIN
         my( $parent, $prev_sibling, $next_sibling );
         $parent= $ref;
         $prev_sibling= $ref->_last_child;
-        $ref->set_not_empty;
 
         $elt->set_parent( $parent);
         $parent->set_last_child( $elt);
@@ -7247,7 +7241,6 @@ sub copy
     if( $elt->_extra_data_before_end_tag) { $copy->_set_extra_data_before_end_tag( $elt->_extra_data_before_end_tag); }
 
     if( $elt->is_asis)   { $copy->set_asis; }
-    $copy->set_empty( $elt->is_empty); # do not swap or speedup will mess up this                         
 
     if( $elt->is_pcdata) 
       { $copy->set_pcdata( $elt->pcdata); 
@@ -7651,6 +7644,9 @@ BEGIN {
       # force empty if suitable HTML tag, otherwise use the value from the input tree
       if( ($empty_tag_style eq $HTML) && !$elt->_first_child && !$elt->_extra_data_before_end_tag && $html_empty_elt{$gi})
         { $elt->{empty}= 1; }
+      my $empty= defined $elt->{empty} ? $elt->{empty} 
+               : $elt->_first_child    ? 1
+               :                         0;
 
       $tag .= (!$elt->{empty} || $elt->_extra_data_before_end_tag)  ? '>'            # element has content
             : (($empty_tag_style eq $HTML) && $html_empty_elt{$gi}) ? ' />'          # html empty element 
@@ -8471,6 +8467,8 @@ sub set_content
     foreach my $child (@{[$elt->_children]})
       { $child->delete; }
 
+    if( @_) { $elt->set_not_empty; }
+
     foreach my $child (@_)
       { if( ref( $child) && isa( $child, 'XML::Twig::Elt'))
           { # argument is an element
@@ -8490,7 +8488,6 @@ sub set_content
           }
       }
 
-    $elt->set_not_empty;
 
     return $elt;
   }
@@ -11134,7 +11131,7 @@ returns true (the element) if the element is the first child of its parent
 
 =item is_last_child ($optional_condition)
 
-returns true (the element) if the element is the first child of its parent
+returns true (the element) if the element is the last child of its parent
 (optionally that satisfies the C<$optional_condition>)
 
 =item prev_sibling  ($optional_condition)

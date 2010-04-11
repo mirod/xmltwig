@@ -1,8 +1,6 @@
 #!/usr/bin/perl -w
 use strict;
 
-
-use strict;
 use Carp;
 use File::Spec;
 use lib File::Spec->catdir(File::Spec->curdir,"t");

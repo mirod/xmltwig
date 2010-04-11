@@ -245,7 +245,7 @@ is( $t->sprint, '<doc><elt/><elt2 att="foo">elt2 text</elt2><elt3>elt3 text</elt
     "insert_new_elt");
 
 $root->cut_children;
-is( $t->sprint, '<doc></doc>', "cut_children");# test 47
+is( $t->sprint, '<doc/>', "cut_children");# test 47
 $elt= $root->insert_new_elt( last_child => 'elt' => { '#ASIS' => 1 }, "<p>bar</p>");
 is( $elt->is_asis ? 'asis' : 'not asis', 'asis', "is_asis (initial, yes)");# test 48
 is( $t->sprint, '<doc><elt><p>bar</p></elt></doc>', "insert_new_elt (ASIS)");# test 49

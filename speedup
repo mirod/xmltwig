@@ -49,7 +49,7 @@ while( <>)
     s/$var->atts/$1\->{att}/g;
 
     s/$var->append_(pcdata|cdata)\(([^)]*)\)/$1\->\{$2\}.= $3/g;
-    s/$var->set_(SET_NOT_EMPTY)\(([^)]*)\)/$1\->\{$2\}= $3; delete $1->\{empty\};/g;
+    s/$var->set_($SET_NOT_EMPTY)\(([^)]*)\)/$1\->\{$2\}= $3; delete $1->\{empty\};/g;
 
     s/(\$[a-z][a-z_]*(?:\[\d\])?)->gi/\$XML::Twig::index2gi\[$1\->{'gi'}\]/g;
 
@@ -65,7 +65,8 @@ while( <>)
 
     s/$var->is_empty/$1\->{'empty'}/g;
     s/$var->set_empty(?:\(([^)]*)\))?(?!_)/"$1\->{empty}= " . ($2 || 1)/ge;
-    s/$var->set_not_empty/delete $1\->{empty}/g;
+    s/$var->set_not_empty/$1\->{empty}=0/g;
+    #s/$var->set_not_empty/delete $1\->{empty}/g;
 
     s/$var->_is_private/( (substr( \$XML::Twig::index2gi\[$1\->{'gi'}\], 0, 1) eq '#') && (substr( \$XML::Twig::index2gi\[$1\->{'gi'}\], 0, 9) ne '#default:') )/g;
     #s/_is_private_name\(\s*$var\s*\)/( (substr( $1, 0, 1) eq '#') && (substr( $1, 0, 9) ne '#default:') )/g;
