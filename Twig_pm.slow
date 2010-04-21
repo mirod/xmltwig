@@ -890,31 +890,35 @@ sub _html2xml
               #warn " fixed xml declaration in the wrong place\n";
             }
           elsif( $@=~ m{^\s*not well-formed \(invalid token\)})
-            { my $encoding= _encoding_from_meta( $tree);
-              unless( keys %xml_parser_encoding) { %xml_parser_encoding= _xml_parser_encodings(); }
+            { if( $$xml=~ m{<img "="&#34;" }) 
+                { $$xml=~ s{<img "="&#34;" }{<img }g; } # happens with <img src="foo.png"" ...
+              else
+                { my $encoding= _encoding_from_meta( $tree);
+                  unless( keys %xml_parser_encoding) { %xml_parser_encoding= _xml_parser_encodings(); }
 
-              if( ! $add_decl)
-                { if( $xml_parser_encoding{$encoding})
-                    { $add_decl=1; }
-                  elsif( $encoding eq 'euc-jp' && $xml_parser_encoding{'x-euc-jp-jisx0221'})
-                    { $encoding="x-euc-jp-jisx0221"; $add_decl=1;}
-                  elsif( $encoding eq 'shift-jis' && $xml_parser_encoding{'x-sjis-jisx0221'})
-                    { $encoding="x-sjis-jisx0221";   $add_decl=1;}
+                  if( ! $add_decl)
+                    { if( $xml_parser_encoding{$encoding})
+                        { $add_decl=1; }
+                      elsif( $encoding eq 'euc-jp' && $xml_parser_encoding{'x-euc-jp-jisx0221'})
+                        { $encoding="x-euc-jp-jisx0221"; $add_decl=1;}
+                      elsif( $encoding eq 'shift-jis' && $xml_parser_encoding{'x-sjis-jisx0221'})
+                        { $encoding="x-sjis-jisx0221";   $add_decl=1;}
 
-                  if( $add_decl) 
-                    { $$xml=~ s{^(<\?xml.*?\?>)?}{<?xml version="1.0" encoding="$encoding"?>}s;
-                      #warn "  added decl (encoding $encoding)\n";
+                      if( $add_decl) 
+                        { $$xml=~ s{^(<\?xml.*?\?>)?}{<?xml version="1.0" encoding="$encoding"?>}s;
+                          #warn "  added decl (encoding $encoding)\n";
+                        }
+                      else
+                        { $$xml=~ s{^(<\?xml.*?\?>)?}{}s;
+                          #warn "  converting to utf8 from $encoding\n";
+                          $$xml= _to_utf8( $encoding, $$xml);
+                        }
                     }
                   else
                     { $$xml=~ s{^(<\?xml.*?\?>)?}{}s;
                       #warn "  converting to utf8 from $encoding\n";
                       $$xml= _to_utf8( $encoding, $$xml);
                     }
-                }
-              else
-                { $$xml=~ s{^(<\?xml.*?\?>)?}{}s;
-                  #warn "  converting to utf8 from $encoding\n";
-                  $$xml= _to_utf8( $encoding, $$xml);
                 }
             }
       }
