@@ -889,8 +889,12 @@ sub _html2xml
             { $$xml=~ s{<\?xml version.*\?>}{}; 
               #warn " fixed xml declaration in the wrong place\n";
             }
-          elsif( $@=~ m{^\s*undefined entity})
-            { $$xml=~ s{&amp;Amp;}{&amp;}g; } # if $Amp; is used instead of &amp; then HTML::TreeBuilder's as_xml is tripped
+          elsif( $@=~ m{^\s*undefined entity}m)
+            { $$xml=~ s{&(amp;)?Amp;}{&amp;}g; # if $Amp; is used instead of &amp; then HTML::TreeBuilder's as_xml is tripped
+              if( _use( 'HTML::Entities::Numbered'))
+                { $$xml=name2hex_xml( $$xml); 
+                }
+            }
           elsif( $@=~ m{^\s*not well-formed \(invalid token\)})
             { if( $$xml=~ m{<img "="&#34;" }) 
                 { $$xml=~ s{<img "="&#34;" }{<img }g; } # happens with <img src="foo.png"" ...
