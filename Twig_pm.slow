@@ -889,6 +889,8 @@ sub _html2xml
             { $$xml=~ s{<\?xml version.*\?>}{}; 
               #warn " fixed xml declaration in the wrong place\n";
             }
+          elsif( $@=~ m{^\s*undefined entity})
+            { $$xml=~ s{&amp;Amp;}{&amp;}g; } # if $Amp; is used instead of &amp; then HTML::TreeBuilder's as_xml is tripped
           elsif( $@=~ m{^\s*not well-formed \(invalid token\)})
             { if( $$xml=~ m{<img "="&#34;" }) 
                 { $$xml=~ s{<img "="&#34;" }{<img }g; } # happens with <img src="foo.png"" ...
@@ -3804,7 +3806,7 @@ sub ignore
     #warn "twig_ignore_level:  $t->{twig_ignore_level} (current: ", $current->tag, ", elt: ", $elt->tag, ")\n";
     $t->{twig_ignore_elt}  = $elt;     # save it, so we can delete it later
 
-    my $action= shift || 1; 
+    my $action= $_[2] || 1; 
     $t->{twig_ignore_action}= $action;
 
     my $p= $t->{twig_parser};
