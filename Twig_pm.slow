@@ -6443,6 +6443,15 @@ sub cut_children
     return @children;
   }
 
+sub cut_descendants
+  { my( $elt, $exp)= @_;
+    my @descendants= $elt->descendants( $exp);
+    foreach ($elt->descendants( $exp)) { $_->cut; }
+    $elt->set_empty( 1);
+    return @descendants;
+  }
+
+
 
 sub erase
   { my $elt= shift;
@@ -11332,6 +11341,13 @@ Cut all the children of the element (or all of those which satisfy the
 C<$optional_condition>).
 
 Return the list of children 
+
+=item cut_descendants ($optional_condition)
+
+Cut all the descendants of the element (or all of those which satisfy the
+C<$optional_condition>).
+
+Return the list of descendants 
 
 =item copy        ($elt)
 
