@@ -7,6 +7,8 @@ date:
 # minor maintenance release
 added: the by_file option to xml_grep that limits
        the number of hits per file
+added: allowed the text of ignored elements to be buffered
+       in a string
 fixed: comments need to be escaped (you can't have 2 '-' in a
        row), RT#57389 spotted by Konstantin Tchernov
        https://rt.cpan.org/Ticket/Display.html?id=57389

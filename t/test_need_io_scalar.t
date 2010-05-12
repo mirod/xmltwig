@@ -25,8 +25,35 @@ BEGIN
       { import IO::String; }
   }
 
-print "1..1774\n";
+print "1..1778\n";
 
+{ my $out1='';
+  my $fh1= IO::String->new( \$out1);
+  my $out2='';
+  my $fh2= IO::String->new( \$out2);
+  my $doc='<d><e><m>main</m><i>ignored<i2>completely</i2></i><m>in</m></e><i>ignored<i2>completely</i2></i></d>';
+  my $out= select $fh1;
+  my $t= XML::Twig->new( ignore_elts => { i => 'print' })->parse( $doc);
+  $t->print( $fh2);
+  select $out;
+  is( $out1,'<i>ignored<i2>completely</i2></i><i>ignored<i2>completely</i2></i>', 'ignored with print option'); 
+  is( $out2,'<d><e><m>main</m><m>in</m></e></d>', 'print after ignored_elts');
+}
+   
+{ my $doc='<d><e><m>main</m><i>ignored<i2>completely</i2></i><m>in</m></e><i>ignored<i2>completely</i2></i></d>';
+  my $t= XML::Twig->new( ignore_elts => { i => 'string' })->parse( $doc);
+  is( $t->{twig_buffered_string} || '','<i>ignored<i2>completely</i2></i><i>ignored<i2>completely</i2></i>', 'ignored with string option'); 
+  is( $t->sprint,'<d><e><m>main</m><m>in</m></e></d>', 'string after ignored_elts (to string)');
+}
+      
+{ my $string='';
+  my $doc='<d><e><m>main</m><i>ignored<i2>completely</i2></i><m>in</m></e><i>ignored<i2>completely</i2></i></d>';
+  my $t= XML::Twig->new( ignore_elts => { i => \$string })->parse( $doc);
+  is( $string,'<i>ignored<i2>completely</i2></i><i>ignored<i2>completely</i2></i>', 'ignored with string reference option'); 
+  is( $t->sprint,'<d><e><m>main</m><m>in</m></e></d>', 'string after ignored_elts (to string reference)');
+}
+                      
+                
 { # test autoflush
   my $out=''; 
   my $fh= IO::String->new( \$out);  
@@ -403,18 +430,6 @@ XML::Twig::_twig_print_entity(); # does nothing!
   is( $out, '<elt2/></doc>', "finish_print to STDOUT");
 }
 
-{ my $out1='';
-  my $fh1= IO::String->new( \$out1);
-  my $out2='';
-  my $fh2= IO::String->new( \$out2);
-  my $doc='<d><e><m>main</m><i>ignored<i2>completely</i2></i><m>in</m></e></d>';
-  select $fh1;
-  my $t= XML::Twig->new( ignore_elts => { i => 'print' })->parse( $doc);
-  $t->print( $fh2);
-  is( $out1,'<i>ignored<i2>completely</i2></i>', 'ignored with print option'); 
-  is( $out2,'<d><e><m>main</m><m>in</m></e></d>', 'print after ignored_elts');
-}
-                         
   
 
 

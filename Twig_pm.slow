@@ -1821,7 +1821,7 @@ sub _twig_start
     if( $t->{twig_ignore_elts_handlers})
       { my @handlers= _handler( $t, $t->{twig_ignore_elts_handlers}, $gi);
         # only the first handler counts, it contains the action (discard/print/string)
-        if( @handlers) { my $action= shift @handlers; $t->ignore( $action); }
+        if( @handlers) { my $action= shift @handlers; $t->ignore( $elt, $action); }
       }
 
     if( $elt->att( 'xml:space') && (  $elt->att( 'xml:space') eq 'preserve')) { $t->{twig_preserve_space}++; }
@@ -3737,16 +3737,37 @@ sub _twig_pi_check_roots
   }
 
 
+sub _output_ignored
+  { my( $t, $p)= @_;
+    my $action= $t->{twig_ignore_action};
+
+    my $get_string= $t->{twig_keep_encoding} ? 'original_string' : 'recognized_string';
+
+    if( $action eq 'print' ) { print $p->$get_string; }
+    else
+      { my $string_ref;
+        if( $action eq 'string') 
+          { $string_ref= \$t->{twig_buffered_string}; }
+        elsif( ref( $action) && ref( $action) eq 'SCALAR')
+          { $string_ref= $action; }
+        else
+          { _croak( "wrong ignore action: $action"); }
+
+        $$string_ref .= $p->$get_string;
+      }
+  }
+     
+        
+
 sub _twig_ignore_start
    { # warn " in _twig_ignore_start...\n"; # DEBUG handler
     
     my( $p, $gi)= @_;
     my $t= $p->{twig};
     $t->{twig_ignore_level}++;
-    my $action= $t->{twig_ignore_action};
-    if( $action eq 'print' ) { _twig_print_original( @_); }
-#    elsif( $action eq 'string' )
-#      { $t->{twig_buffered_string} .= $p->original_string(); }
+    my $action= $t->{twig_ignore_action}; 
+
+    $t->_output_ignored( $p) unless $action eq 'discard';
     return;    
   }
 
@@ -3757,11 +3778,7 @@ sub _twig_ignore_end
     my $t= $p->{twig};
 
     my $action= $t->{twig_ignore_action};
-
-    if( $action eq 'print')
-      { _twig_print_original( $p, $gi); }
-#    elsif( $action eq 'string')
-#      { $t->{twig_buffered_string} .= $p->original_string(); }
+    $t->_output_ignored( $p) unless $action eq 'discard';
 
     $t->{twig_ignore_level}--;
 
@@ -3794,7 +3811,7 @@ sub _twig_ignore_end
 #sub _dump_stack { my( $stack)= @_; return join( ":", map { $_->{_tag} } @$stack); }
     
 sub ignore
-  { my( $t, $elt)= @_;
+  { my( $t, $elt, $action)= @_;
     my $current= $t->{twig_current};
 
     if( ! ($elt && ref( $elt) && isa( $elt, 'XML::Twig::Elt'))) { $elt= $current; }
@@ -3810,18 +3827,36 @@ sub ignore
     #warn "twig_ignore_level:  $t->{twig_ignore_level} (current: ", $current->tag, ", elt: ", $elt->tag, ")\n";
     $t->{twig_ignore_elt}  = $elt;     # save it, so we can delete it later
 
-    my $action= $_[2] || 1; 
+    $action ||= 'discard'; 
+    if( !($action eq 'print' || $action eq 'string' || ( ref( $action) && ref( $action) eq 'SCALAR')))
+      { $action= 'discard'; }
+   
     $t->{twig_ignore_action}= $action;
 
     my $p= $t->{twig_parser};
     my @saved_handlers= $p->setHandlers( %twig_handlers_ignore); # set handlers
-    if( $action eq 'print')
-      { $p->setHandlers( Default => \&_twig_print_original); }
-#    elsif( $action eq 'string')
-#      { # not used at the moment
-#        $t->{twig_buffered_string}='';
-#        $p->setHandlers( Default => \&twig_buffer_original);
-#      }
+   
+    my $get_string= $t->{twig_keep_encoding} ? 'original_string' : 'recognized_string';
+
+    my $default_handler;
+
+    if( $action ne 'discard')
+      { if( $action eq 'print')
+          { $p->setHandlers( Default => sub { print $_[0]->$get_string; }); }
+        else
+          { my $string_ref;
+            if( $action eq 'string') 
+              { if( ! exists $t->{twig_buffered_string}) { $t->{twig_buffered_string}=''; }
+                $string_ref= \$t->{twig_buffered_string}; 
+              }
+            elsif( ref( $action) && ref( $action) eq 'SCALAR')
+              { $string_ref= $action; }
+    
+            $p->setHandlers( Default =>  sub { $$string_ref .= $_[0]->$get_string; });
+          }
+        $t->_output_ignored( $p, $action);
+      }
+
 
     $t->{twig_saved_handlers}= \@saved_handlers;        # save current handlers
   }
@@ -9633,11 +9668,19 @@ the element to ignore is a sibling of elements you are interested in.
 
 Example:
 
-  my $twig= XML::Twig->new( ignore_elts => { elt => 1 });
+  my $twig= XML::Twig->new( ignore_elts => { elt => 'discard' });
   $twig->parsefile( 'doc.xml');
 
 This will build the complete twig for the document, except that all C<elt> 
 elements (and their children) will be left out.
+
+The keys in the hash are triggers, limited to the same subset as 
+C<L<start_tag_handlers>>. The values can be C<discard>, to discard
+the element, C<print>, to output the element as-is, C<string> to 
+store the text of the ignored element(s), including markup, in a field of
+the twig: C<< $t->{twig_buffered_string} >> or a reference to a scalar, in
+which case the text of the ignored element(s), including markup, will be
+stored in the scalar. Any other value will be treated as C<discard>.
 
 
 =item char_handler
