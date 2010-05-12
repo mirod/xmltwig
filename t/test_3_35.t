@@ -12,7 +12,7 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=7;
+my $TMAX=9;
 print "1..$TMAX\n";
 
 # escape_gt option
@@ -45,5 +45,18 @@ is( XML::Twig->parse( '<d/>')->root->insert_new_elt( '#COMMENT' => '- -- -')->tw
                                           }
                        )
                   ->parse( $doc);
+}
+
+{ my $xpath='';
+  XML::Twig->parse( map_xmlns => { "http://foo.com" => 'bar' }, 
+                    twig_handlers => { "bar:e" => sub { $xpath= $_[0]->path( $_->gi);}, },
+                    q{<foo:d xmlns:foo="http://foo.com"><foo:e/></foo:d>}
+                  );
+  is( $xpath, '/bar:d/bar:e');
+  XML::Twig->parse( map_xmlns => { "http://foo.com" => 'bar' }, 
+                    twig_handlers => { "bar:e" => sub { $xpath= $_[0]->path( $_->local_name);}, },
+                    q{<d xmlns="http://foo.com"><e/></d>}
+                  );
+  is( $xpath, '/bar:d/bar:e');
 }
 1;
