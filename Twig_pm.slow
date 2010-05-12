@@ -6490,7 +6490,7 @@ sub cut_descendants
   { my( $elt, $exp)= @_;
     my @descendants= $elt->descendants( $exp);
     foreach ($elt->descendants( $exp)) { $_->cut; }
-    $elt->set_empty( 1);
+    if( ! $elt->has_children) { $elt->set_empty( 1); }
     return @descendants;
   }
 

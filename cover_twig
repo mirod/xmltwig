@@ -2,7 +2,7 @@
 use strict; 
 
 my $run=<<RUN;
-HARNESS_PERL_SWITCHES=-MDevel::Cover make test
+TEST_AUTHOR=1 HARNESS_PERL_SWITCHES=-MDevel::Cover make test
 cover
 cover -report text > cover_report.txt
 RUN
