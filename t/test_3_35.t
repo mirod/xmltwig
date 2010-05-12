@@ -12,7 +12,7 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=4;
+my $TMAX=5;
 print "1..$TMAX\n";
 
 # escape_gt option
@@ -30,5 +30,9 @@ is( XML::Twig->parse( '<d/>')->root->insert_new_elt( '#COMMENT' => '- -- -')->tw
   is( $t->root->_pretty_print, 0, '_pretty_print');
   $t->set_pretty_print( 'indented');
   is( $t->root->_pretty_print, 3, '_pretty_print');
+}
+
+# additional tests to increase coverage
+{ is( XML::Twig->parse( no_expand => 1, q{<!DOCTYPE d SYSTEM "dd.dtd" [<!ENTITY foo SYSTEM "x.xml">]><d>&foo;</d>})->root->sprint, "<d>&foo;</d>\n", 'external entities with no_expand');
 }
 1;
