@@ -12,7 +12,7 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=9;
+my $TMAX=10;
 print "1..$TMAX\n";
 
 # escape_gt option
@@ -58,5 +58,10 @@ is( XML::Twig->parse( '<d/>')->root->insert_new_elt( '#COMMENT' => '- -- -')->tw
                     q{<d xmlns="http://foo.com"><e/></d>}
                   );
   is( $xpath, '/bar:d/bar:e');
+}
+
+{ my $t=XML::Twig->parse( pretty_print => 'none', '<d><e1/><e2/><e3/></d>');
+  $t->first_elt( 'e3')->replace( $t->first_elt( 'e1'));
+  is( $t->sprint, '<d><e3/><e2/></d>', 'replace called on an element that has not been cut yet');
 }
 1;
