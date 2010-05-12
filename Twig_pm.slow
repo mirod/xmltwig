@@ -3478,7 +3478,7 @@ sub DESTROY
     undef $t->{twig_root}->{twig} if( $t->{twig_root});
     undef $t->{twig_parser};
     
-    $t={}; # prevents memory leaks (especially when using mod_perl)
+    undef %$t;# prevents memory leaks (especially when using mod_perl)
     undef $t;
   }        
 
@@ -4985,7 +4985,15 @@ sub set_comment
 
 sub _set_comment   { $_[0]->{comment}= $_[1]; return $_[0]; }
 sub comment        { return $_[0]->{comment}; }
-sub comment_string { return $COMMENT_START . $_[0]->comment . $COMMENT_END; }
+sub comment_string { return $COMMENT_START . _comment_escaped_string( $_[0]->comment) . $COMMENT_END; }
+# comments cannot start or end with 
+sub _comment_escaped_string 
+  { my( $c)= @_;
+    $c=~ s{^-}{ -};  
+    $c=~ s{-$}{- };
+    $c=~ s{--}{- -}g;
+    return $c;
+  }
 
 sub set_ent  { $_[0]->{ent}= $_[1]; return $_[0]; }
 sub ent      { return $_[0]->{ent}; }
@@ -12258,6 +12266,13 @@ and C<< --> >>)
 =item comment_string 
 
 Return the XML string for a comment (C<< <!-- comment --> >>)
+
+Note that an XML comment cannot start or end with a '-', or include '--'
+(http://www.w3.org/TR/2008/REC-xml-20081126/#sec-comments),
+if that is the case (because you have created the comment yourself presumably,
+as it could not be in the input XML), then a space will be inserted before
+an initial '-', after a trailing one or between two '-' in the comment
+(which could presumably mangle javascript "hidden" in an XHTML comment);
 
 =item set_ent ($entity)
 
