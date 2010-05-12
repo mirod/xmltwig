@@ -12,7 +12,7 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=5;
+my $TMAX=7;
 print "1..$TMAX\n";
 
 # escape_gt option
@@ -34,5 +34,16 @@ is( XML::Twig->parse( '<d/>')->root->insert_new_elt( '#COMMENT' => '- -- -')->tw
 
 # additional tests to increase coverage
 { is( XML::Twig->parse( no_expand => 1, q{<!DOCTYPE d SYSTEM "dd.dtd" [<!ENTITY foo SYSTEM "x.xml">]><d>&foo;</d>})->root->sprint, "<d>&foo;</d>\n", 'external entities with no_expand');
+}
+
+{ my $doc= q{<d id="i1"><e id="i2"><f id="i3"/></e><g><f id="i4">fi4</f></g></d>};
+  open( my $fh, '>', 'tmp_file'); 
+  my $t= XML::Twig->new( twig_handlers => { e => sub { $_->flush( $fh); },
+                                            g => sub { is( $_[0]->elt_id( 'i4')->text, 'fi4', 'elt_id, id exists'); 
+                                                       nok(  $_[0]->elt_id( 'i3'), 'elt_id, id flushed');
+                                                     },
+                                          }
+                       )
+                  ->parse( $doc);
 }
 1;

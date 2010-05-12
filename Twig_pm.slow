@@ -3042,7 +3042,11 @@ sub flush
     $t->set_empty_tag_style( $old_empty_tag_style) if( defined $old_empty_tag_style); 
 
     if( my $ids= $t->{twig_id_list}) 
-      { while( my ($id, $elt)= each %$ids) { if( ! defined $elt) { delete $t->{twig_id_list}->{$id} } } }
+      { while( my ($id, $elt)= each %$ids) 
+          { if( ! defined $elt) 
+             { delete $t->{twig_id_list}->{$id} } 
+          }
+      }
 
     return $t;
   }
