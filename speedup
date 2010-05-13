@@ -49,7 +49,7 @@ while( <>)
     s/$var->atts/$1\->{att}/g;
 
     s/$var->append_(pcdata|cdata)\(([^)]*)\)/$1\->\{$2\}.= $3/g;
-    s/$var->set_($SET_NOT_EMPTY)\(([^)]*)\)/$1\->\{$2\}= $3; delete $1->\{empty\};/g;
+    s/$var->set_($SET_NOT_EMPTY)\(([^)]*)\)/$1\->\{$2\}= (delete $1->\{empty\} || 1) && $3/g;
 
     s/(\$[a-z][a-z_]*(?:\[\d\])?)->gi/\$XML::Twig::index2gi\[$1\->{'gi'}\]/g;
 
