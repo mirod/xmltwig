@@ -7347,6 +7347,8 @@ sub copy
         if( $XML::Twig::weakrefs) { weaken( $copy->{former}->{$link}); }
       }
 
+    $copy->set_empty( $elt->is_empty);
+
     return $copy;
   }
 

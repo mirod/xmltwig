@@ -7,6 +7,11 @@ date:
 # minor maintenance release
 added: can use the tag[nested] form in twig handlers that
        triggers on elements 'tag' that include a child 'nested'
+fixed: copy did not copy the empty status of an element
+       RT#31664 spotted by Roland Minner
+       https://rt.cpan.org/Ticket/Display.html?id=31664
+
+
 
 version: 3.35
 date: 2010-05-15
