@@ -119,6 +119,7 @@ t/test_3_27.t
 t/test_3_30.t
 t/test_3_32.t
 t/test_3_35.t
+t/test_3_36.t
 t/test_memory.t
 t/test_wrapped.t
 t/test_xml_split.t

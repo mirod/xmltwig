@@ -62,9 +62,11 @@ my $REG_FUNCTION   = q{(?:string|text)\(\s*\)};
 my $REG_STRING_ARG = qq{(?:string|text)\\(\\s*$REG_NAME_W\\s*\\)};
 my $REG_COMP       = q{(?:>=|<=|!=|<|>|=)};
 
+my $REG_TAG_IN_PREDICATE= $REG_NAME . q{(?=\s*(?i:and\b|or\b|\]|$))};
+
 
 # used in the handler trigger code
-my $REG_NAKED_PREDICATE= qq{((?:"[^"]*"|'[^']*'|$REG_STRING_ARG|$REG_FUNCTION|\@$REG_NAME_W|$REG_MATCH\\s*$REG_REGEXP|[\\s\\d><=!()+.-]|(?i:and)|(?i:or))*)};
+my $REG_NAKED_PREDICATE= qq{((?:"[^"]*"|'[^']*'|$REG_STRING_ARG|$REG_FUNCTION|\@$REG_NAME_W|$REG_MATCH\\s*$REG_REGEXP|[\\s\\d><=!()+.-]|(?i:and)|(?i:or)|$REG_TAG_IN_PREDICATE)*)};
 my $REG_PREDICATE= qq{\\[$REG_NAKED_PREDICATE\\]};
 
 # not all axis, only supported ones (in get_xpath)
@@ -95,7 +97,7 @@ my( $PCDATA, $CDATA, $PI, $COMMENT, $ENT, $ELT, $TEXT, $ASIS, $EMPTY, $BUFSIZE);
 
 BEGIN
 { 
-$VERSION = '3.35';
+$VERSION = '3.36';
 
 use XML::Parser;
 my $needVersion = '2.23';
@@ -1482,19 +1484,23 @@ sub _parse_predicate_in_handler
                  |($REG_FUNCTION)                      # no arg functions
                  # this bit is a mess, but it is the only solution with this half-baked parser
                  |(string\(\s*$REG_NAME\s*\)\s*$REG_MATCH\s*$REG_REGEXP)  # string( child)=~ /regexp/
-                 |(string\(\s*$REG_NAME\s*\)\s*$REG_COMP\s*$REG_STRING) # string( child) = "value" (or other test)
-                 |(string\(\s*$REG_NAME\s*\)\s*$REG_COMP\s*$REG_NUMBER) # string( child) = nb (or other test)
+                 |(string\(\s*$REG_NAME\s*\)\s*$REG_COMP\s*$REG_STRING)   # string( child) = "value" (or other test)
+                 |(string\(\s*$REG_NAME\s*\)\s*$REG_COMP\s*$REG_NUMBER)   # string( child) = nb (or other test)
                  |(and|or)
+                # |($REG_NAME(?=\s*(and|or|$)))         # nested tag name (needs to be after all other unquoted strings)
+                 |($REG_TAG_IN_PREDICATE)              # nested tag name (needs to be after all other unquoted strings)
+                 
               )}
-             { my( $token, $string, $att, $bare_att, $num_test, $alpha_test, $func, $string_regexp, $string_test_alpha, $string_test_num, $and_or) 
-               = ( $1,     $2,      $3,   $4,        $5,        $6,          $7,    $8,             $9,                 $10,              $11); 
+             { my( $token, $str, $att, $bare_att, $num_test, $alpha_test, $func, $str_regexp, $str_test_alpha, $str_test_num, $and_or, $tag) 
+               = ( $1,     $2,   $3,   $4,        $5,        $6,          $7,    $8,          $9,              $10,           $11,     $12); 
     
                $score->{predicates}++;
               
                # store tests on text (they are not always allowed)
-               if( $func || $string_regexp || $string_test_num || $string_test_alpha ) { $flag->{test_on_text}= 1;   }
+               if( $func || $str_regexp || $str_test_num || $str_test_alpha ) { $flag->{test_on_text}= 1;   }
 
-               if( defined $string)   { $token }
+               if( defined $str)      { $token }
+               elsif( $tag)           { qq{(\$elt->{_elt} && \$elt->{_elt}->has_child( '$tag'))} }
                elsif( $att)           { $att=~ m{^#} ? qq{ (\$elt->{_elt} && \$elt->{_elt}->{att}->{'$att'})}
                                                      : qq{\$elt->{'$att'}}
                                       }
@@ -1505,15 +1511,15 @@ sub _parse_predicate_in_handler
                elsif( $alpha_test)    { $PERL_ALPHA_TEST{$alpha_test} }
                elsif( $func && $func=~ m{^string})
                                       { "\$elt->{_elt}->text"; }
-               elsif( $string_regexp && $string_regexp =~ m{string\(\s*($REG_NAME)\s*\)\s*($REG_MATCH)\s*($REG_REGEXP)})
+               elsif( $str_regexp     && $str_regexp     =~ m{string\(\s*($REG_NAME)\s*\)\s*($REG_MATCH)\s*($REG_REGEXP)})
                                       { "defined( _first_n {  \$_->text $2 $3 } 1, \$elt->{_elt}->_children( '$1'))"; }
-               elsif( $string_test_alpha && $string_test_alpha     =~ m{string\(\s*($REG_NAME)\s*\)\s*($REG_COMP)\s*($REG_STRING)})
+               elsif( $str_test_alpha && $str_test_alpha =~ m{string\(\s*($REG_NAME)\s*\)\s*($REG_COMP)\s*($REG_STRING)})
                                       { my( $tag, $op, $str)= ($1, $2, $3);
                                         $str=~ s{(?<=.)'(?=.)}{\\'}g; # escape a quote within the string 
                                         $str=~ s{^"}{'};
                                         $str=~ s{"$}{'};
                                         "defined( _first_n { \$_->text $PERL_ALPHA_TEST{$op} $str } 1, \$elt->{_elt}->children( '$tag'))"; }
-               elsif( $string_test_num && $string_test_num   =~ m{string\(\s*($REG_NAME)\s*\)\s*($REG_COMP)\s*($REG_NUMBER)})
+               elsif( $str_test_num   && $str_test_num   =~ m{string\(\s*($REG_NAME)\s*\)\s*($REG_COMP)\s*($REG_NUMBER)})
                                       { my $test= ($2 eq '=') ? '==' : $2;
                                         "defined( _first_n { \$_->text $test $3 } 1, \$elt->{_elt}->children( '$1'))"; 
                                       }

@@ -2,8 +2,14 @@ $Id: /xmltwig/trunk/Changes 33 2008-04-30T08:03:41.004487Z mrodrigu  $
 
 CHANGES
 
-version: 3.35
+version 3.36
 date:
+# minor maintenance release
+added: can use the tag[nested] form in twig handlers that
+       triggers on elements 'tag' that include a child 'nested'
+
+version: 3.35
+date: 2010-05-15
 # minor maintenance release
 added: the by_file option to xml_grep that limits
        the number of hits per file
