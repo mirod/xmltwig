@@ -1343,7 +1343,7 @@ sub _parse_xpath_handler
     while( $xpath=~ s{^\s*
                        ( (//?)                                      # separator
                         | (?:$REG_NAME_WC\s*(?:$REG_PREDICATE\s*)?) # tag name and optional predicate
-                        | (?:$REG_PREDICATE)                       # just a predicate
+                        | (?:$REG_PREDICATE)                        # just a predicate
                        )
                      }
                      {}x
@@ -1398,7 +1398,6 @@ sub _parse_xpath_handler
 
        if( $css_sel && $tag=~ m{\.}) { $tag=~s{\.[^.]*$}{}; $tag ||='*'; }
        $last_tag ||= $tag;
-
 
        if( $sep eq '/')
          { 
@@ -1464,7 +1463,7 @@ sub _tag_cond
 
     my( $tag, $class)= $css_sel ? $full_tag=~ m{^(.*?)(?:\.([^.]*))?$} : ($full_tag, undef);
     my $tag_cond= $tag && $tag ne '*' ? qq#(\$elt->{_tag} eq "$tag")# : '';
-    my $class_cond= defined $class ? qq#(\$elt->{_elt} && \$elt->{_elt}->{att}->{class}=~ m{\\b$class\\b})# : '';
+    my $class_cond= defined $class ? qq#(\$elt->{class}=~ m{\\b$class\\b})# : '';
     my $full_cond= join( ' && ', grep { $_ } ( $tag_cond, $class_cond));
     
     return $full_cond;
