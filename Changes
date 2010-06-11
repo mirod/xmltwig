@@ -5,6 +5,13 @@ CHANGES
 version 3.36
 date:
 # minor maintenance release
+added: XML::Twig::Elt method siblings which returns the
+       siblings of the element
+added: methods att_accessors, elt_accessors and field_accessor
+       as well as the similarly named options when creating an 
+       XML::Twig
+added: set_outer_xml XML::Twig::Elt method
+added: print_to_file on an XML::Twig::Elt
 added: can use the tag[nested] form in twig handlers that
        triggers on elements 'tag' that include a child 'nested'
 fixed: copy did not copy the empty status of an element

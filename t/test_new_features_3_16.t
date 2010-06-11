@@ -109,7 +109,7 @@ nok( $t->root->first_child->first_descendant( 'b'), 'first_descendant fails (mat
 
 # test the create_accessors method
 if( $] < 5.006)
-  { skip( 11 => "cannot use create_accessors with perl < 5.006"); }
+  { skip( 11 => "create_accessors not tested with perl < 5.006"); }
 else
 { my $doc= '<doc att1="1" att3="foo"/>';
   my $t= XML::Twig->new->parse( $doc);
@@ -130,7 +130,7 @@ else
   is( $root->att2, "bar", 'get non-existent att');
   is( $t->sprint, '<doc att1="4" att2="bar" att3="foo"/>', 'final output');
   eval { $t->create_accessors( 'tag'); };
-  matches( $@, q{^attempt to redefine existing method tag using create_accessors }, 'duplicate accessor');
+  matches( $@, q{^attempt to redefine existing method tag using att_accessors }, 'duplicate accessor');
   $@='';
   eval { XML::Twig->create_accessors( 'att2'); };
   is( $@, '', 'redefining existing accessor');

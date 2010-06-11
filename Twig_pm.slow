@@ -167,6 +167,8 @@ $XML::Twig::SPECIAL_GI= @XML::Twig::index2gi;
 *getElementById       = *elt_id;
 *getEltById           = *elt_id;
 *toString             = *sprint;
+*create_accessors     = *att_accessors;
+
 }
 
 @ISA = qw(XML::Parser);
@@ -343,7 +345,10 @@ my $css_sel=0; # set through the css_sel option to allow .class selectors in tri
       ForceEndTagHandlersUsage => 1,
       DoNotChainHandlers    => 1,
       IgnoreElts            => 1,
-      Index                 => 1,
+      Index                 => 1, 
+      AttAccessors          => 1,
+      EltAccessors          => 1,
+      FieldAccessors        => 1,
       CharHandler           => 1, 
       TopDownHandlers       => 1,
       KeepEncoding          => 1, DoNotEscapeAmpInAtts  => 1,
@@ -627,6 +632,10 @@ sub new
     if( my $output_encoding= $args{OutputEncoding}) { $self->set_output_encoding( $output_encoding); delete $args{OutputFilter}; }
 
     if( my $tdh= $args{TopDownHandlers}) { $self->{twig_tdh}=1; delete $args{TopDownHandlers}; }
+
+    if( my $acc_a= $args{AttAccessors})   { $self->att_accessors( @$acc_a);  }
+    if( my $acc_e= $args{EltAccessors})   { $self->elt_accessors( @$acc_e);   }
+    if( my $acc_f= $args{FieldAccessors}) { $self->field_accessors( @$acc_f); }
 
     $self->set_quote( $args{Quote} || 'double');
 
@@ -1463,7 +1472,7 @@ sub _tag_cond
 
     my( $tag, $class)= $css_sel ? $full_tag=~ m{^(.*?)(?:\.([^.]*))?$} : ($full_tag, undef);
     my $tag_cond= $tag && $tag ne '*' ? qq#(\$elt->{_tag} eq "$tag")# : '';
-    my $class_cond= defined $class ? qq#(\$elt->{class}=~ m{\\b$class\\b})# : '';
+    my $class_cond= defined $class ? qq#(\$elt->{class}=~ m{(^| )$class( |\$)})# : '';
     my $full_cond= join( ' && ', grep { $_ } ( $tag_cond, $class_cond));
     
     return $full_cond;
@@ -2927,9 +2936,12 @@ sub _trailing_cpi_text
 
 sub print_to_file
   { my( $t, $filename)= (shift, shift);
-    open( TWIG_PRINT_TO_FILE, ">$filename") or _croak( "cannot create file $filename: $!");
-    $t->print( \*TWIG_PRINT_TO_FILE, @_);
-    close TWIG_PRINT_TO_FILE;
+    my $out_fh;
+    open( $out_fh, ">$filename") or _croak( "cannot create file $filename: $!");     # < perl 5.8
+    my $mode= $t->{twig_keep_encoding} ? '>' : '>:utf8';                             # >= perl 5.8
+    open( $out_fh, $mode, $filename) or _croak( "cannot create file $filename: $!"); # >= perl 5.8
+    $t->print( $out_fh, @_);
+    close $out_fh;
     return $t;
   }
 
@@ -3159,12 +3171,11 @@ sub root
 sub normalize
   { return $_[0]->root->normalize; }
 
+
 # create accessor methods on attribute names
 { my %accessor; # memorize accessor names so re-creating them won't trigger an error
-sub create_accessors
+sub att_accessors
   { 
-    _croak( "cannot use the create_accessors method with perl 5.005") if( $] < 5.006);
-
     my $twig_or_class= shift;
     my $elt_class= ref $twig_or_class ? $twig_or_class->{twig_elt_class}
                                       : 'XML::Twig::Elt'
@@ -3172,22 +3183,78 @@ sub create_accessors
     ## no critic (TestingAndDebugging::ProhibitNoStrict);
     no strict 'refs';
     foreach my $att (@_)
-      { _croak( "attempt to redefine existing method $att using create_accessors")
+      { _croak( "attempt to redefine existing method $att using att_accessors")
           if( $elt_class->can( $att) && !$accessor{$att});
 
-        if( !$accessor{$att})                                # > perl 5.5
-          { *{"$elt_class\::$att"}=                          # > perl 5.5
-                sub :lvalue                                  # > perl 5.5
-                  { my $elt= shift;                          # > perl 5.5
-                    if( @_) { $elt->{att}->{$att}= $_[0]; }  # > perl 5.5
-                    $elt->{att}->{$att};                     # > perl 5.5
-                  };                                         # > perl 5.5
-            $accessor{$att}=1;                               # > perl 5.5
-          }                                                  # > perl 5.5
+        if( !$accessor{$att})
+          { *{"$elt_class\::$att"}=
+                sub
+                    :lvalue                                  # > perl 5.5
+                  { my $elt= shift;
+                    if( @_) { $elt->{att}->{$att}= $_[0]; }
+                    $elt->{att}->{$att};
+                  };
+            $accessor{$att}=1;
+          }
       }
     return $twig_or_class;
   }
 }
+
+{ my %accessor; # memorize accessor names so re-creating them won't trigger an error
+sub elt_accessors
+  { 
+    my $twig_or_class= shift;
+    my $elt_class= ref $twig_or_class ? $twig_or_class->{twig_elt_class}
+                                      : 'XML::Twig::Elt'
+                                      ;
+    ## no critic (TestingAndDebugging::ProhibitNoStrict);
+    no strict 'refs';
+    foreach my $exp (@_)
+      { _croak( "attempt to redefine existing method $exp using elt_accessors")
+          if( $elt_class->can( $exp) && !$accessor{$exp});
+
+        if( !$accessor{$exp})
+          { *{"$elt_class\::$exp"}= 
+                sub
+                  { my $elt= shift;
+                    my $child= $elt->first_child( $exp);
+                    if( @_) { $child= $_[0]; }
+                    $child;
+                  };
+            $accessor{$exp}=1;
+          }                                            
+      }
+    return $twig_or_class;
+  }
+}
+
+{ my %accessor; # memorize accessor names so re-creating them won't trigger an error
+sub field_accessors
+  { 
+    my $twig_or_class= shift;
+    my $elt_class= ref $twig_or_class ? $twig_or_class->{twig_elt_class}
+                                      : 'XML::Twig::Elt'
+                                      ;
+    ## no critic (TestingAndDebugging::ProhibitNoStrict);
+    no strict 'refs';
+    foreach my $exp (@_)
+      { _croak( "attempt to redefine existing method $exp using field_accessors")
+          if( $elt_class->can( $exp) && !$accessor{$exp});
+
+        if( !$accessor{$exp})                                
+          { *{"$elt_class\::$exp"}=                          
+                sub                                          
+                  { my $elt= shift;                          
+                    $elt->field( $exp)                       
+                  };                                         
+            $accessor{$exp}=1;                               
+          }                                                  
+      }
+    return $twig_or_class;
+  }
+}
+
 
 
 sub first_elt
@@ -4608,7 +4675,17 @@ sub set_inner_xml
     $new_elt->erase;
     return $elt;
   }
+ 
+sub set_outer_xml
+  { my( $elt, $xml, @args)= @_;
+    my $new_elt= $elt->parse( "<dummy>$xml</dummy>", @args);
+    $elt->cut_children;
+    $new_elt->replace( $elt);
+    $new_elt->erase;
+    return $new_elt;
+  }
   
+ 
 sub set_inner_html
   { my( $elt, $html)= @_;
     my $t= XML::Twig->new->parse_html( "<html>$html</html>");
@@ -6222,6 +6299,11 @@ sub prev_siblings
     while( $elt= $elt->prev_sibling( @_))
       { unshift @siblings, $elt; }
     return @siblings;
+  }
+
+sub siblings
+  { my $elt= shift;
+    return grep { $_ ne $elt } $elt->parent->children( @_);
   }
 
 sub pos
@@ -7922,7 +8004,17 @@ BEGIN {
       select $old_select if( defined $old_select);
       set_pretty_print( $old_pretty) if( defined $old_pretty);
     }
-      
+ 
+sub print_to_file
+  { my( $elt, $filename)= (shift, shift);
+    my $out_fh;
+    open( $out_fh, ">$filename") or _croak( "cannot create file $filename: $!");     # < perl 5.8
+    my $mode= $keep_encoding ? '>' : '>:utf8';                                       # >= perl 5.8
+    open( $out_fh, $mode, $filename) or _croak( "cannot create file $filename: $!"); # >= perl 5.8
+    $elt->print( $out_fh, @_);
+    close $out_fh;
+    return $elt;
+  }
   
   # same as print but does not output the start tag if the element
   # is marked as flushed
@@ -9413,7 +9505,7 @@ C<setHandlers> on the other hand cannot be used, see C<L<BUGS> >
 
 This is a class method, the constructor for XML::Twig. Options are passed
 as keyword value pairs. Recognized options are the same as XML::Parser,
-plus some XML::Twig specifics.
+plus some (in fact a lot!) XML::Twig specifics.
 
 New Options:
 
@@ -10194,6 +10286,34 @@ It takes a reference to either a list of triggering expressions or to a hash
 name => expression, and for each one generates the list of elements that 
 match the expression. The list can be accessed through the C<L<index>> method.
 
+=item att_accessors <list of attribute names>
+
+creates methods that give direct access to attribute:
+
+  my $t= XML::Twig->new( att_accessors => [ 'href', 'src'])
+                  ->parsefile( $file);
+  my $first href= $t->first_elt( 'img')->src; # same as ->att( 'src')
+  $t->first_elt( 'img')->src( 'new_logo.png') # changes the attribute value
+
+=item elt_accessors
+
+creates methods that give direct access to the first child element:
+
+  my $t=  XML::Twig->new( elt_accessors => [ 'head'])
+                  ->parsefile( $file);
+  my $title_text= $t->root->head->field( 'title');
+  # same as $title_text= $t->root->first_child( 'head')->field( 'title');
+
+=item field_accessors
+
+creates methods that give direct access to the first child element text:
+
+  my $t=  XML::Twig->new( field_accessors => [ 'h1'])
+                  ->parsefile( $file);
+  my $div_title_text= $t->first_elt( 'div')->title;
+  # same as $title_text= $t->first_elt( 'div')->field( 'title');
+
+
 example:
 
   # using an array ref
@@ -10947,7 +11067,7 @@ circular references it never goes out of scope, so if you want to parse lots
 of XML documents then the memory leak becomes a problem. Use
 C<< $twig->dispose >> to clear this problem.
 
-=item create_accessors (list_of_attribute_names)
+=item att_accessors (list_of_attribute_names)
 
 A convenience method that creates l-valued accessors for attributes. 
 So C<< $twig->create_accessors( 'foo') >> will create a C<foo> method
@@ -10955,6 +11075,29 @@ that can be called on elements:
 
   $elt->foo;         # equivalent to $elt->att( 'foo');
   $elt->foo( 'bar'); # equivalent to $elt->set_att( foo => 'bar');
+
+The methods are l-valued only under those perl's that support this
+feature (5.6 and above)
+
+=item create_accessors (list_of_attribute_names)
+
+Same as att_accessors
+
+=item elt_accessors (list_of_attribute_names)
+
+A convenience method that creates accessors for elements. 
+So C<< $twig->create_accessors( 'foo') >> will create a C<foo> method
+that can be called on elements:
+
+  $elt->foo;         # equivalent to $elt->first_child( 'foo');
+
+=item field_accessors (list_of_attribute_names)
+
+A convenience method that creates accessors for element values (C<field>). 
+So C<< $twig->create_accessors( 'foo') >> will create a C<foo> method
+that can be called on elements:
+
+  $elt->foo;         # equivalent to $elt->field( 'foo');
 
 =item set_do_not_escape_amp_in_atts
 
@@ -11028,6 +11171,10 @@ Sets the content of the element to be the tree created from the string
 Sets the content of the element, after parsing the string with an HTML
 parser (HTML::Parser)
 
+=item set_outer_xml ($string)
+
+Replaces the element with the tree created from the string
+
 =item print         ($optional_filehandle, $optional_pretty_print_style)
 
 Prints an entire element, including the tags, optionally to a 
@@ -11035,6 +11182,11 @@ C<$optional_filehandle>, optionally with a C<$pretty_print_style>.
 
 The print outputs XML data so base entities are escaped.
 
+=item print_to_file    ($filename, %options)
+
+Prints the element to file C<$filename>.
+
+options: see C<flush>.
 =item sprint       ($elt, $optional_no_enclosing_tag)
 
 Return the xml string for an entire element, including the tags. 
@@ -12390,6 +12542,12 @@ for the element. The elements are ordered in document order.
 
 Return the list of siblings (optionally matching C<$optional_condition>)
 following the element. The elements are ordered in document order.
+
+=item siblings ($optional_condition)
+
+Return the list of siblings (optionally matching C<$optional_condition>)
+of the element (excluding the element itself). The elements are ordered
+in document order.
 
 =item pos ($optional_condition)
 

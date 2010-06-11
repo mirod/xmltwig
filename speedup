@@ -19,14 +19,19 @@ my $elt    = '\$(?:elt|new_elt|child|cdata|ent|_?parent|twig_current|next_siblin
 
 my %gi2index=( '', 0, PCDATA =>  1, CDATA =>  2, PI => 3, COMMENT => 4, ENT => 5);
 
+(my $version= $])=~ s{\.}{}g;
+
 while( <>)
   {
     if( $] <= 5.005) { s{qr/(.*?)/}{"$1"} };
-    if( $] < 5.006)       { if( m{# > perl 5.5}) { next; } }
-    if( $] !~ m{^5.006})  { if( m{# = perl 5.6}) { next; } }
-    
-    if( $] < 5.006)  { s{^(\s*)no warnings;}    {$1# no warnings;}; }
-    else             { s{^(\s*)# no warnings; } {$1no warnings;};   }
+
+    # when finding a comment # perl > 5.8 or # perl < 5.5, process accordingly
+    if( my( $op, $v, $mv)= m{#\s*(>|<|>=|<=)\s*perl\s*5\.(\d+)(?:\.(\d+))?\s*})
+      { $v= sprintf( "5%03d%03d", $v, $mv || 0);
+        my $comp=  "$version $op $v";
+        if( ! eval $comp) { next; }
+      }
+
   
     if( /=/)
       { s/$var->_children/do { my \$elt= $1; my \@children=(); my \$child= \$elt->_first_child; while( \$child) { push \@children, \$child; \$child= \$child->_next_sibling; } \@children; }/; }
