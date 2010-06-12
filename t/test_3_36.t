@@ -12,7 +12,7 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=19;
+my $TMAX=20;
 print "1..$TMAX\n";
 
 { my $doc=q{<d><s id="s1"><t>title 1</t><s id="s2"><t>title 2</t></s><s id="s3"></s></s><s id="s4"></s></d>};
@@ -68,6 +68,14 @@ print "1..$TMAX\n";
   $t->field_accessors( 'f1');
   is( $d->f1, 'ff1', 'field accessor (created twice)');
 }
+
+{ my $doc=q{<d><e id="i1">foo</e><e id="i2">bar</e><e id="i3">vaz<e>toto</e></e></d>};
+  my $t= XML::Twig->parse( $doc);
+  $t->elt_id( 'i1')->set_outer_xml( '<f id="e1">boh</f>');
+  $t->elt_id( 'i3')->set_outer_xml( '<f id="e2"><g att="a">duh</g></f>');
+  is( $t->sprint, '<d><f id="e1">boh</f><e id="i2">bar</e><f id="e2"><g att="a">duh</g></f></d>', 'set_outer_xml');
+}
+
 
 sub all_text
   { return join ':' => map { $_->text } @_; }
