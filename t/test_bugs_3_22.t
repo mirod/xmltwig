@@ -16,7 +16,7 @@ use XML::Twig;
 
 
 
-my $TMAX=179;
+my $TMAX=181;
 print "1..$TMAX\n";
 
 { # testing how well embedded comments and pi's are kept when changing the content
@@ -224,6 +224,13 @@ print "1..$TMAX\n";
   my $t2= XML::Twig->nparse( $tmp);
   is( $t2->sprint, $t1->sprint, "generated document identical to original document");
   unlink( $tmp); 
+
+  my $e1=  XML::Twig->parse( '<d><a>foo</a><b>bar</b></d>')->first_elt( 'b')->print_to_file( $tmp);
+  ok( -f $tmp, "print_to_file on elt created document");
+  $t2= XML::Twig->nparse( $tmp);
+  is( $t2->sprint, '<b>bar</b>', "generated sub-document identical to original sub-document");
+  unlink( $tmp); 
+
   # failure modes
   eval { XML::Twig->nparse( $tmp); };
   mtest( $@, "Couldn't open $tmp:");
