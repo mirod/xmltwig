@@ -12,7 +12,7 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=20;
+my $TMAX=21;
 print "1..$TMAX\n";
 
 { my $doc=q{<d><s id="s1"><t>title 1</t><s id="s2"><t>title 2</t></s><s id="s3"></s></s><s id="s4"></s></d>};
@@ -76,6 +76,11 @@ print "1..$TMAX\n";
   is( $t->sprint, '<d><f id="e1">boh</f><e id="i2">bar</e><f id="e2"><g att="a">duh</g></f></d>', 'set_outer_xml');
 }
 
+{ my $doc= q{<d><e><f/><g/></e></d>};
+  my $t= XML::Twig->parse( $doc);
+  $t->first_elt( 'e')->cut_children( 'g');
+  is( $t->sprint, q{<d><e><f/></e></d>}, "cut_children leaves some children");
+}
 
 sub all_text
   { return join ':' => map { $_->text } @_; }

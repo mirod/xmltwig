@@ -17,6 +17,8 @@ added: can use the tag[nested] form in twig handlers that
 fixed: copy did not copy the empty status of an element
        RT#31664 spotted by Roland Minner
        https://rt.cpan.org/Ticket/Display.html?id=31664
+fixed: cut_children would always set the empty status of an element,
+       even if it had children left
 
 
 

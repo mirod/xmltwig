@@ -6573,7 +6573,7 @@ sub cut_children
   { my( $elt, $exp)= @_;
     my @children= $elt->children( $exp);
     foreach (@children) { $_->cut; }
-    $elt->set_empty( 1);
+    if( ! $elt->has_children) { $elt->set_empty( 1); }
     return @children;
   }
 
