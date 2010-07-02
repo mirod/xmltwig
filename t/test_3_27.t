@@ -225,15 +225,18 @@ print "1..$TMAX\n";
 }
 
 if( _use( 'HTML::TreeBuilder') )
-  { { my $doc=qq{<html><head><meta 555="er"/></head><body><p>dummy</p>\</body></html>};
+  { # first alternative is pre-3.23_1, second one with 3.23_1 (and beyond?)
+    my $att_error= qr{(^\s*not well-formed|has an invalid attribute name)}s; 
+    
+    { my $doc=qq{<html><head><meta 555="er"/></head><body><p>dummy</p>\</body></html>};
       eval { XML::Twig->nparse( $doc); };
       if( $HTML::TreeBuilder::VERSION <= 3.23)
-        { matches( $@, qr{^\s*not well-formed}s, "error in html (normal mode)"); } 
+        { matches( $@, $att_error, "error in html (normal mode)"); } 
       else
         { nok( $@, "html with wrong attribute (normal mode)"); }
       eval { XML::Twig->nparse_e( $doc); };
       if( $HTML::TreeBuilder::VERSION <= 3.23)
-        { matches( $@, qr{^\s*not well-formed}s, "error in html (nparse_e mode)"); } 
+        { matches( $@, $att_error, "error in html (nparse_e mode)"); } 
       else
         { nok( $@, "html with wrong attribute (nparse_e mode)"); }
     }
@@ -241,7 +244,7 @@ if( _use( 'HTML::TreeBuilder') )
     { my $doc=qq{<html><head></head><body><!-- <foo> bar </foo> --><p 1="a">dummy</p></body></html>};
       eval { XML::Twig->nparse_e( $doc); };
       if( $HTML::TreeBuilder::VERSION <= 3.23)
-        { matches( $@, qr{^\s*not well-formed}s, "error in html (nparse_e mode 2)"); }
+        { matches( $@, $att_error, "error in html (nparse_e mode 2)"); }
       else
         { nok( $@, "html with wrong attribute (nparse_e mode 2)"); }
     }
@@ -249,7 +252,7 @@ if( _use( 'HTML::TreeBuilder') )
     { my $doc=qq{<html><head></head><body><![CDATA[  <foo> bar </foo>  ]]>\n\n<p 1="a">dummy</p></body>\n</html>};
       eval { XML::Twig->nparse_e( $doc); };
       if( $HTML::TreeBuilder::VERSION <= 3.23)
-        { matches( $@, qr{^\s*not well-formed}s, "error in html (nparse_e mode 3)"); }
+        { matches( $@, $att_error, "error in html (nparse_e mode 3)"); }
       else
         { nok( $@, "html with wrong attribute (nparse_e mode 3)"); }
     }

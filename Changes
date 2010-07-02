@@ -19,7 +19,8 @@ fixed: copy did not copy the empty status of an element
        https://rt.cpan.org/Ticket/Display.html?id=31664
 fixed: cut_children would always set the empty status of an element,
        even if it had children left
-
+fixed: tests did not pass with HTML::TreeBuilder 3.23_1 due to a
+       change in an error message
 
 
 version: 3.35
