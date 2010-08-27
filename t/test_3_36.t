@@ -12,7 +12,7 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=21;
+my $TMAX=26;
 print "1..$TMAX\n";
 
 { my $doc=q{<d><s id="s1"><t>title 1</t><s id="s2"><t>title 2</t></s><s id="s3"></s></s><s id="s4"></s></d>};
@@ -81,6 +81,24 @@ print "1..$TMAX\n";
   $t->first_elt( 'e')->cut_children( 'g');
   is( $t->sprint, q{<d><e><f/></e></d>}, "cut_children leaves some children");
 }
+
+{ if( $] >= 5.006)
+    { my $t= XML::Twig->parse( q{<d><e/></d>});
+      $t->first_elt( 'e')->att( 'a')= 'b';
+      is( $t->sprint, q{<d><e a="b"/></d>}, 'lvalued attribute (no attributes)');
+      $t->first_elt( 'e')->att( 'c')= 'd';
+      is( $t->sprint, q{<d><e a="b" c="d"/></d>}, 'lvalued attribute (attributes)');
+      $t->first_elt( 'e')->att( 'c')= '';
+      is( $t->sprint, q{<d><e a="b" c=""/></d>}, 'lvalued attribute (modifying existing attributes)');
+      $t->root->class= 'foo';
+      is( $t->sprint, q{<d class="foo"><e a="b" c=""/></d>}, 'lvalued class (new class)');
+      $t->root->class=~ s{fo}{tot};
+      is( $t->sprint, q{<d class="toto"><e a="b" c=""/></d>}, 'lvalued class (modify class)');
+    }
+  else
+    { skip( 5 => "cannot use lvalued attributes with perl $]"); }
+}
+  
 
 sub all_text
   { return join ':' => map { $_->text } @_; }
