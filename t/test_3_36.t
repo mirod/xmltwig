@@ -12,7 +12,7 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=26;
+my $TMAX=41;
 print "1..$TMAX\n";
 
 { my $doc=q{<d><s id="s1"><t>title 1</t><s id="s2"><t>title 2</t></s><s id="s3"></s></s><s id="s4"></s></d>};
@@ -98,7 +98,147 @@ print "1..$TMAX\n";
   else
     { skip( 5 => "cannot use lvalued attributes with perl $]"); }
 }
+
+# used for all HTML parsing tests with HTML::Tidy 
+my $DECL= qq{<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">\n};
+my $NS= 'xmlns="http://www.w3.org/1999/xhtml"';
+ 
+{ # testing set_inner_html
+  if( !XML::Twig::_use( 'HTML::Tidy'))
+    { skip( 4 => "need HTML::Tidy to use the use_tidy method method");
+    }
+  elsif( !XML::Twig::_use( 'LWP'))
+    { skip( 4 => "need LWP to use set_inner_html method");
+    }
+  else
+    {
+
+      my $doc= '<html><head><title>a title</title></head><body>par 1<p>par 2<br>after the break</body></html>';
+      my $t= XML::Twig->new( use_tidy => 1)->parse_html( $doc);
+      my $inner= '<ul><li>foo</li><li>bar</li></ul>';
+      $t->first_elt( 'p')->set_inner_html( $inner);
+      (my $expected= $t->sprint)=~ s{<p>.*</p>}{<p>$inner</p>};
+      is( $t->sprint, $expected, "set_inner_html");
+
+      $inner= q{<title>2cd title</title><meta content="bar" name="foo">};
+      $t->first_elt( 'head')->set_inner_html( $inner);
+      $inner=~ s{>$}{/>};
+      $expected=~ s{<head>.*</head>}{<head>$inner</head>};
+      $expected=~ s{(<meta[^>]*)(/>)}{$1 $2}g;
+      is( $t->sprint, $expected, "set_inner_html (in head)");
+
+      $inner= q{<p>just a p</p>};
+      $t->root->set_inner_html( $inner);
+      $expected= qq{$DECL<html $NS><head></head><body>$inner</body></html>};
+      is( $t->sprint, $expected, "set_inner_html (all doc)");
+
+      $inner= q{the content of the <br/> body};
+      $t->first_elt( 'body')->set_inner_html( $inner);
+      $expected= qq{$DECL<html $NS><head></head><body>$inner</body></html>};
+      $expected=~ s{<br/>}{<br />}g;
+      is( $t->sprint, $expected, "set_inner_html (body)");
+    }
   
+}
+
+{ if( !XML::Twig::_use( "File::Temp"))
+    { skip( 5, "File::Temp not available"); }
+  elsif( !XML::Twig::_use( "HTML::Tidy"))
+    { skip( 5, "HTML::Tidy not available"); }
+  elsif( !XML::Twig::_use( "LWP"))
+    { skip( 5, "LWP not available"); }
+  elsif( !XML::Twig::_use( "LWP::UserAgent"))
+    { skip( 5, "LWP::UserAgent not available"); }
+
+  else
+    {
+      # parsefile_html_inplace
+      my $file= "test_3_36.html";
+      spit( $file, q{<html><head><title>foo</title><body><p>this is it</p></body></html>>});
+      XML::Twig->new( use_tidy => 1, twig_handlers => { p => sub { $_->set_tag( 'h1')->flush; }})
+               ->parsefile_html_inplace( $file);
+      matches( slurp( $file), qr/<h1>/, "parsefile_html_inplace");
+
+      XML::Twig->new( use_tidy => 1, twig_handlers => { h1 => sub { $_->set_tag( 'blockquote')->flush; }}, error_context => 6)
+               ->parsefile_html_inplace( $file, '.bak');
+      matches( slurp( $file), qr/<blockquote>/, "parsefile_html_inplace (with backup, checking file)");
+      matches( slurp( "$file.bak"), qr/<h1>/, "parsefile_html_inplace (with backup, checking backup)");
+      unlink( "$file.bak");
+    
+      XML::Twig->new( use_tidy => 1, twig_handlers => { blockquote => sub { $_->set_tag( 'div')->flush; }})
+               ->parsefile_html_inplace( $file, 'bak_*');
+      matches( slurp( $file), qr/<div>/, "parsefile_html_inplace (with complex backup, checking file)");
+      matches( slurp( "bak_$file"), qr/<blockquote>/, "parsefile_html_inplace (with complex backup, checking backup)");
+      unlink( "bak_$file");
+      unlink $file;
+    }
+}
+
+{ if( _use( 'HTML::Tidy'))
+    { XML::Twig->set_pretty_print( 'none');
+
+      my $html=q{<html><body><h1>Title</h1><p>foo<br>bar</p>};
+      my $expected= qq{$DECL<html $NS><head><title></title></head><body><h1>Title</h1><p>foo<br />\nbar</p></body></html>};
+ 
+      is( XML::Twig->new( use_tidy => 1 )->safe_parse_html( $html)->sprint, $expected, 'safe_parse_html');
+
+      my $html_file= "t/test_3_30.html";
+      spit( $html_file, $html);
+      is( XML::Twig->new( use_tidy => 1 )->safe_parsefile_html( $html_file)->sprint, $expected, 'safe_parsefile_html');
+
+      if( _use( 'LWP'))
+        { is( XML::Twig->new( use_tidy => 1 )->safe_parseurl_html( "file:$html_file")->sprint, $expected, 'safe_parseurl_html'); }
+      else
+        { skip( 1, "LWP not available, cannot test safe_parseurl_html"); }
+
+      unlink $html_file;
+
+    }
+  else
+    { skip( 3, "HTML::Tidy not available, cannot test safe_parse.*_html methods with the use_tidy option"); }
+}
+
+
+{ # testing parse_html with use_tidy
+ 
+  if( XML::Twig::_use( 'HTML::Tidy') && XML::Twig::_use( 'LWP::Simple') && XML::Twig::_use( 'LWP::UserAgent'))
+    { my $html= q{<html><head><title>T</title><meta content="mv" name="mn"></head><body>t<br>t2<p>t3</body></html>};
+      my $tidy=  HTML::Tidy->new(  { output_xhtml => 1, # duh!
+                         tidy_mark => 0,    # do not add the "generated by tidy" comment
+                         numeric_entities => 1,
+                         char_encoding =>  'utf8',
+                         bare => 1,
+                         clean => 1,
+                         doctype => 'transitional',
+                         fix_backslash => 1,
+                         merge_divs => 0,
+                         merge_spans => 0,
+                         sort_attributes => 'alpha',
+                         indent => 0,
+                         wrap => 0,
+                         break_before_br => 0 } );
+      $tidy->ignore( type =>1, type => 2);
+      my $expected= $tidy->clean( $html);
+      $expected=~ s{></(meta|br)}{ /}g;
+      is_like( XML::Twig->new( use_tidy => 1)->parse_html( $html)->sprint, $expected, 'parse_html string using HTML::Tidy');
+
+      my $html_file= File::Spec->catfile( "t", "test_new_features_3_22.html");
+      spit( $html_file => $html);
+      if( -f $html_file)
+        { is_like( XML::Twig->new( use_tidy => 1)->parsefile_html( $html_file)->sprint, $expected, 'parsefile_html using HTML::Tidy'); 
+
+          open( HTML, "<$html_file") or die "cannot open HTML file '$html_file': $!";
+          is_like( XML::Twig->new( use_tidy => 1)->parse_html( \*HTML)->sprint, $expected, 'parse_html fh using HTML::Tidy');
+        }
+      else
+        { skip( 2, "could not write HTML file in t directory, check permissions"); }
+      
+    }
+  else
+    { skip( 3 => 'need  HTML::Tidy and LWP to test parse_html with the use_tidy option'); }
+}
+
+
 
 sub all_text
   { return join ':' => map { $_->text } @_; }
