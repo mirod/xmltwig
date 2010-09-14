@@ -931,8 +931,8 @@ sub _tidy_html
       while( ! _check_xml( $xml) && $max_tries--)
         { 
           # a couple of fixes for weird HTML::TreeBuilder errors
-          if( $@=~ m{^\s*xml declaration not at start of external entity})
-            { $$xml=~ s{<\?xml version.*\?>}{}; 
+          if( $@=~ m{^\s*xml (or text )?declaration not at start of (external )?entity}i)
+            { $$xml=~ s{<\?xml.*?\?>}{}g; 
               #warn " fixed xml declaration in the wrong place\n";
             }
           elsif( $@=~ m{^\s*undefined entity}m)
@@ -9575,7 +9575,7 @@ Examples:
   foo[string()=~ /^duh!+/]
   /foo[string(bar)=~ /\d+/]/baz[@att != 3]
 
-#CDATA can be used to call a handler for a CDATA.
+#CDATA can be used to call a handler for a CDATA section.
 #COMMENT can be used to call a handler for comments
 
 Some additional (non-XPath) expressions are also provided for convenience: 
@@ -9614,8 +9614,8 @@ first, then regexps, then level), then by whether they specify a full path
 (starting at the root element) or
 not, then by by number of steps in the expression , then number of
 predicates, then number of tests in predicates. Handlers where the last
-step does not specify a step (C<foo/bar/*>) are triggered after other XPath handlers.
-Finally C<_all_> handlers are triggered last. 
+step does not specify a step (C<foo/bar/*>) are triggered after other XPath 
+handlers. Finally C<_all_> handlers are triggered last. 
 
 B<Important>: once a handler has been triggered if it returns 0 then no other
 handler is called, except a C<_all_> handler which will be called anyway.
@@ -9632,19 +9632,20 @@ false. This might also speedup the code by avoiding the result of the last
 statement of the code to be copied and passed to the code managing handlers.
 It can really pay to have 1 instead of a long string returned.
 
-When an element is CLOSED the corresponding handler is called, with 2
-arguments: the twig and the C<L<Element> >. The twig includes the 
-document tree that has been built so far, the element is the complete sub-tree
-for the element. This means that handlers for inner elements are called before
-handlers for outer elements.
+When the closing tag for an element is parsed the corresponding handler is
+called, with 2 arguments: the twig and the C<L<Element> >. The twig includes 
+the document tree that has been built so far, the element is the complete 
+sub-tree for the element. The fact that the handler is called only when the 
+closing tag for the element is found means that handlers for inner elements
+are called before handlers for outer elements.
 
 C<$_> is also set to the element, so it is easy to write inline handlers like
 
   para => sub { $_->set_tag( 'p'); }
 
-Text is stored in elements whose tag is #PCDATA (due to mixed content, text
-and sub-element in an element there is no way to store the text as just an
-attribute of the enclosing element).
+Text is stored in elements whose tag name is #PCDATA (due to mixed content, 
+text and sub-element in an element there is no way to store the text as just 
+an attribute of the enclosing element).
 
 B<Warning>: if you have used purge or flush on the twig the element might not
 be complete, some of its children might have been entirely flushed or purged,

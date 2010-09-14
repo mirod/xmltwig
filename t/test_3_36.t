@@ -12,7 +12,7 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=41;
+my $TMAX=45;
 print "1..$TMAX\n";
 
 { my $doc=q{<d><s id="s1"><t>title 1</t><s id="s2"><t>title 2</t></s><s id="s3"></s></s><s id="s4"></s></d>};
@@ -235,9 +235,28 @@ my $NS= 'xmlns="http://www.w3.org/1999/xhtml"';
       
     }
   else
-    { skip( 3 => 'need  HTML::Tidy and LWP to test parse_html with the use_tidy option'); }
+    { skip( 3 => 'need HTML::Tidy and LWP to test parse_html with the use_tidy option'); }
 }
 
+{ if( XML::Twig::_use( 'HTML::TreeBuilder'))
+    { is( XML::Twig->new->parse_html( '<html><head></head><body>&Amp;</body></html>')->sprint,
+          '<html><head></head><body>&amp;</body></html>',
+          '&Amp; used in html'
+        );
+      is( XML::Twig->new->parse_html( '<html><head></head><body><?xml version="1.0" ?></body></html>')->sprint,
+          '<html><head></head><body></body></html>',
+          'extra XML declaration in html'
+        );
+    }
+  else
+    { skip( 2, 'need HTML::TreeBuilder for additional HTML tests'); }
+}
+
+{ my $t= XML::Twig->parse( '<d><e/></d>');
+  $t->{twig_root}= undef;
+  is( $t->first_elt, undef, 'first_elt on empty tree');
+  is( $t->last_elt, undef, 'last_elt on empty tree');
+}
 
 
 sub all_text
