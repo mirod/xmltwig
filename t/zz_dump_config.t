@@ -12,7 +12,8 @@ warn "OS: $Config{'osname'} - $Config{'myarchname'}\n";
 
 print "\n";
 
-warn version( XML::Parser, 'required');
+warn "required\n";
+warn version( XML::Parser, '');
 
 # We obviously have expat on VMS, but a symbol/logical might
 # not be set to xmlwf, and when this is the case a
@@ -40,6 +41,7 @@ if (! $skip_xmlwf_test)
 print "\n";
 
 # must-have
+warn "Strongly Recommended\n";
 warn version( Scalar::Util, 'for improved memory management');
 if( $ok)
   { unless( defined( &Scalar::Util::weaken))
@@ -58,25 +60,27 @@ unless( $ok) { warn version( Unicode::Map8, 'for encoding conversions'); }
 print "\n";
 
 # optional
-warn version( LWP, 'for the parseurl method');
-warn version( HTML::Entities, 'for the html_encode filter');
-warn version( Tie::IxHash, 'for the keep_atts_order option');
+warn "Modules providing additional features\n";
 warn version( XML::XPathEngine, 'to use XML::Twig::XPath');
 warn version( XML::XPath, 'to use XML::Twig::XPath if Tree::XPathEngine not available');
+warn version( LWP, 'for the parseurl method');
 warn version( HTML::TreeBuilder, 'to use parse_html and parsefile_html');
 warn version( HTML::Tidy, 'to use parse_html and parsefile_html with the use_tidy option');
+warn version( HTML::Entities, 'for the html_encode filter');
+warn version( Tie::IxHash, 'for the keep_atts_order option');
 warn version( Text::Wrap, 'to use the "wrapped" option for pretty_print');
 
 print "\n";
 
 # used in tests
-warn version( Test, 'for testing purposes');
-warn version( Test::Pod, 'for testing purposes');
-warn version( XML::Simple, 'for testing purposes');
-warn version( XML::Handler::YAWriter, 'for testing purposes');
-warn version( XML::SAX::Writer, 'for testing purposes');
-warn version( XML::Filter::BufferText, 'for testing purposes');
-warn version( IO::Scalar, 'for testing purposes');
+warn "Modules used only by the auto tests\n";
+warn version( Test, '');
+warn version( Test::Pod, '');
+warn version( XML::Simple, '');
+warn version( XML::Handler::YAWriter, '');
+warn version( XML::SAX::Writer, '');
+warn version( XML::Filter::BufferText, '');
+warn version( IO::Scalar, '');
 
 my $zz_dump_config= File::Spec->catfile( t => "zz_dump_config.t");
 warn "\n\nPlease add this information to bug reports (you can run $zz_dump_config to get it)\n\n";
@@ -105,4 +109,4 @@ sub version
   }
 
 sub format_warn
-  { return  sprintf( "%-25s: %16s %s\n", @_); }
+  { return  sprintf( "  %-25s: %16s %s\n", @_); }
