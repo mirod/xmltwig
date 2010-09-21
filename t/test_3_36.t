@@ -12,7 +12,7 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=58;
+my $TMAX=59;
 print "1..$TMAX\n";
 
 { my $doc=q{<d><s id="s1"><t>title 1</t><s id="s2"><t>title 2</t></s><s id="s3"></s></s><s id="s4"></s></d>};
@@ -307,10 +307,12 @@ my $NS= 'xmlns="http://www.w3.org/1999/xhtml"';
 }
 
 { XML::Twig::_set_debug_handler( 3);
-  XML::Twig->new( twig_handlers => { foo => sub { $_->att( 'a')++; } });
+  XML::Twig->new( twig_handlers => { 'foo[@a="bar"]' => sub { $_->att( 'a')++; } });
   is( XML::Twig::_return_debug_handler, q#
 
-parsing path 'foo'
+parsing path 'foo[@a="bar"]'
+predicate is: '@a="bar"'
+predicate becomes: '$elt->{'a'} eq "bar"'
 
 perlfunc:
 no warnings;
@@ -318,25 +320,29 @@ my( $stack)= @_;
 my @current_elts= (scalar @$stack); 
 my @new_current_elts;               
 my $elt;                            
-warn q{checking path 'foo'
+warn q{checking path 'foo\[\@a=\"bar\"\]'
 };
 foreach my $current_elt (@current_elts)              
   { next if( !$current_elt);                         
     $current_elt--;                                  
     $elt= $stack->[$current_elt];                    
-    if( ($elt->{_tag} eq "foo")) { push @new_current_elts, $current_elt;} 
+    if( ($elt->{_tag} eq "foo") && $elt->{'a'} eq "bar") { push @new_current_elts, $current_elt;} 
   }                                                  
-unless( @new_current_elts) { warn qq%fail at cond '($elt->{_tag} eq "foo")'%;
+unless( @new_current_elts) { warn qq%fail at cond '($elt->{_tag} eq "foo") && $elt->{'a'} eq "bar"'%;
  return 0; } 
 @current_elts= @new_current_elts;           
 @new_current_elts=();                       
-warn "handler for 'foo' triggered\n";
-return q{foo};
+warn "handler for 'foo\[\@a=\"bar\"\]' triggered\n";
+return q{foo[@a="bar"]};
 
 last tag: 'foo', test_on_text: '0'
-score: anchored: 0 steps: 1 type: 3
+score: anchored: 0 predicates: 3 steps: 1 type: 3
 #, 'handler content');
   XML::Twig::_set_debug_handler( 0);
+}
+
+{ my $t=XML::Twig->parse( elt_class => 'XML::Twig::Elt', '<d/>');
+  is( ref($t->root), 'XML::Twig::Elt', 'alternate class... as the default one!');
 }
 
 
