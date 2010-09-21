@@ -773,21 +773,21 @@ sub safe_parseurl
 sub safe_parsefile_html
   { my $t= shift;
     eval { $t->parsefile_html( @_); };
-    return $@ ? $t->_reset_twig &&  0 : $t;
+    return $@ ? $t->_reset_twig_after_error : $t;
   }
 
 sub safe_parseurl_html
   { my $t= shift;
     _use( 'LWP::Simple') or croak "missing LWP::Simple"; 
     eval { $t->parse_html( LWP::Simple::get( shift()), @_); } ;
-    return $@ ? $t->_reset_twig &&  0 : $t;
+    return $@ ? $t->_reset_twig_after_error : $t;
   }
 
 # uses eval to catch the parser's death
 sub safe_parse_html
   { my $t= shift;
     eval { $t->parse_html( @_); } ;
-    return $@ ? $t->_reset_twig &&  0 : $t;
+    return $@ ? $t->_reset_twig_after_error : $t;
   }
 
 sub parsefile_html
@@ -824,6 +824,7 @@ sub xparse
                                              }
     elsif( $to_parse=~ m{^\w+://})           { _use( 'LWP::Simple') or croak "missing LWP::Simple";
                                                my $doc= LWP::Simple::get( shift);
+                                               if( ! defined $doc) { $doc=''; }
                                                my $xml_parse_ok= $t->safe_parse( $doc, @_);
                                                if( $xml_parse_ok)
                                                  { return $xml_parse_ok; }
@@ -1710,13 +1711,13 @@ sub _twig_init
 sub safe_parse
   { my $t= shift;
     eval { $t->parse( @_); } ;
-    return $@ ? $t->_reset_twig &&  0 : $t;
+    return $@ ? $t->_reset_twig_after_error : $t;
   }
 
 sub safe_parsefile
   { my $t= shift;
     eval { $t->parsefile( @_); } ;
-    return $@ ? $t->_reset_twig : $t;
+    return $@ ? $t->_reset_twig_after_error : $t;
   }
 
 # restore a twig in a proper state so it can be reused for a new parse
@@ -1732,6 +1733,13 @@ sub _reset_twig
     delete $t->{twig_entity_list};
     $t->root->delete if( $t->root);
     delete $t->{root};
+    return $t;
+  }
+
+sub _reset_twig_after_error
+  { my $t= shift;
+    $t->_reset_twig;
+    return undef;
   }
 
 

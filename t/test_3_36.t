@@ -12,7 +12,7 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=53;
+my $TMAX=54;
 print "1..$TMAX\n";
 
 { my $doc=q{<d><s id="s1"><t>title 1</t><s id="s2"><t>title 2</t></s><s id="s3"></s></s><s id="s4"></s></d>};
@@ -247,8 +247,9 @@ my $NS= 'xmlns="http://www.w3.org/1999/xhtml"';
           '<html><head></head><body></body></html>',
           'extra XML declaration in html'
         );
-      my $doc=q{<html><head><script><![CDATA[some script with < and >]]></script></head><body><!-- just a <> comment --></body></html>};
-      is_like( XML::Twig->parse($doc)->sprint, $doc, 'CDATA and comments in html');
+      my $doc=q{<html><head><script><![CDATA[some script with < and >]]></script></head><body><!-- just a <> comment --></body><div><p>foo<b>ah</b></p><p/></div></html>};
+      (my $expected= $doc)=~s{<p/>}{<p></p>}g;
+      is_like( XML::Twig->parse($doc)->sprint, $expected, 'CDATA and comments in html');
     }
   else
     { skip( 3, 'need HTML::TreeBuilder for additional HTML tests'); }
@@ -286,6 +287,13 @@ my $NS= 'xmlns="http://www.w3.org/1999/xhtml"';
   is( $r->is_empty, 1, 'empty element after cut_descendants');
 }
 
+{ if( XML::Twig::_use( 'LWP::Simple'))
+    { eval { XML::Twig->parse( 'file://not_there'); };
+      matches( $@, 'no element found', 'making xparse fail');
+    }
+  else
+    { skip( 1); }
+}
 
 sub all_text
   { return join ':' => map { $_->text } @_; }
