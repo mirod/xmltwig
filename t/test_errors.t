@@ -298,7 +298,8 @@ my $init_warn= $SIG{__WARN__};
       
       my $perl = used_perl();
 
-      my $cmd= qq{$perl $q-CSDAL$q $script $perl $infile 2>$error};
+    
+      my $cmd= qq{$perl $q-CSDAL$q $script $infile 2>$error};
       system $cmd;
 
       matches( slurp( $error), "^cannot parse the output of a pipe", 'parse a pipe with perlIO layer set to UTF8 (RT #17500)');

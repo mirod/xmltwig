@@ -383,8 +383,13 @@ sub slurp_error
   }
 
 sub used_perl
-  { if( $^O eq 'VMS') { return $Config{perlpath}; } # apparently $^X does not work on VMS
-    else              { return $^X;               } # but $Config{perlpath} does not work in 5.005
+  { my $perl;
+    if( $^O eq 'VMS') { $perl= $Config{perlpath}; } # apparently $^X does not work on VMS
+    else              { $perl= $^X;               } # but $Config{perlpath} does not work in 5.005
+    if ($^O ne 'VMS' && $Config{_exe} &&  $perl !~ m{$Config{_exe}$}i) { $perl .= $Config{_exe}; }
+    $perl .= " -Iblib/lib";
+    if( $ENV{TEST_COVER}) { $perl .= " -MDevel::Cover"; }
+    return $perl;
   }
 
 

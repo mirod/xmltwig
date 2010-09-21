@@ -18,9 +18,7 @@ if( $] < 5.006) { print "1..1\nok 1\n"; warn "skipping, xml_merge runs only on p
 
 print "1..13\n";
 
-my $perl= $Config{perlpath};
-if ($^O ne 'VMS') { $perl .= $Config{_exe} unless $perl =~ m/$Config{_exe}$/i; }
-$perl = "$^X -Mblib ";
+$perl = used_perl();
 my $xml_split = File::Spec->catfile( "tools", "xml_split", "xml_split");
 my $xml_merge = File::Spec->catfile( "tools", "xml_merge", "xml_merge");
 

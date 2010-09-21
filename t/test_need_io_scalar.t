@@ -197,7 +197,7 @@ print "1..1778\n";
   my $t= XML::Twig->new( empty_tags => 'expand', pretty_print => 'none')->parse( '<doc><elt/></doc>');
   $t->root->print( $fh);
   is( $out, "<doc><elt></elt></doc>", "empty_tags expand"); 
-  $t->root->print( $fh2, 'indented');
+  $t->root->print( $fh2, { pretty_print => 'indented' } );
   is( $out2, "<doc>\n  <elt></elt>\n</doc>\n", "print elt indented"); 
   $out=''; $fh= IO::String->new( \$out); $t->root->print( $fh);
   is( $out, "<doc><elt></elt></doc>", "back to default"); 

@@ -7,7 +7,7 @@ my %opt;
 getopts( 'vrh', \%opt);
 
 my $run=<<RUN;
-TEST_AUTHOR=1 HARNESS_PERL_SWITCHES=-MDevel::Cover make test
+TEST_AUTHOR=1 TEST_COVER=1 HARNESS_PERL_SWITCHES=-MDevel::Cover make test
 cover
 cover -report text > cover_report.txt
 RUN
@@ -17,10 +17,10 @@ unless( @ARGV)
 
 if( @ARGV)
   { foreach my $test (@ARGV)
-      { system "TEST_AUTHOR=1 $^X -MDevel::Cover $test"; }
+      { system "TEST_AUTHOR=1 TEST_COVER=1 $^X -MDevel::Cover $test"; }
   }
 else
-  {  system "TEST_AUTHOR=1 HARNESS_PERL_SWITCHES=-MDevel::Cover make test"; }
+  {  system "TEST_AUTHOR=1 TEST_COVER=1 HARNESS_PERL_SWITCHES=-MDevel::Cover make test"; }
 
 system "cover && cover -report text > cover_report.txt";
 

@@ -1,9 +1,23 @@
 use XML::Twig;
 
 use strict;
+use Config;
 
-my( $perl, $infile)= @ARGV;
+my( $infile)= @ARGV;
 
+my $perl= used_perl();
 open( FH, "$perl -p -e1 $infile |") or die $!; 
 XML::Twig->nparse( \*FH); 
 die "OK\n";
+
+
+sub used_perl
+  { my $perl;
+    if( $^O eq 'VMS') { $perl= $Config{perlpath}; } # apparently $^X does not work on VMS
+    else              { $perl= $^X;               } # but $Config{perlpath} does not work in 5.005
+    if ($^O ne 'VMS' && $Config{_exe} &&  $perl !~ m{$Config{_exe}$}i) { $perl .= $Config{_exe}; }
+    $perl .= " -Iblib/lib";
+    if( $ENV{TEST_COVER}) { $perl .= " -MDevel::Cover"; }
+    return $perl;
+  }
+

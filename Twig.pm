@@ -449,7 +449,7 @@ sub new
       }
 
     $self->{twig_elt_class}= $args{EltClass} || 'XML::Twig::Elt';
-    if( defined( $args{EltClass}) && $args{EltClass} ne 'XML::Twig::Elt') { $self->{twig_alt_elt_class}=0; }
+    if( defined( $args{EltClass}) && $args{EltClass} ne 'XML::Twig::Elt') { $self->{twig_alt_elt_class}=1; }
     if( exists( $args{EltClass})) { delete $args{EltClass}; }
 
     if( exists( $args{MapXmlns}))
@@ -773,21 +773,21 @@ sub safe_parseurl
 sub safe_parsefile_html
   { my $t= shift;
     eval { $t->parsefile_html( @_); };
-    return $@ ? $t->_reset_twig &&  0 : $t;
+    return $@ ? $t->_reset_twig_after_error : $t;
   }
 
 sub safe_parseurl_html
   { my $t= shift;
     _use( 'LWP::Simple') or croak "missing LWP::Simple"; 
     eval { $t->parse_html( LWP::Simple::get( shift()), @_); } ;
-    return $@ ? $t->_reset_twig &&  0 : $t;
+    return $@ ? $t->_reset_twig_after_error : $t;
   }
 
 # uses eval to catch the parser's death
 sub safe_parse_html
   { my $t= shift;
     eval { $t->parse_html( @_); } ;
-    return $@ ? $t->_reset_twig &&  0 : $t;
+    return $@ ? $t->_reset_twig_after_error : $t;
   }
 
 sub parsefile_html
@@ -824,6 +824,7 @@ sub xparse
                                              }
     elsif( $to_parse=~ m{^\w+://})           { _use( 'LWP::Simple') or croak "missing LWP::Simple";
                                                my $doc= LWP::Simple::get( shift);
+                                               if( ! defined $doc) { $doc=''; }
                                                my $xml_parse_ok= $t->safe_parse( $doc, @_);
                                                if( $xml_parse_ok)
                                                  { return $xml_parse_ok; }
@@ -1040,7 +1041,7 @@ sub _indent_xhtml
                                      ); 
 
     my $level=0;
-    $$xhtml=~ s{( (?:<!(?:--.*?-->|[CDATA[.*]]>)) # ignore comments and CDATA sections
+    $$xhtml=~ s{( (?:<!(?:--.*?-->|[CDATA[.*?]]>)) # ignore comments and CDATA sections
                   | <(\w+)                        # start tag
                   |(</\(\w+)                      # end tag 
                 )
@@ -1366,17 +1367,22 @@ sub _set_regexp_handler
       { return 0; }
   }
 
+my $DEBUG_HANDLER= 0; # 0 or 1 (output the handler checking code) or 2 (super verbose)
+my $handler_string;   # store the handler itself
+sub _set_debug_handler    { $DEBUG_HANDLER= shift; }
+sub _warn_debug_handler   { if( $DEBUG_HANDLER < 3) { warn @_; } else { $handler_string .= join( '', @_); } }
+sub _return_debug_handler { my $string=  $handler_string; $handler_string=''; return $string; }
+
 sub _parse_xpath_handler
   { my( $xpath, $handler)= @_;
     my $xpath_original= $xpath;
 
-    my $DEBUG_HANDLER= 0; # 0 or 1 (output the handler checking code) or 2 (super verbose)
 
-    if( $DEBUG_HANDLER >=1) { warn "\n\nparsing path '$xpath'\n"; }
+    if( $DEBUG_HANDLER >=1) { _warn_debug_handler( "\n\nparsing path '$xpath'\n"); }
 
     my $path_to_check= $xpath;
     $path_to_check=~ s{/?/?$REG_NAME_WC?\s*(?:$REG_PREDICATE\s*)?}{}g;
-    if( $DEBUG_HANDLER && $path_to_check=~ /\S/) { warn "left: $path_to_check\n"; }
+    if( $DEBUG_HANDLER && $path_to_check=~ /\S/) { _warn_debug_handler( "left: $path_to_check\n"); }
     return if( $path_to_check=~ /\S/);
 
     (my $xpath_to_display= $xpath)=~ s{(["{}'\[\]\@\$])}{\\$1}g;
@@ -1430,11 +1436,11 @@ sub _parse_xpath_handler
         my $warn_empty_stack= $DEBUG_HANDLER >= 2 ? qq{warn "return with empty stack\\n";} : '';
 
         if( $predicate)
-          { if( $DEBUG_HANDLER >= 2)  { warn "predicate is: '$predicate'\n"; }
+          { if( $DEBUG_HANDLER >= 2)  { _warn_debug_handler( "predicate is: '$predicate'\n"); }
             # changes $predicate (from an XPath expression to a Perl one)
             if( $predicate=~ m{^\s*$REG_NUMBER\s*$}) { croak "position selector [$predicate] not supported on twig_handlers"; }
             _parse_predicate_in_handler( $predicate, $flag, $score);
-            if( $DEBUG_HANDLER >= 2) { warn "predicate becomes: '$predicate'\n"; }
+            if( $DEBUG_HANDLER >= 2) { _warn_debug_handler( "predicate becomes: '$predicate'\n"); }
           }
 
        my $tag_cond=  _tag_cond( $tag);
@@ -1490,13 +1496,13 @@ sub _parse_xpath_handler
 
     $perlfunc.= qq{warn "handler for '$xpath_to_display' triggered\\n";\n} if( $DEBUG_HANDLER >=2);
     $perlfunc.= qq{return q{$xpath_original};\n};
-    warn "\nperlfunc:\n$perlfunc\n" if( $DEBUG_HANDLER>=1);
+    _warn_debug_handler( "\nperlfunc:\n$perlfunc\n") if( $DEBUG_HANDLER>=1);
     my $s= eval "sub { $perlfunc }";
       if( $@) 
         { croak "wrong handler condition '$xpath' ($@);" }
 
-      warn "last tag: '$last_tag', test_on_text: '$flag->{test_on_text}'\n" if( $DEBUG_HANDLER >=1);
-      warn "score: ", join( ' ', map { "$_: $score->{$_}" } sort keys %$score), "\n" if( $DEBUG_HANDLER >=1);
+      _warn_debug_handler( "last tag: '$last_tag', test_on_text: '$flag->{test_on_text}'\n") if( $DEBUG_HANDLER >=1);
+      _warn_debug_handler( "score: ", join( ' ', map { "$_: $score->{$_}" } sort keys %$score), "\n") if( $DEBUG_HANDLER >=1);
       return { tag=> $last_tag, score => $score, trigger => $s, path => $xpath_original, handler => $handler, test_on_text => $flag->{test_on_text} };
     }
 
@@ -1710,13 +1716,13 @@ sub _twig_init
 sub safe_parse
   { my $t= shift;
     eval { $t->parse( @_); } ;
-    return $@ ? $t->_reset_twig &&  0 : $t;
+    return $@ ? $t->_reset_twig_after_error : $t;
   }
 
 sub safe_parsefile
   { my $t= shift;
     eval { $t->parsefile( @_); } ;
-    return $@ ? $t->_reset_twig : $t;
+    return $@ ? $t->_reset_twig_after_error : $t;
   }
 
 # restore a twig in a proper state so it can be reused for a new parse
@@ -1732,6 +1738,13 @@ sub _reset_twig
     delete $t->{twig_entity_list};
     $t->root->delete if( $t->root);
     delete $t->{root};
+    return $t;
+  }
+
+sub _reset_twig_after_error
+  { my $t= shift;
+    $t->_reset_twig;
+    return undef;
   }
 
 
@@ -1951,6 +1964,7 @@ sub _a_proper_ns_prefix
       { if( $p->expand_ns_prefix( $prefix) eq $uri)
           { return $prefix; }
       }
+    warn "here";
     return;
   }
 
@@ -2702,7 +2716,6 @@ sub _twig_default
       { # the entity has to be pure pcdata, or we have a problem
         if( ($p->original_string=~ m{^<}) && ($p->original_string=~ m{>$}) ) 
           { # string is a tag, entity is in an attribute
-            warn "processing entity in att";
             $t->{twig_entities_in_attribute}=1 if( $t->{twig_do_not_escape_amp_in_atts});
           }
         else
@@ -5659,12 +5672,11 @@ BEGIN
 
 # delete the id attribute and remove the element from the id list
 sub del_id 
-  { my $elt= shift;
-    unless( exists $elt->{'att'}) { return $elt }; 
-    unless( exists $elt->{'att'}->{$ID}) { return $elt }; 
-    my $id= $elt->{'att'}->{$ID};
+  { my $elt= shift; 
+    if( ! exists $elt->{att}->{$ID}) { return $elt }; 
+    my $id= $elt->{att}->{$ID};
 
-    delete $elt->{'att'}->{$ID}; 
+    delete $elt->{att}->{$ID}; 
 
     my $t= shift || $elt->twig;
     unless( $t) { return $elt; }
@@ -6522,7 +6534,7 @@ sub _croak_and_doublecheck_xpath
                    . "\nyou are using either 'find_nodes' or 'get_xpath' where the method you likely wanted"
                    . "\nto use is 'findnodes', which is the only one that uses the full XPath engine\n";
           }
-      } 
+      }
     croak $mess;
   }
     
@@ -8010,39 +8022,10 @@ BEGIN {
   sub print
     { my $elt= shift;
 
-      my $pretty;
       my $fh= isa( $_[0], 'GLOB') || isa( $_[0], 'IO::Scalar') ? shift : undef;
       my $old_select= defined $fh ? select $fh : undef;
-      my $old_pretty= defined ($pretty= shift) ? set_pretty_print( $pretty) : undef;
-      $pretty ||=0;
-      $pretty = $pretty_print_style{$pretty} || $pretty;
-
-      $xml_space_preserve= ( ($elt->inherit_att( 'xml:space') || '') eq 'preserve');
- 
-      #$elt->_print;       # no need to duplicate logic in _sprint
-      #print $elt->sprint; # but that's too slow
-
-      @sprint=();
-      $elt->_sprint(@_);
-      if( $output_filter || ((($pretty== $WRAPPED) || ($pretty==$INDENTEDC)) && !$xml_space_preserve))
-        { my $sprint= join( '', @sprint);
-          if( $output_filter) { $sprint= $output_filter->( $sprint); }
-
-          if( ( ($pretty== $WRAPPED) || ($pretty==$INDENTEDC)) && !$xml_space_preserve)
-            { $sprint= _wrap_text( $sprint); }
-          print  $sprint;
-        }
-      else
-        { 
-#foreach my $s (@sprint) { print "TRACE s $s: ", Encode::is_utf8( $s) ? "has flag\n" : "FLAG NOT SET\n"; }
-          print @sprint; 
-#warn "FATTO";
-        }
-
-      $xml_space_preserve= 0;
-    
+      print $elt->sprint( @_);
       select $old_select if( defined $old_select);
-      set_pretty_print( $old_pretty) if( defined $old_pretty);
     }
  
 sub print_to_file
@@ -8228,11 +8211,11 @@ sub print_to_file
         { push @sprint, $elt->{extra_data} if( $elt->{extra_data}) ;
           if(    (exists $elt->{'pcdata'}))  { push @sprint, $elt->pcdata_xml_string; }
           elsif( (exists $elt->{'cdata'}))   { push @sprint, $elt->cdata_string;      }
-          elsif( (exists $elt->{'target'}))      { push @sprint, $elt->pi_string;
-                                     if( ($pretty >= $INDENTED) && !$elt->{parent}->{contains_text}) { push @sprint, "\n"; }
+          elsif( (exists $elt->{'target'}))      { if( ($pretty >= $INDENTED) && !$elt->{parent}->{contains_text}) { push @sprint, "\n" . $INDENT x $elt->level; }
+                                     push @sprint, $elt->pi_string;
                                    }
-          elsif( (exists $elt->{'comment'})) { push @sprint, $elt->comment_string;    
-                                     if( ($pretty >= $INDENTED) && !$elt->{parent}->{contains_text}) { push @sprint, "\n"; }
+          elsif( (exists $elt->{'comment'})) { if( ($pretty >= $INDENTED) && !$elt->{parent}->{contains_text}) { push @sprint, "\n" . $INDENT x $elt->level; }
+                                     push @sprint, $elt->comment_string;    
                                    }
           elsif( (exists $elt->{'ent'}))     { push @sprint, $elt->ent_string;        }
         }
@@ -9143,7 +9126,7 @@ sub _dump
         if( (exists $elt->{'pcdata'}))
           { $dump .= "$indent|-PCDATA:  '"  . _short_text( $elt->{pcdata}, $short_text) . "'\n" }
         elsif( (exists $elt->{'ent'}))
-          { $dump .= "$indent|-ENTITY:  '" . _short_text( $elt->{ent}, $short_text) . "'\n" }
+          { warn "here"; $dump .= "$indent|-ENTITY:  '" . _short_text( $elt->{ent}, $short_text) . "'\n" }
         elsif( (exists $elt->{'cdata'}))
           { $dump .= "$indent|-CDATA:   '" . _short_text( $elt->{cdata}, $short_text) . "'\n" }
         elsif( (exists $elt->{'comment'}))

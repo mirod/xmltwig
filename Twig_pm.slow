@@ -449,7 +449,7 @@ sub new
       }
 
     $self->{twig_elt_class}= $args{EltClass} || 'XML::Twig::Elt';
-    if( defined( $args{EltClass}) && $args{EltClass} ne 'XML::Twig::Elt') { $self->{twig_alt_elt_class}=0; }
+    if( defined( $args{EltClass}) && $args{EltClass} ne 'XML::Twig::Elt') { $self->{twig_alt_elt_class}=1; }
     if( exists( $args{EltClass})) { delete $args{EltClass}; }
 
     if( exists( $args{MapXmlns}))

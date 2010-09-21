@@ -1,3 +1,3 @@
 cannot parse the output of a pipe when perl is set to use the UTF8 perlIO layer
 set the environment variable PERL_UNICODE or use the -C option (see perldoc perlrun)
-not to include 'D' at t/test_error_with_unicode_layer line 8
+not to include 'D' at t/test_error_with_unicode_layer line 10
