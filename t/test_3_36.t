@@ -12,7 +12,7 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=45;
+my $TMAX=53;
 print "1..$TMAX\n";
 
 { my $doc=q{<d><s id="s1"><t>title 1</t><s id="s2"><t>title 2</t></s><s id="s3"></s></s><s id="s4"></s></d>};
@@ -247,15 +247,43 @@ my $NS= 'xmlns="http://www.w3.org/1999/xhtml"';
           '<html><head></head><body></body></html>',
           'extra XML declaration in html'
         );
+      my $doc=q{<html><head><script><![CDATA[some script with < and >]]></script></head><body><!-- just a <> comment --></body></html>};
+      is_like( XML::Twig->parse($doc)->sprint, $doc, 'CDATA and comments in html');
     }
   else
-    { skip( 2, 'need HTML::TreeBuilder for additional HTML tests'); }
+    { skip( 3, 'need HTML::TreeBuilder for additional HTML tests'); }
 }
 
 { my $t= XML::Twig->parse( '<d><e/></d>');
   $t->{twig_root}= undef;
   is( $t->first_elt, undef, 'first_elt on empty tree');
   is( $t->last_elt, undef, 'last_elt on empty tree');
+}
+
+
+{ if( XML::Twig::_use( 'XML::XPathEngine') && XML::Twig::_use( 'XML::Twig::XPath'))
+    { my $t= XML::Twig::XPath->new->parse( '<d><p/></d>');
+      eval { $t->get_xpath( '//d[.//p]'); };
+      matches( $@, qr{the expression is a valid XPath statement, and you are using XML::Twig::XPath}, 'non XML::Twig xpath with get_xpath');
+    }
+  else
+    { skip( 1); }
+}
+
+{ my $r= XML::Twig->parse( '<d><e/><e1/></d>')->root;
+  is( $r->is_empty, 0, 'non empty element');
+  $r->cut_children( 'e');
+  is( $r->is_empty, 0, 'non empty element after cut_children');
+  $r->cut_children( 'e1');
+  is( $r->is_empty, 1, 'empty element after cut_children');
+}
+
+{ my $r= XML::Twig->parse( '<d><e/><e1/></d>')->root;
+  is( $r->is_empty, 0, 'non empty element');
+  $r->cut_descendants( 'e');
+  is( $r->is_empty, 0, 'non empty element after cut_descendants');
+  $r->cut_descendants( 'e1');
+  is( $r->is_empty, 1, 'empty element after cut_descendants');
 }
 
 

@@ -1040,7 +1040,7 @@ sub _indent_xhtml
                                      ); 
 
     my $level=0;
-    $$xhtml=~ s{( (?:<!(?:--.*?-->|[CDATA[.*]]>)) # ignore comments and CDATA sections
+    $$xhtml=~ s{( (?:<!(?:--.*?-->|[CDATA[.*?]]>)) # ignore comments and CDATA sections
                   | <(\w+)                        # start tag
                   |(</\(\w+)                      # end tag 
                 )
@@ -1951,6 +1951,7 @@ sub _a_proper_ns_prefix
       { if( $p->expand_ns_prefix( $prefix) eq $uri)
           { return $prefix; }
       }
+    warn "here";
     return;
   }
 
@@ -5659,12 +5660,11 @@ BEGIN
 
 # delete the id attribute and remove the element from the id list
 sub del_id 
-  { my $elt= shift;
-    unless( exists $elt->{'att'}) { return $elt }; 
-    unless( exists $elt->{'att'}->{$ID}) { return $elt }; 
-    my $id= $elt->{'att'}->{$ID};
+  { my $elt= shift; 
+    if( ! exists $elt->{att}->{$ID}) { return $elt }; 
+    my $id= $elt->{att}->{$ID};
 
-    delete $elt->{'att'}->{$ID}; 
+    delete $elt->{att}->{$ID}; 
 
     my $t= shift || $elt->twig;
     unless( $t) { return $elt; }
@@ -6522,7 +6522,7 @@ sub _croak_and_doublecheck_xpath
                    . "\nyou are using either 'find_nodes' or 'get_xpath' where the method you likely wanted"
                    . "\nto use is 'findnodes', which is the only one that uses the full XPath engine\n";
           }
-      } 
+      }
     croak $mess;
   }
     
