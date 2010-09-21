@@ -12,7 +12,7 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=54;
+my $TMAX=56;
 print "1..$TMAX\n";
 
 { my $doc=q{<d><s id="s1"><t>title 1</t><s id="s2"><t>title 2</t></s><s id="s3"></s></s><s id="s4"></s></d>};
@@ -294,6 +294,18 @@ my $NS= 'xmlns="http://www.w3.org/1999/xhtml"';
   else
     { skip( 1); }
 }
+
+{  is( XML::Twig::Elt::_short_text( 'a', 0), 'a', 'shorten with no length');
+}
+ 
+{ is( XML::Twig->parse( comments => 'process', pi => 'process', pretty_print => 'indented',
+                        "<d><e><?pi foo?><e1></e1></e><e><!-- comment--><e1></e1></e></d>"
+                      )->sprint,
+      "<d>\n  <e>\n    <?pi foo?>\n    <e1></e1>\n  </e>\n  <e>\n    <!-- comment-->\n    <e1></e1>\n  </e>\n</d>\n",
+      'indenting pi and comments'
+     );
+}
+
 
 sub all_text
   { return join ':' => map { $_->text } @_; }

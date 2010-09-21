@@ -8237,11 +8237,11 @@ sub print_to_file
         { push @sprint, $elt->{extra_data} if( $elt->{extra_data}) ;
           if(    $elt->is_pcdata)  { push @sprint, $elt->pcdata_xml_string; }
           elsif( $elt->is_cdata)   { push @sprint, $elt->cdata_string;      }
-          elsif( $elt->is_pi)      { push @sprint, $elt->pi_string;
-                                     if( ($pretty >= $INDENTED) && !$elt->parent->{contains_text}) { push @sprint, "\n"; }
+          elsif( $elt->is_pi)      { if( ($pretty >= $INDENTED) && !$elt->parent->{contains_text}) { push @sprint, "\n" . $INDENT x $elt->level; }
+                                     push @sprint, $elt->pi_string;
                                    }
-          elsif( $elt->is_comment) { push @sprint, $elt->comment_string;    
-                                     if( ($pretty >= $INDENTED) && !$elt->parent->{contains_text}) { push @sprint, "\n"; }
+          elsif( $elt->is_comment) { if( ($pretty >= $INDENTED) && !$elt->parent->{contains_text}) { push @sprint, "\n" . $INDENT x $elt->level; }
+                                     push @sprint, $elt->comment_string;    
                                    }
           elsif( $elt->is_ent)     { push @sprint, $elt->ent_string;        }
         }
@@ -9152,7 +9152,7 @@ sub _dump
         if( $elt->is_pcdata)
           { $dump .= "$indent|-PCDATA:  '"  . _short_text( $elt->pcdata, $short_text) . "'\n" }
         elsif( $elt->is_ent)
-          { $dump .= "$indent|-ENTITY:  '" . _short_text( $elt->ent, $short_text) . "'\n" }
+          { warn "here"; $dump .= "$indent|-ENTITY:  '" . _short_text( $elt->ent, $short_text) . "'\n" }
         elsif( $elt->is_cdata)
           { $dump .= "$indent|-CDATA:   '" . _short_text( $elt->cdata, $short_text) . "'\n" }
         elsif( $elt->is_comment)
