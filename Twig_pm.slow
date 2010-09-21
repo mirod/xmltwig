@@ -1367,17 +1367,22 @@ sub _set_regexp_handler
       { return 0; }
   }
 
+my $DEBUG_HANDLER= 0; # 0 or 1 (output the handler checking code) or 2 (super verbose)
+my $handler_string;   # store the handler itself
+sub _set_debug_handler    { $DEBUG_HANDLER= shift; }
+sub _warn_debug_handler   { if( $DEBUG_HANDLER < 3) { warn @_; } else { $handler_string .= join( '', @_); } }
+sub _return_debug_handler { my $string=  $handler_string; $handler_string=''; return $string; }
+
 sub _parse_xpath_handler
   { my( $xpath, $handler)= @_;
     my $xpath_original= $xpath;
 
-    my $DEBUG_HANDLER= 0; # 0 or 1 (output the handler checking code) or 2 (super verbose)
 
-    if( $DEBUG_HANDLER >=1) { warn "\n\nparsing path '$xpath'\n"; }
+    if( $DEBUG_HANDLER >=1) { _warn_debug_handler( "\n\nparsing path '$xpath'\n"); }
 
     my $path_to_check= $xpath;
     $path_to_check=~ s{/?/?$REG_NAME_WC?\s*(?:$REG_PREDICATE\s*)?}{}g;
-    if( $DEBUG_HANDLER && $path_to_check=~ /\S/) { warn "left: $path_to_check\n"; }
+    if( $DEBUG_HANDLER && $path_to_check=~ /\S/) { _warn_debug_handler( "left: $path_to_check\n"); }
     return if( $path_to_check=~ /\S/);
 
     (my $xpath_to_display= $xpath)=~ s{(["{}'\[\]\@\$])}{\\$1}g;
@@ -1431,11 +1436,11 @@ sub _parse_xpath_handler
         my $warn_empty_stack= $DEBUG_HANDLER >= 2 ? qq{warn "return with empty stack\\n";} : '';
 
         if( $predicate)
-          { if( $DEBUG_HANDLER >= 2)  { warn "predicate is: '$predicate'\n"; }
+          { if( $DEBUG_HANDLER >= 2)  { _warn_debug_handler( "predicate is: '$predicate'\n"); }
             # changes $predicate (from an XPath expression to a Perl one)
             if( $predicate=~ m{^\s*$REG_NUMBER\s*$}) { croak "position selector [$predicate] not supported on twig_handlers"; }
             _parse_predicate_in_handler( $predicate, $flag, $score);
-            if( $DEBUG_HANDLER >= 2) { warn "predicate becomes: '$predicate'\n"; }
+            if( $DEBUG_HANDLER >= 2) { _warn_debug_handler( "predicate becomes: '$predicate'\n"); }
           }
 
        my $tag_cond=  _tag_cond( $tag);
@@ -1491,13 +1496,13 @@ sub _parse_xpath_handler
 
     $perlfunc.= qq{warn "handler for '$xpath_to_display' triggered\\n";\n} if( $DEBUG_HANDLER >=2);
     $perlfunc.= qq{return q{$xpath_original};\n};
-    warn "\nperlfunc:\n$perlfunc\n" if( $DEBUG_HANDLER>=1);
+    _warn_debug_handler( "\nperlfunc:\n$perlfunc\n") if( $DEBUG_HANDLER>=1);
     my $s= eval "sub { $perlfunc }";
       if( $@) 
         { croak "wrong handler condition '$xpath' ($@);" }
 
-      warn "last tag: '$last_tag', test_on_text: '$flag->{test_on_text}'\n" if( $DEBUG_HANDLER >=1);
-      warn "score: ", join( ' ', map { "$_: $score->{$_}" } sort keys %$score), "\n" if( $DEBUG_HANDLER >=1);
+      _warn_debug_handler( "last tag: '$last_tag', test_on_text: '$flag->{test_on_text}'\n") if( $DEBUG_HANDLER >=1);
+      _warn_debug_handler( "score: ", join( ' ', map { "$_: $score->{$_}" } sort keys %$score), "\n") if( $DEBUG_HANDLER >=1);
       return { tag=> $last_tag, score => $score, trigger => $s, path => $xpath_original, handler => $handler, test_on_text => $flag->{test_on_text} };
     }
 
@@ -8018,39 +8023,10 @@ BEGIN {
   sub print
     { my $elt= shift;
 
-      my $pretty;
       my $fh= _is_fh( $_[0]) ? shift : undef;
       my $old_select= defined $fh ? select $fh : undef;
-      my $old_pretty= defined ($pretty= shift) ? set_pretty_print( $pretty) : undef;
-      $pretty ||=0;
-      $pretty = $pretty_print_style{$pretty} || $pretty;
-
-      $xml_space_preserve= ( ($elt->inherit_att( 'xml:space') || '') eq 'preserve');
- 
-      #$elt->_print;       # no need to duplicate logic in _sprint
-      #print $elt->sprint; # but that's too slow
-
-      @sprint=();
-      $elt->_sprint(@_);
-      if( $output_filter || ((($pretty== $WRAPPED) || ($pretty==$INDENTEDC)) && !$xml_space_preserve))
-        { my $sprint= join( '', @sprint);
-          if( $output_filter) { $sprint= $output_filter->( $sprint); }
-
-          if( ( ($pretty== $WRAPPED) || ($pretty==$INDENTEDC)) && !$xml_space_preserve)
-            { $sprint= _wrap_text( $sprint); }
-          print  $sprint;
-        }
-      else
-        { 
-#foreach my $s (@sprint) { print "TRACE s $s: ", Encode::is_utf8( $s) ? "has flag\n" : "FLAG NOT SET\n"; }
-          print @sprint; 
-#warn "FATTO";
-        }
-
-      $xml_space_preserve= 0;
-    
+      print $elt->sprint( @_);
       select $old_select if( defined $old_select);
-      set_pretty_print( $old_pretty) if( defined $old_pretty);
     }
  
 sub print_to_file

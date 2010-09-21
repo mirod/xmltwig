@@ -12,7 +12,7 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=56;
+my $TMAX=58;
 print "1..$TMAX\n";
 
 { my $doc=q{<d><s id="s1"><t>title 1</t><s id="s2"><t>title 2</t></s><s id="s3"></s></s><s id="s4"></s></d>};
@@ -306,6 +306,58 @@ my $NS= 'xmlns="http://www.w3.org/1999/xhtml"';
      );
 }
 
+{ XML::Twig::_set_debug_handler( 3);
+  XML::Twig->new( twig_handlers => { foo => sub { $_->att( 'a')++; } });
+  is( XML::Twig::_return_debug_handler, q#
+
+parsing path 'foo'
+
+perlfunc:
+no warnings;
+my( $stack)= @_;                    
+my @current_elts= (scalar @$stack); 
+my @new_current_elts;               
+my $elt;                            
+warn q{checking path 'foo'
+};
+foreach my $current_elt (@current_elts)              
+  { next if( !$current_elt);                         
+    $current_elt--;                                  
+    $elt= $stack->[$current_elt];                    
+    if( ($elt->{_tag} eq "foo")) { push @new_current_elts, $current_elt;} 
+  }                                                  
+unless( @new_current_elts) { warn qq%fail at cond '($elt->{_tag} eq "foo")'%;
+ return 0; } 
+@current_elts= @new_current_elts;           
+@new_current_elts=();                       
+warn "handler for 'foo' triggered\n";
+return q{foo};
+
+last tag: 'foo', test_on_text: '0'
+score: anchored: 0 steps: 1 type: 3
+#, 'handler content');
+  XML::Twig::_set_debug_handler( 0);
+}
+
+
+{ if( XML::Twig::_use( 'Text::Wrap'))
+    { my $out= "t/test_wrapped.xml";
+      my $out_fh;
+      open( $out_fh, ">$out") or die "cannot create temp file $out: $!";
+      $Text::Wrap::columns=40;
+      $Text::Wrap::columns=40;
+      XML::Twig->parse( pretty_print => 'wrapped', '<d a="foo"><e>' . "foobarbaz " x 10 . '</e></d>')
+               ->print( $out_fh);
+      close $out_fh;
+      is( slurp( $out),qq{<d a="foo">\n  <e>foobarbaz foobarbaz foobarbaz\n    foobarbaz foobarbaz foobarbaz\n    foobarbaz foobarbaz foobarbaz\n    foobarbaz </e>
+</d>\n},
+         'wrapped print'
+        );
+      unlink $out;
+    }
+  else
+    { skip( 1); }
+}
 
 sub all_text
   { return join ':' => map { $_->text } @_; }
