@@ -12,7 +12,7 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=59;
+my $TMAX=61;
 print "1..$TMAX\n";
 
 { my $doc=q{<d><s id="s1"><t>title 1</t><s id="s2"><t>title 2</t></s><s id="s3"></s></s><s id="s4"></s></d>};
@@ -308,7 +308,7 @@ my $NS= 'xmlns="http://www.w3.org/1999/xhtml"';
 
 { XML::Twig::_set_debug_handler( 3);
   XML::Twig->new( twig_handlers => { 'foo[@a="bar"]' => sub { $_->att( 'a')++; } });
-  is( XML::Twig::_return_debug_handler, q#
+  is( XML::Twig::_return_debug_handler(), q#
 
 parsing path 'foo[@a="bar"]'
 predicate is: '@a="bar"'
@@ -344,6 +344,20 @@ score: anchored: 0 predicates: 3 steps: 1 type: 3
 { my $t=XML::Twig->parse( elt_class => 'XML::Twig::Elt', '<d/>');
   is( ref($t->root), 'XML::Twig::Elt', 'alternate class... as the default one!');
 }
+
+
+{ my( $triggered_bare, $triggered_foo);
+ my $t= XML::Twig->new( twig_handlers => { 'e1[@#a]'       => sub { $triggered_bare.=$_->id; },
+                                           'e1[@#a="foo"]' => sub { $triggered_foo .=$_->id; },
+                                            e2             => sub { $_->parent->set_att( '#a', 1); },
+                                            e4             => sub { $_->parent->set_att( '#a', 'foo'); },
+                                         }
+                      )
+                 ->parse( '<d><e1 id="e1.1"><e4/></e1><e1 id="e1.2"><e2/></e1><e1 id="e1.3"><e3><e2/></e3></e1><e1 id="e1.4"/></d>');
+ is( $triggered_bare, 'e1.1e1.2', 'handler condition on bare private attribute');
+ is( $triggered_foo , 'e1.1', 'handler condition on valued private attribute');
+}
+
 
 
 { if( XML::Twig::_use( 'Text::Wrap'))
