@@ -12,7 +12,7 @@ if( defined $XML::XPathEngine::VERSION && $XML::XPathEngine::VERSION < 0.09)
     exit;
   }
 
-plan( tests => 14);
+plan( tests => 15);
 
 
 my $t= XML::Twig::XPath->new->parse( *DATA);
@@ -103,6 +103,22 @@ else
       ok( $v, 'Node 1', '//foo (default behaviour)');
     }
   }
+
+# added to test namespaces on attributes
+
+{ 
+  my $xml= '<root>
+                <node xmlns:a="http://example.com/"><foo a:att="1">Node 1</foo></node>
+                <node xmlns:a="http://notexample.com/"><foo a:att="1">Node 2</foo></node>
+                <node xmlns:b="http://example.com/"><foo b:att="1">Node 3</foo></node>
+                <node xmlns:b="http://notexample.com/"><foo b:att="1">Node 4</foo></node>
+             </root>
+            ';
+  my $twig = XML::Twig::XPath->new();
+  $twig->parse( $xml); 
+  $twig->set_namespace('b','http://example.com/');
+  ok( $twig->findvalue( '//*[@b:att]'), 'Node 1Node 3', 'namespaces on attributes');
+}
  
 {       
 my %seen_message;
