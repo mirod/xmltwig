@@ -20,6 +20,7 @@ added: can use the tag[nested] form in twig handlers that
        triggers on elements 'tag' that include a child 'nested'
 added: aliased the add_to_class XML::Twig::Elt method to add_class,
        which seems more natural
+added: the remove_class method
 added: made att and class lvalues (in perl 5.6 and up)
 fixed: copy did not copy the empty status of an element
        RT#31664 spotted by Roland Minner

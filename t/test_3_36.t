@@ -12,7 +12,7 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=61;
+my $TMAX=66;
 print "1..$TMAX\n";
 
 { my $doc=q{<d><s id="s1"><t>title 1</t><s id="s2"><t>title 2</t></s><s id="s3"></s></s><s id="s4"></s></d>};
@@ -358,7 +358,19 @@ score: anchored: 0 predicates: 3 steps: 1 type: 3
  is( $triggered_foo , 'e1.1', 'handler condition on valued private attribute');
 }
 
-
+{ my $t= XML::Twig->parse( '<d class="foo"><e class="bar baz"/></d>');
+  $t->root->remove_class( 'foo');
+  is( $t->root->class, '', 'empty class after remove_class');
+  my $e= $t->first_elt( 'e');
+  $e->remove_class( 'foo');
+  is( $e->class, 'bar baz', 'remove_class on non-existent class');
+  $e->remove_class( 'baz');
+  is( $e->class, 'bar', 'remove_class');
+  $e->remove_class( 'foo');
+  is( $e->class, 'bar', 'remove_class on non-existent class (again)');
+  $e->remove_class( 'bar');
+  is( $e->class, '', 'remove_class until no class is left');
+}
 
 { if( XML::Twig::_use( 'Text::Wrap'))
     { my $out= "t/test_wrapped.xml";

@@ -5525,6 +5525,15 @@ sub add_to_class
     $elt->set_class( join( ' ', sort keys %class));
   }
 
+sub remove_class
+  { my( $elt, $class_to_remove)= @_;
+    return $elt unless $class_to_remove;
+    my $class= $elt->class;
+    my %class= $class ? map { $_ => 1 } split /\s+/, $class : ();
+    delete $class{$class_to_remove};
+    $elt->set_class( join( ' ', sort keys %class));
+  }
+
 sub att_to_class      { my( $elt, $att)= @_; $elt->set_class( $elt->{'att'}->{$att}); }
 sub add_att_to_class  { my( $elt, $att)= @_; $elt->add_to_class( $elt->{'att'}->{$att}); }
 sub move_att_to_class { my( $elt, $att)= @_; $elt->add_to_class( $elt->{'att'}->{$att});
@@ -12653,8 +12662,18 @@ Set the C<class> attribute for the element to C<$class>
 =item add_class ($class)
 
 Add C<$class> to the element C<class> attribute: the new class is added
-only if it is not already present. Note that classes are sorted alphabetically,
-so the C<class> attribute can be changed even if the class is already there
+only if it is not already present.
+
+Note that classes are then sorted alphabetically, so the C<class> attribute
+can be changed even if the class is already there
+
+=item remove_class ($class)
+
+Remove C<$class> from the element C<class> attribute. 
+
+Note that classes are then sorted alphabetically, so the C<class> attribute can be
+changed even if the class is already there
+
 
 =item add_to_class ($class)
 
