@@ -197,9 +197,9 @@ print "1..$TMAX\n";
 }
 
 { # test parsing of an html string
-  if( XML::Twig::_use( 'HTML::TreeBuilder',  3.13))
+  if( XML::Twig::_use( 'HTML::TreeBuilder',  3.13) && XML::Twig::_use( 'HTML::Entities::Numbered'))
     { 
-      ok( XML::Twig->nparse_e( '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+      ok( XML::Twig->parse( error_context => 1, '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
     <html>
      <head>
       <link rel="stylesheet" href="/s/style.css" type="text/css">
@@ -212,7 +212,7 @@ print "1..$TMAX\n";
       </html>'), "parsing an html string");
     }
   else
-    { skip( 1, "need HTML::TreeBuilder 3.13+ for those tests"); }
+    { skip( 1, "need HTML::TreeBuilder 3.13+ and HTML::Entities::Numbered for this test"); }
 }
 
 { # testing print_to_file

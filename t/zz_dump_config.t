@@ -65,6 +65,7 @@ warn version( XML::XPathEngine, 'to use XML::Twig::XPath');
 warn version( XML::XPath, 'to use XML::Twig::XPath if Tree::XPathEngine not available');
 warn version( LWP, 'for the parseurl method');
 warn version( HTML::TreeBuilder, 'to use parse_html and parsefile_html');
+warn version( HTML::Entities::Numbered, 'to allow parsing of HTML containing named entities');
 warn version( HTML::Tidy, 'to use parse_html and parsefile_html with the use_tidy option');
 warn version( HTML::Entities, 'for the html_encode filter');
 warn version( Tie::IxHash, 'for the keep_atts_order option');
