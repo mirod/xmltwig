@@ -1,9 +1,14 @@
 $Id: /xmltwig/trunk/Changes 33 2008-04-30T08:03:41.004487Z mrodrigu  $
 
 CHANGES
+version 3.37
+date: 2010-10-08
+# minor maintenance release
+fixed: more tests fixed for HTML::TreeBuilder, hopefully 
+       will pass now
 
 version 3.36
-date:
+date: 2010-10-07
 # minor maintenance release
 added: the use_tidy option to XML::Twig->new, which uses
        HTML::Tidy to convert HTML to well-formed XHTML, as an
