@@ -936,14 +936,20 @@ sub _tidy_html
             { $$xml=~ s{<\?xml.*?\?>}{}g; 
               #warn " fixed xml declaration in the wrong place\n";
             }
-          elsif( $@=~ m{undefined entity} && _use( 'HTML::Entities::Numbered'))
-            { $$xml=name2hex_xml( $$xml);
-              $$xml=~ s{&(amp;)?Amp;}{&amp;}g;
+          elsif( $@=~ m{undefined entity})
+            { $$xml=~ s{&(amp;)?Amp;}{&amp;}g if $HTML::TreeBuilder::VERSION < 4.00;
+              $$xml=name2hex_xml( $$xml)      if _use( 'HTML::Entities::Numbered');
             }
           elsif( $@=~ m{&Amp; used in html})
-            { $$xml=~ s{&(amp;)?Amp;}{&amp;}g; } # if $Amp; is used instead of &amp; then HTML::TreeBuilder's as_xml is tripped
+            # if $Amp; is used instead of &amp; then HTML::TreeBuilder's as_xml is tripped (old version)
+            { $$xml=~ s{&(amp;)?Amp;}{&amp;}g if $HTML::TreeBuilder::VERSION < 4.00; 
+            } 
           elsif( $@=~ m{^\s*not well-formed \(invalid token\)})
-            { my $q= '<img "="&#34;" '; # extracted so vim doesn't get confuse
+            { if( $HTML::TreeBuilder::VERSION < 4.00)
+                { $$xml=~ s{&(amp;)?Amp;}{&amp;}g; 
+                  $$xml=~  s{(<[^>]* )(\d+=)"}{$1a$2"}g; # <table 1> comes out as <table 1="1">, "fix the attribute
+                }
+              my $q= '<img "="&#34;" '; # extracted so vim doesn't get confuse
               if( _use( 'HTML::Entities::Numbered')) { $$xml=name2hex_xml( $$xml); }
               if( $$xml=~ m{$q}) 
                 { $$xml=~ s{$q}{<img }g; # happens with <img src="foo.png"" ...
@@ -978,7 +984,7 @@ sub _tidy_html
                 }
             }
         elsif( $@=~ m{has an invalid attribute name})
-          { s{(<[^>]* )(\d+=)"}{$1a$2"}g; # <table 1> comes out as <table 1="1">, "fix the attribute
+          { $$xml=~ s{(<[^>]* )(\d+=)"}{$1a$2"}g; # <table 1> comes out as <table 1="1">, "fix the attribute
           }
       }
   }

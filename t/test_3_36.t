@@ -239,10 +239,12 @@ my $NS= 'xmlns="http://www.w3.org/1999/xhtml"';
 }
 
 { if( XML::Twig::_use( 'HTML::TreeBuilder'))
-    { is( XML::Twig->new->parse_html( '<html><head></head><body>&Amp;</body></html>')->sprint,
-          '<html><head></head><body>&amp;</body></html>',
-          '&Amp; used in html'
-        );
+    { my $html_with_Amp= XML::Twig->new->parse_html( '<html><head></head><body>&Amp;</body></html>')->sprint;
+      if( $HTML::TreeBuilder::VERSION < 4.00)
+        { is( $html_with_Amp, '<html><head></head><body>&amp;</body></html>', '&Amp; used in html (fixed HTB < 4.00)'); }
+      else
+        { is( $html_with_Amp, '<html><head></head><body>&amp;Amp;</body></html>', '&Amp; used in html (NOT fixed HTB > r.00)'); }
+
       is( XML::Twig->new->parse_html( '<html><head></head><body><?xml version="1.0" ?></body></html>')->sprint,
           '<html><head></head><body></body></html>',
           'extra XML declaration in html'

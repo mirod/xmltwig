@@ -224,41 +224,28 @@ print "1..$TMAX\n";
   is( XML::Twig->nparse_ppe( $doc)->sprint, $indented_doc, "nparse_ppe output");
 }
 
-if( _use( 'HTML::TreeBuilder') )
+if( _use( 'HTML::TreeBuilder', 4.00) )
   { # first alternative is pre-3.23_1, second one with 3.23_1 (and beyond?)
-    my $att_error= qr{(^\s*not well-formed|has an invalid attribute name)}s; 
     
     { my $doc=qq{<html><head><meta 555="er"/></head><body><p>dummy</p>\</body></html>};
       eval { XML::Twig->nparse( $doc); };
-      if( $HTML::TreeBuilder::VERSION <= 3.23)
-        { matches( $@, $att_error, "error in html (normal mode)"); } 
-      else
-        { nok( $@, "html with wrong attribute (normal mode)"); }
+      ok( $@, "error in html (normal mode, HTB < 2.23 or >= 4.00): $@"); 
       eval { XML::Twig->nparse_e( $doc); };
-      if( $HTML::TreeBuilder::VERSION <= 3.23)
-        { matches( $@, $att_error, "error in html (nparse_e mode)"); } 
-      else
-        { nok( $@, "html with wrong attribute (nparse_e mode)"); }
+      ok( $@, "error in html (nparse_e mode): $@"); 
     }
     
     { my $doc=qq{<html><head></head><body><!-- <foo> bar </foo> --><p 1="a">dummy</p></body></html>};
       eval { XML::Twig->nparse_e( $doc); };
-      if( $HTML::TreeBuilder::VERSION <= 3.23)
-        { matches( $@, $att_error, "error in html (nparse_e mode 2)"); }
-      else
-        { nok( $@, "html with wrong attribute (nparse_e mode 2)"); }
+      ok( $@, "error in html (nparse_e mode 2, HTB < 3.23 or >= 4.00: $@)");
     }
     
     { my $doc=qq{<html><head></head><body><![CDATA[  <foo> bar </foo>  ]]>\n\n<p 1="a">dummy</p></body>\n</html>};
       eval { XML::Twig->nparse_e( $doc); };
-      if( $HTML::TreeBuilder::VERSION <= 3.23)
-        { matches( $@, $att_error, "error in html (nparse_e mode 3)"); }
-      else
-        { nok( $@, "html with wrong attribute (nparse_e mode 3)"); }
+      ok( $@, "error in html (nparse_e mode 3, HTB < 3.23 or >= 4.00: $@)");
     }
   }
 else
-  { skip( 4 => "need HTML::TreeBuilder to test error display with HTML data"); }
+  { skip( 4 => "need HTML::TreeBuilder > 4.00 to test error display with HTML data"); }
 
 { my $e= XML::Twig::Elt->new( 'e');
   is( $e->tag_to_span->sprint, '<span class="e"/>', "tag_to_span");
