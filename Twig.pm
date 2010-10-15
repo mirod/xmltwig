@@ -97,7 +97,7 @@ my( $PCDATA, $CDATA, $PI, $COMMENT, $ENT, $ELT, $TEXT, $ASIS, $EMPTY, $BUFSIZE);
 
 BEGIN
 { 
-$VERSION = '3.37';
+$VERSION = '3.38';
 
 use XML::Parser;
 my $needVersion = '2.23';
@@ -847,7 +847,7 @@ sub _parse_as_xml_or_html
     if( _is_well_formed_xml( $_[0]))
       { $t->parse( @_) }
     else
-      { my $html= _html2xml( $_[0]);
+      { my $html= $t->{use_tidy} ?  _tidy_html( $_[0]) : _html2xml( $_[0]);
         if( _is_well_formed_xml( $html))
           { $t->parse( $html); }
         else
@@ -913,7 +913,7 @@ sub _tidy_html
                          wrap => 0,
                          break_before_br => 0,
                        };
-
+    $options ||= {};
     my $tidy_options= { %$TIDY_DEFAULTS, %$options};
     my $tidy = HTML::Tidy->new( $tidy_options);
     $tidy->ignore( type => 1, type => 2 ); # 1 is TIDY_WARNING, 2 is TIDY_ERROR, not clean

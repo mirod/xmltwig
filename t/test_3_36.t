@@ -240,7 +240,7 @@ my $NS= 'xmlns="http://www.w3.org/1999/xhtml"';
 
 { if( XML::Twig::_use( 'HTML::TreeBuilder'))
     { my $html_with_Amp= XML::Twig->new->parse_html( '<html><head></head><body>&Amp;</body></html>')->sprint;
-      if( $HTML::TreeBuilder::VERSION < 4.00)
+      if( $HTML::TreeBuilder::VERSION <= 3.23)
         { is( $html_with_Amp, '<html><head></head><body>&amp;</body></html>', '&Amp; used in html (fixed HTB < 4.00)'); }
       else
         { is( $html_with_Amp, '<html><head></head><body>&amp;Amp;</body></html>', '&Amp; used in html (NOT fixed HTB > r.00)'); }
