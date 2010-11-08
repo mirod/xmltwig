@@ -1366,7 +1366,7 @@ sub _set_level_handler
 sub _set_regexp_handler
   { my( $handlers, $path, $handler, $prev_handler)= @_; 
     # if the expression was a regexp it is now a string (it was stringified when it became a hash key)
-    if( $path=~ m{^\(\?([xism]*)(?:-[xism]*)?:(.*)\)$}) 
+    if( $path=~ m{^\(\?([\^xism]*)(?:-[\^xism]*)?:(.*)\)$}) 
       { my $regexp= qr/(?$1:$2)/; # convert it back into a regexp
         my $sub= sub { my( $stack)= @_; return( $stack->[-1]->{_tag} =~ $regexp ) }; 
         my $handler_data=  { tag=> '*', score => { type => $REGEXP_TRIGGER} , trigger => $sub, 
@@ -5522,9 +5522,12 @@ sub next_sibling
   }
 
 # methods dealing with the class attribute, convenient if you work with xhtml
-sub class     
+sub class   {   $_[0]->{att}->{class}; }
+# lvalue version of class. separate from class to avoid problem like RT#
+sub lclass     
           :lvalue    # > perl 5.5
-{ my( $elt)= @_; $elt->{'att'}->{'class'}; }
+  { $_[0]->{att}->{class}; }
+
 sub set_class { my( $elt, $class)= @_; $elt->set_att( class => $class); }
 
 # adds a class to an element
@@ -5611,9 +5614,12 @@ sub set_att
     return $elt;
   }
  
-sub att 
+sub att {  $_[0]->{att}->{$_[1]}; }
+# lvalue version of att. separate from class to avoid problem like RT#
+sub latt 
           :lvalue    # > perl 5.5
-{ $_[0]->{att}->{$_[1]}; }
+  { $_[0]->{att}->{$_[1]}; }
+
 sub del_att 
   { my $elt= shift;
     while( @_) { delete $elt->{'att'}->{shift()}; }
@@ -11546,7 +11552,11 @@ Return the element if it passes the C<$condition>
 
 Return the value of attribute C<$att> or C<undef>
 
-this method is an lvalue, so you can do C<< $elt->{'att'}->{'foo'}= 'bar' >>
+=item latt          ($att)
+
+Return the value of attribute C<$att> or C<undef>
+
+this method is an lvalue, so you can do C<< $elt->latt( 'foo')= 'bar' >> or C<< $elt->latt( 'foo')++; >>
 
 =item set_att      ($att, $att_value)
 
@@ -12665,7 +12675,10 @@ Return the C<class> attribute for the element (methods on the C<class>
 attribute are quite convenient when dealing with XHTML, or plain XML that
 will eventually be displayed using CSS)
 
-this method is an lvalue, so you can do C<< $elt->class= "foo" >>
+=item lclass
+
+same as class, except that
+this method is an lvalue, so you can do C<< $elt->lclass= "foo" >>
 
 =item set_class ($class)
 

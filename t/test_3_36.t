@@ -12,7 +12,7 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=66;
+my $TMAX=67;
 print "1..$TMAX\n";
 
 { my $doc=q{<d><s id="s1"><t>title 1</t><s id="s2"><t>title 2</t></s><s id="s3"></s></s><s id="s4"></s></d>};
@@ -84,19 +84,22 @@ print "1..$TMAX\n";
 
 { if( $] >= 5.006)
     { my $t= XML::Twig->parse( q{<d><e/></d>});
-      $t->first_elt( 'e')->att( 'a')= 'b';
+      $t->first_elt( 'e')->latt( 'a')= 'b';
       is( $t->sprint, q{<d><e a="b"/></d>}, 'lvalued attribute (no attributes)');
-      $t->first_elt( 'e')->att( 'c')= 'd';
+      $t->first_elt( 'e')->latt( 'c')= 'd';
       is( $t->sprint, q{<d><e a="b" c="d"/></d>}, 'lvalued attribute (attributes)');
-      $t->first_elt( 'e')->att( 'c')= '';
+      $t->first_elt( 'e')->latt( 'c')= '';
       is( $t->sprint, q{<d><e a="b" c=""/></d>}, 'lvalued attribute (modifying existing attributes)');
-      $t->root->class= 'foo';
+      $t->root->lclass= 'foo';
       is( $t->sprint, q{<d class="foo"><e a="b" c=""/></d>}, 'lvalued class (new class)');
-      $t->root->class=~ s{fo}{tot};
+      $t->root->lclass=~ s{fo}{tot};
       is( $t->sprint, q{<d class="toto"><e a="b" c=""/></d>}, 'lvalued class (modify class)');
+      $t= XML::Twig->parse( '<d a="1"/>');
+      $t->root->latt( 'a')++;
+      is( $t->sprint, '<d a="2"/>', '++ on attribute');
     }
   else
-    { skip( 5 => "cannot use lvalued attributes with perl $]"); }
+    { skip( 6 => "cannot use lvalued attributes with perl $]"); }
 }
 
 # used for all HTML parsing tests with HTML::Tidy 
