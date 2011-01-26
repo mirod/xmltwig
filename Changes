@@ -6,6 +6,16 @@ date: 2010-10-08
 # minor maintenance release
 fixed: more tests fixed for HTML::TreeBuilder, hopefully 
        will pass now
+removed: making att and class lvalues created problems: in certain
+       context they made regular calls to the method create empty 
+       attributes. I could find no satisfactory fix,they were either
+       incompletes, or to complex for often used methods. So att and
+       class are back to being regular, non l-value methods. 
+       latt and lclass are the l-value versions.
+added: documented the -html option for xml_grep, that allows processing
+       HTML input
+added: the -Tidy option to xml_grep, that uses HTML::Tidy to convert
+       HTML to XML
 
 version 3.36
 date: 2010-10-07
