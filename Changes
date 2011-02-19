@@ -4,6 +4,9 @@ CHANGES
 version 3.37
 date: 2010-10-08
 # minor maintenance release
+fixed: RT 65865: _ should be allowed at the start on an XML name
+       https://rt.cpan.org/Ticket/Display.html?id=65865
+       reported by Steve Prokopowich
 fixed: more tests fixed for HTML::TreeBuilder, hopefully 
        will pass now
 removed: making att and class lvalues created problems: in certain

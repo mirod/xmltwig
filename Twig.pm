@@ -38,16 +38,16 @@ my $expat_1_95_2=0;
 
 # xml name (leading # allowed)
 # first line is for perl 5.005, second line for modern perl, that accept character classes
-my $REG_NAME       = q{(?:(?:[^\W\d]|[:#])(?:[\w.-]*:)?[\w.-]*)};     # does not work for leading non-ascii letters
-   $REG_NAME       = q{(?:(?:[[:alpha:]:#])(?:[\w.-]*:)?[\w.-]*)};    # > perl 5.5
+my $REG_NAME       = q{(?:(?:[^\W\d]|[:#_])(?:[\w.-]*:)?[\w.-]*)};     # does not work for leading non-ascii letters
+   $REG_NAME       = q{(?:(?:[[:alpha:]:#_])(?:[\w.-]*:)?[\w.-]*)};    # > perl 5.5
 
 # name or wildcard (* or '') (leading # allowed)
-my $REG_NAME_W     = q{(?:(?:[^\W\d]|[:#])(?:[\w.-]*:)?[\w.-]*|\*)}; # does not work for leading non-ascii letters
-   $REG_NAME_W     = q{(?:(?:[[:alpha:]:#])(?:[\w.-]*:)?[\w.-]*|\*)}; # > perl 5.5
+my $REG_NAME_W     = q{(?:(?:[^\W\d]|[:#_])(?:[\w.-]*:)?[\w.-]*|\*)}; # does not work for leading non-ascii letters
+   $REG_NAME_W     = q{(?:(?:[[:alpha:]:#_])(?:[\w.-]*:)?[\w.-]*|\*)}; # > perl 5.5
 
 # name or wildcard (* or '') (leading # allowed) with optional class
-my $REG_NAME_WC    = q{(?(?:(?:[^\W\d]|[:#])(?:[\w.-]*:)?[\w.-]*|\*)(?:\.[\w-]+)?|(?:\.[\w-]+))}; # does not work for leading non-ascii letters
-   $REG_NAME_WC    = q{(?:(?:(?:[[:alpha:]:#])(?:[\w.-]*:)?[\w.-]*|\*)(?:\.[\w-]+)?|(?:\.[\w-]+))}; # > perl 5.5
+my $REG_NAME_WC    = q{(?(?:(?:[^\W\d]|[:#_])(?:[\w.-]*:)?[\w.-]*|\*)(?:\.[\w-]+)?|(?:\.[\w-]+))}; # does not work for leading non-ascii letters
+   $REG_NAME_WC    = q{(?:(?:(?:[[:alpha:]:#_])(?:[\w.-]*:)?[\w.-]*|\*)(?:\.[\w-]+)?|(?:\.[\w-]+))}; # > perl 5.5
 
 
 my $REG_REGEXP     = q{(?:/(?:[^\\/]|\\.)*/[eimsox]*)};               # regexp
@@ -782,6 +782,13 @@ sub safe_parseurl_html
     eval { $t->parse_html( LWP::Simple::get( shift()), @_); } ;
     return $@ ? $t->_reset_twig_after_error : $t;
   }
+
+sub parseurl_html
+  { my $t= shift;
+    _use( 'LWP::Simple') or croak "missing LWP::Simple"; 
+    $t->parse_html( LWP::Simple::get( shift()), @_); 
+  }
+
 
 # uses eval to catch the parser's death
 sub safe_parse_html

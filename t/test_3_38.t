@@ -12,7 +12,7 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=14;
+my $TMAX=17;
 print "1..$TMAX\n";
 
 my $d= '<d/>';
@@ -95,5 +95,14 @@ my $d= '<d/>';
 
 sub foo { return @_; }
 
+{
+my $r;
+my $doc='<d><_e id="e1"><foo _a="2" id="bar"/></_e><_e id="e2"><_foo a="2" id="foo"/></_e></d>';
+my $t= XML::Twig->new( twig_handlers => { _e => sub { $r.= $_->id } })
+                ->parse( $doc);
+is( $r, 'e1e2', 'handler, condition on tag starting with an underscore');
+is( $t->first_elt( '_foo')->id, 'foo', 'navigation, element name starts with underscore'); 
+is( $t->first_elt( '*[@_a="2"]')->id, 'bar', 'navigation, attribute name starts with underscore'); 
+}
 
 1;
