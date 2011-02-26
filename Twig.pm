@@ -10494,13 +10494,15 @@ newlines are removed, and (at least on the version I use), comments
 get get an extra CDATA section inside ( <!-- foo --> becomes
 <!-- <![CDATA[ foo ]]> -->
 
-=item parsefile_html
+=item parsefile_html ($file)
 
 parse an HTML file (by converting it to XML using HTML::TreeBuilder, which 
-needs to be available). The file is loaded completely in memory and converted
-to XML before being parsed.
+needs to be available, or HTML::Tidy if the C<use_tidy> option was used).
+The file is loaded completely in memory and converted to XML before being parsed.
 
-B<Alpha>: implementation, and thus generated XML could change. 
+=item parseurl_html ($url $optional_user_agent)
+
+parse an URL as html the same way C<L<parse_html>> does
 
 =item safe_parseurl_html ($url $optional_user_agent)
 
