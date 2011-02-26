@@ -7340,22 +7340,25 @@ sub mark
       my $replacement_string;
       my $is_string= _is_string( $replace);
       foreach my $text_elt ($elt->descendants_or_self( $TEXT))
-        { if( $is_string)
+        { 
+          if( $is_string)
             { my $text= $text_elt->text;
               $text=~ s{$regexp}{ _replace_var( $replace, $1, $2, $3, $4, $5, $6, $7, $8, $9)}egx;
               $text_elt->set_text( $text);
            }
           else
-            { 
+            {  
               no utf8; # = perl 5.6
               my $replace_sub= ( $replace_sub{$replace} ||= _install_replace_sub( $replace)); 
               my $text= $text_elt->text;
               my $pos=0;  # used to skip text that was previously matched
+              my $found_hit;
               while( my( $pre_match_string, $match_string, @var)= ($text=~ m{(.*?)($regexp)}sg))
-                { my $match_start  = length( $pre_match_string);
-                  my $match        = $text_elt->split_at( $match_start + $pos);
+                { $found_hit=1;
+                  my $match_start  = length( $pre_match_string);
+                  my $match        = $match_start ? $text_elt->split_at( $match_start + $pos) : $text_elt;
                   my $match_length = length( $match_string);
-                  my $post_match   = $match->split_at( $match_length);
+                  my $post_match   = $match->split_at( $match_length); 
                   $replace_sub->( $match, @var);
                   # merge previous text with current one
                   my $next_sibling;
@@ -7370,21 +7373,12 @@ sub mark
                   # go to next 
                   $text_elt= $post_match;
                   $text= $post_match->text;
-                  # merge last text element with next one if needed,
-                  # the match will be against the non-matched text,
-                  # so $pos is used to skip the merged part
-                  my $prev_sibling;
-                  if(    ($prev_sibling=  $post_match->{prev_sibling})
-                      && ($XML::Twig::index2gi[$post_match->{'gi'}] eq $XML::Twig::index2gi[$prev_sibling->{'gi'}])
-                    )
-                    { $pos= length( $prev_sibling->text);
-                      $prev_sibling->merge_text( $post_match); 
-                    }
 
                   # if the match is at the end of the text an empty #PCDATA is left: remove it 
                   if( !$text_elt->text) { $text_elt->delete; } 
                   
                 }
+              if( $found_hit) { $text_elt->normalize; } # in case consecutive #PCDATA have been created 
               
             }
         }
@@ -7405,22 +7399,22 @@ sub mark
   sub _install_replace_sub
     { my $replace_exp= shift;
       my @item= split m{(&e[ln]t\s*\([^)]*\))}, $replace_exp;
-      my $sub= q{ my( $match, @var)= @_; unshift @var, undef; my $new; };
+      my $sub= q{ my( $match, @var)= @_; my $new; my $last_inserted=$match;};
       my( $gi, $exp);
       foreach my $item (@item)
-        { if(    $item=~ m{^&elt\s*\(([^)]*)\)})
-            { $exp= $1;
-            }
+        { next if ! length $item;
+          if(    $item=~ m{^&elt\s*\(([^)]*)\)})
+            { $exp= $1; }
           elsif( $item=~ m{^&ent\s*\(\s*([^\s)]*)\s*\)})
             { $exp= " '#ENT' => $1"; }
           else
             { $exp= qq{ '#PCDATA' => "$item"}; }
-          $exp=~ s{\$(\d)}{\$var[$1]}g; # replace references to matches
+          $exp=~ s{\$(\d)}{my $i= $1-1; "\$var[$i]"}eg; # replace references to matches
           $sub.= qq{ \$new= \$match->new( $exp); };
-          $sub .= q{ $new->paste( before => $match); };
+          $sub .= q{ $new->paste( after => $last_inserted); $last_inserted=$new;};
         }
       $sub .= q{ $match->delete; };
-      #$sub=~ s/;/;\n/g;
+      #$sub=~ s/;/;\n/g; warn "subs: $sub"; 
       my $coderef= eval "sub { $NO_WARNINGS; $sub }";
       if( $@) { croak( "invalid replacement expression $replace_exp: ",$@); }
       return $coderef;
@@ -8453,6 +8447,7 @@ sub _is_private_name { return $_[0]=~ m{^#(?!default:)};                }
 
 } # end of block containing package globals ($pretty_print, $quotes, keep_encoding...)
 
+# merges consecutive #PCDATAs in am element
 sub normalize
   { my( $elt)= @_;
     my @descendants= $elt->descendants( $PCDATA);

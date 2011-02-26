@@ -1,0 +1,13 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use diagnostics;
+
+use XML::Twig;
+
+my $doc="<d>x1 x2 x1 x3 x1</d>";
+my $t= XML::Twig->parse( $doc);
+$t->subs_text( qr/(x)(1)/, '&elt( b => $1)$2');
+$t->print;
+print "\n";

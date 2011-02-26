@@ -115,7 +115,6 @@ my $NS= 'xmlns="http://www.w3.org/1999/xhtml"';
     }
   else
     {
-
       my $doc= '<html><head><title>a title</title></head><body>par 1<p>par 2<br>after the break</body></html>';
       my $t= XML::Twig->new( use_tidy => 1)->parse_html( $doc);
       my $inner= '<ul><li>foo</li><li>bar</li></ul>';

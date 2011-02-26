@@ -12,7 +12,7 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=17;
+my $TMAX=20;
 print "1..$TMAX\n";
 
 my $d= '<d/>';
@@ -105,4 +105,28 @@ is( $t->first_elt( '_foo')->id, 'foo', 'navigation, element name starts with und
 is( $t->first_elt( '*[@_a="2"]')->id, 'bar', 'navigation, attribute name starts with underscore'); 
 }
 
+{ if( _use( 'LWP'))
+    { my $html=q{<html><body><h1>Title</h1><p>foo<br>bar</p>};
+      my $expected= qq{<html><head></head><body><h1>Title</h1><p>foo<br />bar</p></body></html>};
+ 
+      my $html_file= "t/test_3_38.html";
+      spit( $html_file, $html);
+      is( scrub_xhtml( XML::Twig->new( )->parseurl_html( "file:$html_file")->sprint), $expected, 'parseurl_html');
+      #unlink $html_file;
+    }
+  else
+    { skip( 1, "LWP not available, cannot test safe_parseurl_html"); }
+
+
+}
+
+{ my $doc="<d><e>  foo  bar   baz</e></d>";
+  is( XML::Twig->parse( $doc)->simplify( normalize_space => 2)->{e}, 'foo bar baz', 'simplify with normalize_space => 2');
+}
+
+
+{ my $doc="<d>foo bar foofoo foobar totofoo</d>";
+   my $t= XML::Twig->parse( $doc);
+   is( $t->subs_text( qr/(f)o(o)/, '&elt(b => $1) $2')->sprint, '<d><b>f</b> o bar <b>f</b> o<b>f</b> o <b>f</b> obar toto<b>f</b> o</d>', 'complex subs_text');
+}
 1;
