@@ -426,8 +426,6 @@ short form for this argument is B<-s>
 
 Displays the text of the results, one by line.
 
-=back
-
 =item B<--html>
 
 Allow HTML input, files are converted using HTML::TreeBuilder
@@ -435,6 +433,8 @@ Allow HTML input, files are converted using HTML::TreeBuilder
 =item B<--Tidy>
 
 Allow HTML input, files are converted using HTML::Tidy 
+
+=back
 
 =head2 Condition Syntax
 
