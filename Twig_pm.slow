@@ -51,8 +51,6 @@ my $REG_NAME_WC    = q{(?(?:(?:[^\W\d]|[:#_])(?:[\w.-]*:)?[\w.-]*|\*)(?:\.[\w-]+
 
 
 my $REG_REGEXP     = q{(?:/(?:[^\\/]|\\.)*/[eimsox]*)};               # regexp
-my $REG_REGEXP_EXP = q{(?:(?:[^\\/]|\\.)*)};                          # content of a regexp
-my $REG_REGEXP_MOD = q{(?:[eimso]*)};                                 # regexp modifiers
 my $REG_MATCH      = q{[!=]~};                                        # match (or not)
 my $REG_STRING     = q{(?:"(?:[^\\"]|\\.)*"|'(?:[^\\']|\\.)*')};      # string (simple or double quoted)
 my $REG_NUMBER     = q{(?:\d+(?:\.\d*)?|\.\d+)};                      # number
@@ -13439,7 +13437,7 @@ hard on performance (at least when a single twig is used!).
 
 =head1 AUTHOR
 
-Michel Rodriguez <mirod@xmltwig.com>
+Michel Rodriguez <mirod@cpan.org>
 
 =head1 LICENSE
 
@@ -13449,7 +13447,7 @@ it under the same terms as Perl itself.
 Bug reports should be sent using:
 F<RT L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=XML-Twig>>
 
-Comments can be sent to mirod@xmltwig.com
+Comments can be sent to mirod@cpan.org
 
 The XML::Twig page is at L<http://www.xmltwig.com/xmltwig/>
 It includes the development version of the module, a slightly better version 
