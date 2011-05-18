@@ -1,8 +1,14 @@
 $Id: /xmltwig/trunk/Changes 33 2008-04-30T08:03:41.004487Z mrodrigu  $
 
 CHANGES
+version 3.39
+date: 2011-
+# minor maintenance release
+fixed: xml_pp -i would blank all files after the first one 
+       thanks to dvercande for spotting this 
+
 version 3.38
-date: 2011-07-27
+date: 2011-03-27
 # minor maintenance release
 fixed: RT 65865: _ should be allowed at the start on an XML name
        https://rt.cpan.org/Ticket/Display.html?id=65865

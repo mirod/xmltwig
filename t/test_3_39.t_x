@@ -1,0 +1,39 @@
+#!/usr/bin/perl -w
+use strict;
+
+
+use Carp;
+use File::Spec;
+use lib File::Spec->catdir(File::Spec->curdir,"t");
+use tools;
+
+$|=1;
+my $DEBUG=0;
+ 
+use XML::Twig;
+
+my $TMAX=2;
+print "1..$TMAX\n";
+
+{ 
+my $doc='<d>foo bar fooo baz</d>';
+my $t= XML::Twig->parse( $doc);
+$t->root->split( '(fo+)', e => { att => '$1' } );
+is( $t->sprint, '<d><e att="foo">foo</e> bar <e att="fooo">fooo</e> baz</d>', 'split, with $1 on attribute value');
+
+$t= XML::Twig->parse( $doc);
+$t->root->split( '(fo+)', e => { '$1' => 'v$1' } );
+is( $t->sprint, '<d><e foo="vfoo">foo</e> bar <e fooo="vfooo">fooo</e> baz</d>', 'split, with $1 on attribute name and value');
+
+$t= XML::Twig->parse( $doc);
+$t->root->split( '(fo+)', '$1' );
+is( $t->sprint, '<d><foo>foo</foo> bar <fooo>fooo</fooo> baz</d>', 'split, with $1 on tag name');
+
+$t= XML::Twig->parse( $doc);
+$t->root->split( '(fo+)(.*?)(ba)', x => { class => '$1' }, '', x => { class => $3 });
+is( $t->sprint, '<d><x class="foo">foo</x> <a class="ba">ba</x>r <x class="fooo">fooo</x> <x class="ba">ba</x>z</d>', 'split, with $1 and $2 on att value');
+
+$t= XML::Twig->parse( $doc);
+$t->root->split( '(fo(o+))', '$2', '' );
+is( $t->sprint, '<d><o>foo</o> bar <oo>fooo</oo> baz</d>', 'split, with $2 on tag name');
+}

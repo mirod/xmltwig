@@ -36,16 +36,19 @@ else
 push @twig_options, twig_handlers => { _all_ => sub { $_[0]->flush } }
   unless( $opt{load});
 
-my $t= XML::Twig->new( @twig_options);
+warn "new version";
   
 if( @ARGV)
   { foreach my $file (@ARGV)
       { print STDERR "$file\n" if( $opt{verbose});
+
+        my $t= XML::Twig->new( @twig_options);
+
         my $tempfile;
         if( $opt{in_place})
-          { (undef, $tempfile)= tempfile( DIR => dirname( $file));
-            open( OUTPUT, ">$tempfile") or die "cannot create tempfile $tempfile: $!";
-            select OUTPUT;
+          { (undef, $tempfile)= tempfile( DIR => dirname( $file)) or die "cannot create tempfile for $file: $!\n" ;
+            open( PP_OUTPUT, ">$tempfile") or die "cannot create tempfile $tempfile: $!";
+            select PP_OUTPUT;
           }
         $t= $t->safe_parsefile( $file);
 
@@ -55,7 +58,8 @@ if( @ARGV)
             select STDOUT;
 
             if( $opt{in_place})
-              { if( $opt{backup})  
+              { close PP_OUTPUT;
+                if( $opt{backup})  
                   { my $backup= backup( $file, $opt{backup});
                     rename( $file, $backup) or die "cannot create backup file $backup: $!"; 
                   }
@@ -71,7 +75,8 @@ if( @ARGV)
       }
   }
 else
-  { $t->parse( \*STDIN); 
+  { my $t= XML::Twig->new( @twig_options);
+    $t->parse( \*STDIN); 
     if( $opt{load}) { $t->print; }
   }
 

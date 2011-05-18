@@ -51,8 +51,6 @@ my $REG_NAME_WC    = q{(?(?:(?:[^\W\d]|[:#_])(?:[\w.-]*:)?[\w.-]*|\*)(?:\.[\w-]+
 
 
 my $REG_REGEXP     = q{(?:/(?:[^\\/]|\\.)*/[eimsox]*)};               # regexp
-my $REG_REGEXP_EXP = q{(?:(?:[^\\/]|\\.)*)};                          # content of a regexp
-my $REG_REGEXP_MOD = q{(?:[eimso]*)};                                 # regexp modifiers
 my $REG_MATCH      = q{[!=]~};                                        # match (or not)
 my $REG_STRING     = q{(?:"(?:[^\\"]|\\.)*"|'(?:[^\\']|\\.)*')};      # string (simple or double quoted)
 my $REG_NUMBER     = q{(?:\d+(?:\.\d*)?|\.\d+)};                      # number
@@ -97,7 +95,7 @@ my( $PCDATA, $CDATA, $PI, $COMMENT, $ENT, $ELT, $TEXT, $ASIS, $EMPTY, $BUFSIZE);
 
 BEGIN
 { 
-$VERSION = '3.38';
+$VERSION = '3.39';
 
 use XML::Parser;
 my $needVersion = '2.23';
@@ -1770,6 +1768,8 @@ sub _reset_twig_after_error
 sub _add_or_discard_stored_spaces
   { my $t= shift;
    
+    $t->{twig_right_after_root}=0; #XX
+
     my $current= $t->{twig_current} or return; # ugly hack, with ignore on, twig_current can disappear 
     if( $t->{twig_stored_spaces} || $t->{twig_preserve_space})
       { if( (exists $current->{'pcdata'}))
@@ -2084,8 +2084,10 @@ sub _twig_end
             foreach my $handler ( @handlers)
               { $handler->($t, $elt) || last; }
             # call _all_ handler if needed
-            if( my $all= $t->{twig_handlers}->{handlers}->{$ALL})
+            my $all= $t->{twig_handlers}->{handlers}->{$ALL};
+            if( $all)
               { $all->($t, $elt); }
+            if( @handlers || $all) { $t->{twig_right_after_root}=0; }
           }
       }
 
@@ -2094,6 +2096,7 @@ sub _twig_end
       { if( $t->{twig_default_print})
           { # select the proper fh (and store the currently selected one)
             $t->_set_fh_to_twig_output_fh(); 
+            if( !$p->depth==1) { $t->{twig_right_after_root}=1; } #XX
             if( $t->{twig_keep_encoding})
               { $p->setHandlers( %twig_handlers_roots_print_original); }
             else
@@ -2214,7 +2217,8 @@ sub _twig_char
         $elt->{pcdata}.=  $string; 
       } 
     else
-      { # text is just space, which might be discarded later
+      { 
+        # text is just space, which might be discarded later
         if( $string=~/\A\s*\Z/s)
           { 
             if( $t->{extra_data})
@@ -3659,7 +3663,11 @@ sub _twig_print
         $p->{twig}->{expat_1_95_2_seen_bracket}=1;
       }
     else
-      { print $p->recognized_string(); }
+      { if( $p->{twig}->{twig_right_after_root})
+          { my $s= $p->recognized_string(); print $s if $s=~ m{\S}; }
+        else
+          { print $p->recognized_string(); }
+      }
     return;
   }
 # recognized_string does not seem to work for entities, go figure!
@@ -13437,7 +13445,7 @@ hard on performance (at least when a single twig is used!).
 
 =head1 AUTHOR
 
-Michel Rodriguez <mirod@xmltwig.com>
+Michel Rodriguez <mirod@cpan.org>
 
 =head1 LICENSE
 
@@ -13447,7 +13455,7 @@ it under the same terms as Perl itself.
 Bug reports should be sent using:
 F<RT L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=XML-Twig>>
 
-Comments can be sent to mirod@xmltwig.com
+Comments can be sent to mirod@cpan.org
 
 The XML::Twig page is at L<http://www.xmltwig.com/xmltwig/>
 It includes the development version of the module, a slightly better version 
