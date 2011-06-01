@@ -13,6 +13,9 @@ use UNIVERSAL();
 ## if a sub returns a scalar, it better not bloody disappear in list context
 ## no critic (Subroutines::ProhibitExplicitReturnUndef);
 
+my $perl_version;
+my $parser_version;
+
 ######################################################################
 package XML::Twig;
 ######################################################################
@@ -79,10 +82,9 @@ my $REG_PREDICATE_ALT  = qr{\[(?:(?:string\(\s*\)|\@$REG_NAME)\s*$REG_MATCH\s*$R
 # used to convert XPath tests on strings to the perl equivalent 
 my %PERL_ALPHA_TEST= ( '=' => ' eq ', '!=' => ' ne ', '>' => ' gt ', '>=' => ' ge ', '<' => ' lt ', '<=' => ' le ');
 
-my $parser_version;
 my( $FB_HTMLCREF, $FB_XMLCREF);
 
-my $NO_WARNINGS= $] >= 5.006 ? 'no warnings' : 'local $^W=0';
+my $NO_WARNINGS= $perl_version >= 5.006 ? 'no warnings' : 'local $^W=0';
 
 # default namespaces, both ways
 my %DEFAULT_NS= ( xml   => "http://www.w3.org/XML/1998/namespace",
@@ -93,16 +95,19 @@ my %DEFAULT_URI2NS= map { $DEFAULT_NS{$_} => $_ } keys %DEFAULT_NS;
 # constants
 my( $PCDATA, $CDATA, $PI, $COMMENT, $ENT, $ELT, $TEXT, $ASIS, $EMPTY, $BUFSIZE);
 
+
 BEGIN
 { 
 $VERSION = '3.39';
 
 use XML::Parser;
 my $needVersion = '2.23';
-$parser_version= $XML::Parser::VERSION;
+($parser_version= $XML::Parser::VERSION)=~ s{_\d+}{}; # remove _<n> from version so numeric tests do not warn
 croak "need at least XML::Parser version $needVersion" unless $parser_version >= $needVersion;
 
-if( $] >= 5.008) 
+($perl_version= $])=~ s{_\d+}{};
+
+if( $perl_version >= 5.008) 
   { eval "use Encode qw( :all)";
     $FB_XMLCREF  = 0x0400; # Encode::FB_XMLCREF;
     $FB_HTMLCREF = 0x0200; # Encode::FB_HTMLCREF;
@@ -683,7 +688,7 @@ sub parse
     # requires 5.006 at least (or the ${^UNICODE} causes a problem)                                       # > perl 5.5
     # trap underlying bug in IO::Handle (see RT #17500)                                                   # > perl 5.5
     # croak if perl 5.8+, -CD (or PERL_UNICODE set to D) and parsing a pipe                               # > perl 5.5
-    if( $]>=5.008 && ${^UNICODE} && (${^UNICODE} & 24) && isa( $_[0], 'GLOB') && -p $_[0] )               # > perl 5.5
+    if( $perl_version>=5.008 && ${^UNICODE} && (${^UNICODE} & 24) && isa( $_[0], 'GLOB') && -p $_[0] )               # > perl 5.5
       { croak   "cannot parse the output of a pipe when perl is set to use the UTF8 perlIO layer\n"       # > perl 5.5
               . "set the environment variable PERL_UNICODE or use the -C option (see perldoc perlrun)\n"  # > perl 5.5
               . "not to include 'D'";                                                                     # > perl 5.5
@@ -733,7 +738,7 @@ sub _parse_inplace
     my( $tmpfh, $tmpfile)= File::Temp::tempfile( DIR => $tmpdir);
     my $original_fh= select $tmpfh;
 
-    unless( $t->{twig_keep_encoding} || $] < 5.006) 
+    unless( $t->{twig_keep_encoding} || $perl_version < 5.006) 
       { if( grep /useperlio=define/, `$^X -V`) # we can only use binmode :utf8 if perl was compiled with useperlio
           { binmode( $tmpfh, ":utf8" ); }
       }
@@ -3028,7 +3033,7 @@ sub print
 
     #if( !$t->{encoding} || lc( $t->{encoding}) eq 'utf-8') { my $out= $fh || \*STDOUT; binmode $out, ':utf8'; }
 
-    if( $] > 5.006 && ! $t->{twig_keep_encoding}) 
+    if( $perl_version > 5.006 && ! $t->{twig_keep_encoding}) 
       { if( grep /useperlio=define/, `$^X -V`) # we can only use binmode :utf8 if perl was compiled with useperlio
           { binmode( $fh || \*STDOUT, ":utf8" ); }
       }
@@ -4270,7 +4275,7 @@ sub html_encode
 
 sub safe_encode
   {   my $str= shift;
-      if( $] < 5.008)
+      if( $perl_version < 5.008)
         { # the no utf8 makes the regexp work in 5.6
           no utf8; # = perl 5.6
           $str =~ s{([\xC0-\xDF].|[\xE0-\xEF]..|[\xF0-\xFF]...)}
@@ -4283,7 +4288,7 @@ sub safe_encode
 
 sub safe_encode_hex
   {   my $str= shift;
-      if( $] < 5.008)
+      if( $perl_version < 5.008)
         { # the no utf8 makes the regexp work in 5.6
           no utf8; # = perl 5.6
           $str =~ s{([\xC0-\xDF].|[\xE0-\xEF]..|[\xF0-\xFF]...)}
@@ -7332,7 +7337,7 @@ sub mark
   my $encode_is_loaded=0;   # so we only load Encode once
   sub _utf8_ify
     { 
-      if( $] >= 5.008 and $] < 5.010 and !_keep_encoding()) 
+      if( $perl_version >= 5.008 and $perl_version < 5.010 and !_keep_encoding()) 
         { unless( $encode_is_loaded) { require Encode; import Encode; $encode_is_loaded++; }
           Encode::_utf8_on( $_[0]); # the flag should be set but is not
         }
