@@ -6,6 +6,12 @@ date: 2011-
 # minor maintenance release
 fixed: xml_pp -i would blank all files after the first one 
        thanks to dvercande for spotting this 
+added  findvalues method (XML::Twig and XML::Twig::Elt)
+       same as findvalue except that it returns an array of value
+added the output_html_doctype option to XML::Twig::new, that
+       outputs the DOCTYPE declaration for HTML docs converted
+       by HTML::TreeBuilder (fixing it if necessary)
+       see RT #71009: https://rt.cpan.org/Ticket/Display.html?id=71009
 
 version 3.38
 date: 2011-02-27

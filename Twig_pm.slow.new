@@ -13,9 +13,6 @@ use UNIVERSAL();
 ## if a sub returns a scalar, it better not bloody disappear in list context
 ## no critic (Subroutines::ProhibitExplicitReturnUndef);
 
-my $perl_version;
-my $parser_version;
-
 ######################################################################
 package XML::Twig;
 ######################################################################
@@ -54,6 +51,8 @@ my $REG_NAME_WC    = q{(?(?:(?:[^\W\d]|[:#_])(?:[\w.-]*:)?[\w.-]*|\*)(?:\.[\w-]+
 
 
 my $REG_REGEXP     = q{(?:/(?:[^\\/]|\\.)*/[eimsox]*)};               # regexp
+my $REG_REGEXP_EXP = q{(?:(?:[^\\/]|\\.)*)};                          # content of a regexp
+my $REG_REGEXP_MOD = q{(?:[eimso]*)};                                 # regexp modifiers
 my $REG_MATCH      = q{[!=]~};                                        # match (or not)
 my $REG_STRING     = q{(?:"(?:[^\\"]|\\.)*"|'(?:[^\\']|\\.)*')};      # string (simple or double quoted)
 my $REG_NUMBER     = q{(?:\d+(?:\.\d*)?|\.\d+)};                      # number
@@ -82,9 +81,10 @@ my $REG_PREDICATE_ALT  = qr{\[(?:(?:string\(\s*\)|\@$REG_NAME)\s*$REG_MATCH\s*$R
 # used to convert XPath tests on strings to the perl equivalent 
 my %PERL_ALPHA_TEST= ( '=' => ' eq ', '!=' => ' ne ', '>' => ' gt ', '>=' => ' ge ', '<' => ' lt ', '<=' => ' le ');
 
+my $parser_version;
 my( $FB_HTMLCREF, $FB_XMLCREF);
 
-my $NO_WARNINGS= $perl_version >= 5.006 ? 'no warnings' : 'local $^W=0';
+my $NO_WARNINGS= $] >= 5.006 ? 'no warnings' : 'local $^W=0';
 
 # default namespaces, both ways
 my %DEFAULT_NS= ( xml   => "http://www.w3.org/XML/1998/namespace",
@@ -95,39 +95,16 @@ my %DEFAULT_URI2NS= map { $DEFAULT_NS{$_} => $_ } keys %DEFAULT_NS;
 # constants
 my( $PCDATA, $CDATA, $PI, $COMMENT, $ENT, $ELT, $TEXT, $ASIS, $EMPTY, $BUFSIZE);
 
-# used when an HTML doc only has a PUBLIC declaration, to generate the SYSTEM one
-# this should really be done by HTML::TreeBuilder, but as of HTML::TreeBuilder 4.2 it isn't
-# the various declarations are taken from http://en.wikipedia.org/wiki/Document_Type_Declaration
-my %HTML_DECL= ( "-//W3C//DTD HTML 4.0 Transitional//EN"  => "http://www.w3.org/TR/REC-html40/loose.dtd",
-                 "-//W3C//DTD HTML 4.01//EN"              => "http://www.w3.org/TR/html4/strict.dtd",
-                 "-//W3C//DTD HTML 4.01 Transitional//EN" => "http://www.w3.org/TR/html4/loose.dtd",
-                 "-//W3C//DTD HTML 4.01 Frameset//EN"     => "http://www.w3.org/TR/html4/frameset.dtd",
-                 "-//W3C//DTD XHTML 1.0 Strict//EN"       => "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd",
-                 "-//W3C//DTD XHTML 1.0 Transitional//EN" => "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd",
-                 "-//W3C//DTD XHTML 1.0 Frameset//EN"     => "http://www.w3.org/TR/xhtml1/DTD/xhtml1-frameset.dtd",
-                 "-//W3C//DTD XHTML 1.1//EN"              => "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd",
-                 "-//W3C//DTD XHTML Basic 1.0//EN"        => "http://www.w3.org/TR/xhtml-basic/xhtml-basic10.dtd",
-                 "-//W3C//DTD XHTML Basic 1.1//EN"        => "http://www.w3.org/TR/xhtml-basic/xhtml-basic11.dtd",
-                 "-//WAPFORUM//DTD XHTML Mobile 1.0//EN"  => "http://www.wapforum.org/DTD/xhtml-mobile10.dtd",
-                 "-//WAPFORUM//DTD XHTML Mobile 1.1//EN"  => "http://www.openmobilealliance.org/tech/DTD/xhtml-mobile11.dtd",
-                 "-//WAPFORUM//DTD XHTML Mobile 1.2//EN"  => "http://www.openmobilealliance.org/tech/DTD/xhtml-mobile12.dtd",
-                 "-//W3C//DTD XHTML+RDFa 1.0//EN"         => "http://www.w3.org/MarkUp/DTD/xhtml-rdfa-1.dtd",
-               );
-
-my $DEFAULT_HTML_TYPE= "-//W3C//DTD HTML 4.0 Transitional//EN";
-
 BEGIN
 { 
-$VERSION = '3.39';
+$VERSION = '3.38';
 
 use XML::Parser;
 my $needVersion = '2.23';
-($parser_version= $XML::Parser::VERSION)=~ s{_\d+}{}; # remove _<n> from version so numeric tests do not warn
+$parser_version= $XML::Parser::VERSION;
 croak "need at least XML::Parser version $needVersion" unless $parser_version >= $needVersion;
 
-($perl_version= $])=~ s{_\d+}{};
-
-if( $perl_version >= 5.008) 
+if( $] >= 5.008) 
   { eval "use Encode qw( :all)";
     $FB_XMLCREF  = 0x0400; # Encode::FB_XMLCREF;
     $FB_HTMLCREF = 0x0200; # Encode::FB_HTMLCREF;
@@ -399,10 +376,7 @@ my $css_sel=0; # set through the css_sel option to allow .class selectors in tri
       NoLWP                 => 1, Non_Expat_Options     => 1,
       Xmlns                 => 1, CssSel                => 1,
       UseTidy               => 1, TidyOptions           => 1,
-      OutputHtmlDoctype     => 1,
     );
-
-my $active_twig; # last active twig,for XML::Twig::s
 
 # predefined input and output filters
 use vars qw( %filter);
@@ -411,6 +385,7 @@ use vars qw( %filter);
            safe_hex   => \&safe_encode_hex,
          );
 
+my $active_twig; # last active twig,for XML::Twig::s
 
 # trigger types (used to sort them)
 my ($LEVEL_TRIGGER, $REGEXP_TRIGGER, $XPATH_TRIGGER)=(1..3);
@@ -517,7 +492,7 @@ sub new
       }
     else
       { $self->set_do_not_escape_amp_in_atts( 0); 
-        $self->{twig_do_not_escape_amp_in_atts}=0;
+        $self->{twig_do_not_escape_amp_in_atts}=0;}
       }
 
     # deal with TwigRoots argument, a hash of elements for which
@@ -667,8 +642,6 @@ sub new
     if( $args{UseTidy}) { $self->{use_tidy}= 1; }
     $self->{tidy_options}= $args{TidyOptions} || {};
 
-    if( $args{OutputHtmlDoctype}) { $self->{html_doctype}= 1; }
-
     $self->set_quote( $args{Quote} || 'double');
 
     # set handlers
@@ -713,14 +686,12 @@ sub parse
     # requires 5.006 at least (or the ${^UNICODE} causes a problem)                                       # > perl 5.5
     # trap underlying bug in IO::Handle (see RT #17500)                                                   # > perl 5.5
     # croak if perl 5.8+, -CD (or PERL_UNICODE set to D) and parsing a pipe                               # > perl 5.5
-    if( $perl_version>=5.008 && ${^UNICODE} && (${^UNICODE} & 24) && isa( $_[0], 'GLOB') && -p $_[0] )               # > perl 5.5
+    if( $]>=5.008 && ${^UNICODE} && (${^UNICODE} & 24) && isa( $_[0], 'GLOB') && -p $_[0] )               # > perl 5.5
       { croak   "cannot parse the output of a pipe when perl is set to use the UTF8 perlIO layer\n"       # > perl 5.5
               . "set the environment variable PERL_UNICODE or use the -C option (see perldoc perlrun)\n"  # > perl 5.5
               . "not to include 'D'";                                                                     # > perl 5.5
       }                                                                                                   # > perl 5.5
     $t= eval { $t->SUPER::parse( @_); }; 
-    if( !$t && $@=~m{syntax error at line 1, column 0, byte 0} && $_[0]=~m{\.xml$})
-      { carp "you seem to have used the parse method on a filename, you probably want parsefile instead"; }
     return _checked_parse_result( $t, $@);
   }
 
@@ -742,7 +713,6 @@ sub _checked_parse_result
         else
           { _croak( $returned, 0); }
       }
-    
     $active_twig= $t;
     return $t;
   }
@@ -769,7 +739,7 @@ sub _parse_inplace
     my( $tmpfh, $tmpfile)= File::Temp::tempfile( DIR => $tmpdir);
     my $original_fh= select $tmpfh;
 
-    unless( $t->{twig_keep_encoding} || $perl_version < 5.006) 
+    unless( $t->{twig_keep_encoding} || $] < 5.006) 
       { if( grep /useperlio=define/, `$^X -V`) # we can only use binmode :utf8 if perl was compiled with useperlio
           { binmode( $tmpfh, ":utf8" ); }
       }
@@ -837,7 +807,7 @@ sub parsefile_html
     my $indent= $t->{ErrorContext} ? 1 : 0;
     $t->set_empty_tag_style( 'html');
     my $html2xml=  $t->{use_tidy} ? \&_tidy_html : \&_html2xml;
-    my $options= $t->{use_tidy} ? $t->{tidy_options} || {} :  { indent => $indent, html_doctype => $t->{html_doctype} };
+    my $options= $t->{use_tidy} ? $t->{tidy_options} || {} :  { indent => $indent };
     $t->parse( $html2xml->( _slurp( $file), $options), @_);
     return $t;
   }
@@ -848,7 +818,7 @@ sub parse_html
     my $indent= $t->{ErrorContext} ? 1 : 0;
     $t->set_empty_tag_style( 'html');
     my $html2xml=  $t->{use_tidy} ? \&_tidy_html : \&_html2xml;
-    my $options= $t->{use_tidy} ? $t->{tidy_options} || {} :  { indent => $indent, html_doctype => $t->{html_doctype} };
+    my $options= $t->{use_tidy} ? $t->{tidy_options} || {} :  { indent => $indent };
     $t->parse( $html2xml->( isa( $content, 'GLOB') ? _slurp_fh( $content) : $content, $options), @_);
     return $t;
   }
@@ -888,9 +858,7 @@ sub _parse_as_xml_or_html
     if( _is_well_formed_xml( $_[0]))
       { $t->parse( @_) }
     else
-      { my $html2xml=  $t->{use_tidy} ? \&_tidy_html : \&_html2xml;
-        my $options= $t->{use_tidy} ? $t->{tidy_options} || {} :  { indent => 0, html_doctype => $t->{html_doctype} };
-        my $html= $html2xml->( $_[0], $options, @_);
+      { my $html= $t->{use_tidy} ?  _tidy_html( $_[0]) : _html2xml( $_[0]);
         if( _is_well_formed_xml( $html))
           { $t->parse( $html); }
         else
@@ -928,26 +896,7 @@ sub _html2xml
     $tree->parse( $html);
     $tree->eof;
 
-    my $xml='';
-    if( $options->{html_doctype} && exists $tree->{_decl} )
-      { my $decl= $tree->{_decl}->as_XML;
-
-        # first try to fix declarations that are missing the SYSTEM part 
-        $decl =~ s{^\s*<!DOCTYPE \s+ HTML \s+ PUBLIC \s+ "([^"]*)" \s* >}
-                  { my $system= $HTML_DECL{$1} || $HTML_DECL{$DEFAULT_HTML_TYPE};
-                    qq{<!DOCTYPE  HTML PUBLIC "$1" "$system">}
-                  }xe;
-
-        # then check that the declaration looks OK (so it parses), if not remove it,
-        # better to parse without the declaration than to die stupidely
-        if(    $decl !~ m{<!DOCTYPE \s+ (?i:HTML) (\s+ PUBLIC \s+ "[^"]*" \s+ (SYSTEM \s+)? "[^"]*")? \s*>} # PUBLIC then SYSTEM
-            || $decl !~ m{<!DOCTYPE \s+ (?i:HTML) \s+ SYSTEM \s+ "[^"]*" \s*>}x                             # just SYSTEM
-          )
-          { $xml= $decl; }
-      } 
-
-    $xml.= $tree->as_XML;
-
+    my $xml= $tree->as_XML;
     _fix_xml( $tree, \$xml);
     $tree->delete;
 
@@ -1825,8 +1774,6 @@ sub _reset_twig_after_error
 sub _add_or_discard_stored_spaces
   { my $t= shift;
    
-    $t->{twig_right_after_root}=0; #XX
-
     my $current= $t->{twig_current} or return; # ugly hack, with ignore on, twig_current can disappear 
     if( $t->{twig_stored_spaces} || $t->{twig_preserve_space})
       { if( $current->is_pcdata)
@@ -2141,10 +2088,8 @@ sub _twig_end
             foreach my $handler ( @handlers)
               { $handler->($t, $elt) || last; }
             # call _all_ handler if needed
-            my $all= $t->{twig_handlers}->{handlers}->{$ALL};
-            if( $all)
+            if( my $all= $t->{twig_handlers}->{handlers}->{$ALL})
               { $all->($t, $elt); }
-            if( @handlers || $all) { $t->{twig_right_after_root}=0; }
           }
       }
 
@@ -2153,7 +2098,6 @@ sub _twig_end
       { if( $t->{twig_default_print})
           { # select the proper fh (and store the currently selected one)
             $t->_set_fh_to_twig_output_fh(); 
-            if( !$p->depth==1) { $t->{twig_right_after_root}=1; } #XX
             if( $t->{twig_keep_encoding})
               { $p->setHandlers( %twig_handlers_roots_print_original); }
             else
@@ -2274,8 +2218,7 @@ sub _twig_char
         $elt->append_pcdata( $string); 
       } 
     else
-      { 
-        # text is just space, which might be discarded later
+      { # text is just space, which might be discarded later
         if( $string=~/\A\s*\Z/s)
           { 
             if( $t->{extra_data})
@@ -3085,7 +3028,7 @@ sub print
 
     #if( !$t->{encoding} || lc( $t->{encoding}) eq 'utf-8') { my $out= $fh || \*STDOUT; binmode $out, ':utf8'; }
 
-    if( $perl_version > 5.006 && ! $t->{twig_keep_encoding}) 
+    if( $] > 5.006 && ! $t->{twig_keep_encoding}) 
       { if( grep /useperlio=define/, `$^X -V`) # we can only use binmode :utf8 if perl was compiled with useperlio
           { binmode( $fh || \*STDOUT, ":utf8" ); }
       }
@@ -3434,16 +3377,6 @@ sub findvalue
       { return $twig->root->findvalue( @_); }
   }
 
-sub findvalues
-  { my $twig= shift;
-    if( isa( $_[0], 'ARRAY'))
-      { my $elt_array= shift;
-        return map { $_->findvalues( @_) } @$elt_array;
-      }
-    else
-      { return $twig->root->findvalues( @_); }
-  }
-
 sub set_id_seed
   { my $t= shift;
     XML::Twig::Elt->set_id_seed( @_);
@@ -3731,11 +3664,7 @@ sub _twig_print
         $p->{twig}->{expat_1_95_2_seen_bracket}=1;
       }
     else
-      { if( $p->{twig}->{twig_right_after_root})
-          { my $s= $p->recognized_string(); print $s if $s=~ m{\S}; }
-        else
-          { print $p->recognized_string(); }
-      }
+      { print $p->recognized_string(); }
     return;
   }
 # recognized_string does not seem to work for entities, go figure!
@@ -4337,7 +4266,7 @@ sub html_encode
 
 sub safe_encode
   {   my $str= shift;
-      if( $perl_version < 5.008)
+      if( $] < 5.008)
         { # the no utf8 makes the regexp work in 5.6
           no utf8; # = perl 5.6
           $str =~ s{([\xC0-\xDF].|[\xE0-\xEF]..|[\xF0-\xFF]...)}
@@ -4350,7 +4279,7 @@ sub safe_encode
 
 sub safe_encode_hex
   {   my $str= shift;
-      if( $perl_version < 5.008)
+      if( $] < 5.008)
         { # the no utf8 makes the regexp work in 5.6
           no utf8; # = perl 5.6
           $str =~ s{([\xC0-\xDF].|[\xE0-\xEF]..|[\xF0-\xFF]...)}
@@ -4686,6 +4615,7 @@ BEGIN
 
     # imports from XML::Twig
     *_is_fh= *XML::Twig::_is_fh;
+    *_croak= *XML::Twig::_croak;
 
     # XML::XPath compatibility
     *string_value       = *text;
@@ -5860,7 +5790,7 @@ sub all_children_are
   { my( $parent, $cond)= @_;
     foreach my $child ($parent->_children)
       { return 0 unless( $child->passes( $cond)); }
-    return $parent;
+    return 1;
   }
 
 
@@ -6662,11 +6592,6 @@ sub _croak_and_doublecheck_xpath
 }
 
 
-sub findvalues
-  { my $elt= shift;
-    return map { $_->text } $elt->get_xpath( @_);
-  }
-
 sub findvalue
   { my $elt= shift;
     return join '', map { $_->text } $elt->get_xpath( @_);
@@ -7400,11 +7325,11 @@ sub mark
       return @result; # return all elements
    }
 
-  # evil hack needed as sometimes 
+  # evil hack needed sometimes 
   my $encode_is_loaded=0;   # so we only load Encode once
   sub _utf8_ify
     { 
-      if( $perl_version >= 5.008 and $perl_version < 5.010 and !_keep_encoding()) 
+      if( $] >= 5.008 and $] < 5.010 and !_keep_encoding()) 
         { unless( $encode_is_loaded) { require Encode; import Encode; $encode_is_loaded++; }
           Encode::_utf8_on( $_[0]); # the flag should be set but is not
         }
@@ -9297,7 +9222,7 @@ XML::Twig - A perl module for processing huge XML documents in tree mode.
 Note that this documentation is intended as a reference to the module.
 
 Complete docs, including a tutorial, examples, an easier to use HTML version,
-a quick reference card and a FAQ are available at L<http://www.xmltwig.org/xmltwig>
+a quick reference card and a FAQ are available at L<http://www.xmltwig.com/xmltwig>
 
 Small documents (loaded in memory as a tree):
 
@@ -9526,7 +9451,7 @@ See L<http://testers.cpan.org/search?request=dist&dist=XML-Twig> for the
 CPAN testers reports on XML::Twig, which list all tested configurations.
 
 An Atom feed of the CPAN Testers results is available at
-L<http://xmltwig.org/rss/twig_testers.rss>
+L<http://xmltwig.com/rss/twig_testers.rss>
 
 Finally: 
 
@@ -11189,11 +11114,6 @@ same as C<get_xpath> (similar to the XML::LibXML method)
 Return the C<join> of all texts of the results of applying C<L<get_xpath>>
 to the node (similar to the XML::LibXML method)
 
-=item findvalues ( $optional_array_ref, $xpath, $optional_offset)
-
-Return an array of all texts of the results of applying C<L<get_xpath>>
-to the node 
-
 =item subs_text ($regexp, $replace)
 
 subs_text does text substitution on the whole document, similar to perl's 
@@ -11911,7 +11831,7 @@ parent.
 
 If the element is:
 
-  <config host="laptop.xmltwig.org">
+  <config host="laptop.xmltwig.com">
     <server>localhost</server>
     <dirs>
       <dir name="base">/home/mrodrigu/standards</dir>
@@ -11931,7 +11851,7 @@ C<templates> were not there.
 A YAML dump of the structure 
 
   base: '/home/mrodrigu/standards'
-  host: laptop.xmltwig.org
+  host: laptop.xmltwig.com
   server: localhost
   template:
     - std_def.templ
@@ -12078,8 +11998,8 @@ Here is a rather complex example:
                    'see &elt( a =>{ href => $1 }, $2)'
                  );
 
-This will replace text like I<link to http://www.xmltwig.org> by 
-I<< see <a href="www.xmltwig.org">www.xmltwig.org</a> >>, but not
+This will replace text like I<link to http://www.xmltwig.com> by 
+I<< see <a href="www.xmltwig.com">www.xmltwig.com</a> >>, but not
 I<do not link to...>
 
 Generating entities (here replacing spaces with &nbsp;):
@@ -13238,7 +13158,7 @@ Return the entity declaration text.
 =head1 EXAMPLES
 
 Additional examples (and a complete tutorial) can be found  on the
-F<XML::Twig PageL<http://www.xmltwig.org/xmltwig/>>
+F<XML::Twig PageL<http://www.xmltwig.com/xmltwig/>>
 
 To figure out what flush does call the following script with an
 XML file and an element name as arguments
@@ -13518,11 +13438,13 @@ for ALL twigs).
 A future version will try to support this while trying not to be to
 hard on performance (at least when a single twig is used!).
 
+
 =back
+
 
 =head1 AUTHOR
 
-Michel Rodriguez <mirod@cpan.org>
+Michel Rodriguez <mirod@xmltwig.com>
 
 =head1 LICENSE
 
@@ -13532,19 +13454,19 @@ it under the same terms as Perl itself.
 Bug reports should be sent using:
 F<RT L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=XML-Twig>>
 
-Comments can be sent to mirod@cpan.org
+Comments can be sent to mirod@xmltwig.com
 
-The XML::Twig page is at L<http://www.xmltwig.org/xmltwig/>
+The XML::Twig page is at L<http://www.xmltwig.com/xmltwig/>
 It includes the development version of the module, a slightly better version 
 of the documentation, examples, a tutorial and a: 
 F<Processing XML efficiently with Perl and XML::Twig: 
-L<http://www.xmltwig.org/xmltwig/tutorial/index.html>>
+L<http://www.xmltwig.com/xmltwig/tutorial/index.html>>
 
 =head1 SEE ALSO
 
 Complete docs, including a tutorial, examples, an easier to use HTML version of
 the docs, a quick reference card and a FAQ are available at 
-L<http://www.xmltwig.org/xmltwig/>
+L<http://www.xmltwig.com/xmltwig/>
 
 git repository at L<http://github.com/mirod/xmltwig>
 
@@ -13601,7 +13523,7 @@ XML::Parser.  It won't be as easy to use as XML::Twig: basically with XML::Twig
 you trade some speed (depending on what you do from a factor 3 to... none) 
 for ease-of-use, but it will be easier IMHO than using SAX (albeit not 
 standard), and at this point a LOT faster (see the last test in
-L<http://www.xmltwig.org/article/simple_benchmark/>).
+L<http://www.xmltwig.com/article/simple_benchmark/>).
 
 =cut
 

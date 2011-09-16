@@ -12,7 +12,7 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=20;
+my $TMAX=21;
 print "1..$TMAX\n";
 
 my $d= '<d/>';
@@ -129,4 +129,11 @@ is( $t->first_elt( '*[@_a="2"]')->id, 'bar', 'navigation, attribute name starts 
    my $t= XML::Twig->parse( $doc);
    is( $t->subs_text( qr/(f)o(o)/, '&elt(b => $1) $2')->sprint, '<d><b>f</b> o bar <b>f</b> o<b>f</b> o <b>f</b> obar toto<b>f</b> o</d>', 'complex subs_text');
 }
+
+
+{ my $t= XML::Twig->parse( '<d><e>e1</e><s><e>e2</e></s></d>');
+  is( join( '-', $t->findvalues( '//e')), 'e1-e2', 'findvalues');
+}
+
+
 1;

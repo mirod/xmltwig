@@ -64,7 +64,7 @@ print "1..$TMAX\n";
     { my $t= XML::Twig->nparse( '<doc><sect><elt/></sect></doc>');
       $sect= $t->root->first_child( 'sect');
     }
-  unless( $XML::Twig::weakrefs) { $sect->cut; } # or the twig is not destroyed
+  $sect->cut;
   is( $sect->get_xpath( './elt', 0)->sprint, '<elt/>', " XPath query ok");
   eval { $sect->get_xpath( '/doc/elt'); };
   matches( $@, qr/^cannot use an XPath query starting with a \/ on a node not attached to a whole twig/, "XPath query starting with a /")

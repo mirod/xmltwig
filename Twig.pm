@@ -95,6 +95,26 @@ my %DEFAULT_URI2NS= map { $DEFAULT_NS{$_} => $_ } keys %DEFAULT_NS;
 # constants
 my( $PCDATA, $CDATA, $PI, $COMMENT, $ENT, $ELT, $TEXT, $ASIS, $EMPTY, $BUFSIZE);
 
+# used when an HTML doc only has a PUBLIC declaration, to generate the SYSTEM one
+# this should really be done by HTML::TreeBuilder, but as of HTML::TreeBuilder 4.2 it isn't
+# the various declarations are taken from http://en.wikipedia.org/wiki/Document_Type_Declaration
+my %HTML_DECL= ( "-//W3C//DTD HTML 4.0 Transitional//EN"  => "http://www.w3.org/TR/REC-html40/loose.dtd",
+                 "-//W3C//DTD HTML 4.01//EN"              => "http://www.w3.org/TR/html4/strict.dtd",
+                 "-//W3C//DTD HTML 4.01 Transitional//EN" => "http://www.w3.org/TR/html4/loose.dtd",
+                 "-//W3C//DTD HTML 4.01 Frameset//EN"     => "http://www.w3.org/TR/html4/frameset.dtd",
+                 "-//W3C//DTD XHTML 1.0 Strict//EN"       => "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd",
+                 "-//W3C//DTD XHTML 1.0 Transitional//EN" => "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd",
+                 "-//W3C//DTD XHTML 1.0 Frameset//EN"     => "http://www.w3.org/TR/xhtml1/DTD/xhtml1-frameset.dtd",
+                 "-//W3C//DTD XHTML 1.1//EN"              => "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd",
+                 "-//W3C//DTD XHTML Basic 1.0//EN"        => "http://www.w3.org/TR/xhtml-basic/xhtml-basic10.dtd",
+                 "-//W3C//DTD XHTML Basic 1.1//EN"        => "http://www.w3.org/TR/xhtml-basic/xhtml-basic11.dtd",
+                 "-//WAPFORUM//DTD XHTML Mobile 1.0//EN"  => "http://www.wapforum.org/DTD/xhtml-mobile10.dtd",
+                 "-//WAPFORUM//DTD XHTML Mobile 1.1//EN"  => "http://www.openmobilealliance.org/tech/DTD/xhtml-mobile11.dtd",
+                 "-//WAPFORUM//DTD XHTML Mobile 1.2//EN"  => "http://www.openmobilealliance.org/tech/DTD/xhtml-mobile12.dtd",
+                 "-//W3C//DTD XHTML+RDFa 1.0//EN"         => "http://www.w3.org/MarkUp/DTD/xhtml-rdfa-1.dtd",
+               );
+
+my $DEFAULT_HTML_TYPE= "-//W3C//DTD HTML 4.0 Transitional//EN";
 
 BEGIN
 { 
@@ -379,7 +399,10 @@ my $css_sel=0; # set through the css_sel option to allow .class selectors in tri
       NoLWP                 => 1, Non_Expat_Options     => 1,
       Xmlns                 => 1, CssSel                => 1,
       UseTidy               => 1, TidyOptions           => 1,
+      OutputHtmlDoctype     => 1,
     );
+
+my $active_twig; # last active twig,for XML::Twig::s
 
 # predefined input and output filters
 use vars qw( %filter);
@@ -644,6 +667,8 @@ sub new
     if( $args{UseTidy}) { $self->{use_tidy}= 1; }
     $self->{tidy_options}= $args{TidyOptions} || {};
 
+    if( $args{OutputHtmlDoctype}) { $self->{html_doctype}= 1; }
+
     $self->set_quote( $args{Quote} || 'double');
 
     # set handlers
@@ -694,6 +719,8 @@ sub parse
               . "not to include 'D'";                                                                     # > perl 5.5
       }                                                                                                   # > perl 5.5
     $t= eval { $t->SUPER::parse( @_); }; 
+    if( !$t && $@=~m{syntax error at line 1, column 0, byte 0} && $_[0]=~m{\.xml$})
+      { carp "you seem to have used the parse method on a filename, you probably want parsefile instead"; }
     return _checked_parse_result( $t, $@);
   }
 
@@ -715,8 +742,12 @@ sub _checked_parse_result
         else
           { _croak( $returned, 0); }
       }
+    
+    $active_twig= $t;
     return $t;
   }
+
+sub active_twig { return $active_twig; }
 
 sub finish_now
   { my $t= shift;
@@ -806,7 +837,7 @@ sub parsefile_html
     my $indent= $t->{ErrorContext} ? 1 : 0;
     $t->set_empty_tag_style( 'html');
     my $html2xml=  $t->{use_tidy} ? \&_tidy_html : \&_html2xml;
-    my $options= $t->{use_tidy} ? $t->{tidy_options} || {} :  { indent => $indent };
+    my $options= $t->{use_tidy} ? $t->{tidy_options} || {} :  { indent => $indent, html_doctype => $t->{html_doctype} };
     $t->parse( $html2xml->( _slurp( $file), $options), @_);
     return $t;
   }
@@ -817,7 +848,7 @@ sub parse_html
     my $indent= $t->{ErrorContext} ? 1 : 0;
     $t->set_empty_tag_style( 'html');
     my $html2xml=  $t->{use_tidy} ? \&_tidy_html : \&_html2xml;
-    my $options= $t->{use_tidy} ? $t->{tidy_options} || {} :  { indent => $indent };
+    my $options= $t->{use_tidy} ? $t->{tidy_options} || {} :  { indent => $indent, html_doctype => $t->{html_doctype} };
     $t->parse( $html2xml->( isa( $content, 'GLOB') ? _slurp_fh( $content) : $content, $options), @_);
     return $t;
   }
@@ -857,7 +888,9 @@ sub _parse_as_xml_or_html
     if( _is_well_formed_xml( $_[0]))
       { $t->parse( @_) }
     else
-      { my $html= $t->{use_tidy} ?  _tidy_html( $_[0]) : _html2xml( $_[0]);
+      { my $html2xml=  $t->{use_tidy} ? \&_tidy_html : \&_html2xml;
+        my $options= $t->{use_tidy} ? $t->{tidy_options} || {} :  { indent => 0, html_doctype => $t->{html_doctype} };
+        my $html= $html2xml->( $_[0], $options, @_);
         if( _is_well_formed_xml( $html))
           { $t->parse( $html); }
         else
@@ -895,7 +928,26 @@ sub _html2xml
     $tree->parse( $html);
     $tree->eof;
 
-    my $xml= $tree->as_XML;
+    my $xml='';
+    if( $options->{html_doctype} && exists $tree->{_decl} )
+      { my $decl= $tree->{_decl}->as_XML;
+
+        # first try to fix declarations that are missing the SYSTEM part 
+        $decl =~ s{^\s*<!DOCTYPE \s+ HTML \s+ PUBLIC \s+ "([^"]*)" \s* >}
+                  { my $system= $HTML_DECL{$1} || $HTML_DECL{$DEFAULT_HTML_TYPE};
+                    qq{<!DOCTYPE  HTML PUBLIC "$1" "$system">}
+                  }xe;
+
+        # then check that the declaration looks OK (so it parses), if not remove it,
+        # better to parse without the declaration than to die stupidely
+        if(    $decl !~ m{<!DOCTYPE \s+ (?i:HTML) (\s+ PUBLIC \s+ "[^"]*" \s+ (SYSTEM \s+)? "[^"]*")? \s*>} # PUBLIC then SYSTEM
+            || $decl !~ m{<!DOCTYPE \s+ (?i:HTML) \s+ SYSTEM \s+ "[^"]*" \s*>}x                             # just SYSTEM
+          )
+          { $xml= $decl; }
+      } 
+
+    $xml.= $tree->as_XML;
+
     _fix_xml( $tree, \$xml);
     $tree->delete;
 
@@ -3381,6 +3433,16 @@ sub findvalue
       { return $twig->root->findvalue( @_); }
   }
 
+sub findvalues
+  { my $twig= shift;
+    if( isa( $_[0], 'ARRAY'))
+      { my $elt_array= shift;
+        return map { $_->findvalues( @_) } @$elt_array;
+      }
+    else
+      { return $twig->root->findvalues( @_); }
+  }
+
 sub set_id_seed
   { my $t= shift;
     XML::Twig::Elt->set_id_seed( @_);
@@ -5797,7 +5859,7 @@ sub all_children_are
   { my( $parent, $cond)= @_;
     foreach my $child ($parent->_children)
       { return 0 unless( $child->passes( $cond)); }
-    return 1;
+    return $parent;
   }
 
 
@@ -6598,6 +6660,11 @@ sub _croak_and_doublecheck_xpath
     }
 }
 
+
+sub findvalues
+  { my $elt= shift;
+    return map { $_->text } $elt->get_xpath( @_);
+  }
 
 sub findvalue
   { my $elt= shift;
@@ -9228,7 +9295,7 @@ XML::Twig - A perl module for processing huge XML documents in tree mode.
 Note that this documentation is intended as a reference to the module.
 
 Complete docs, including a tutorial, examples, an easier to use HTML version,
-a quick reference card and a FAQ are available at L<http://www.xmltwig.com/xmltwig>
+a quick reference card and a FAQ are available at L<http://www.xmltwig.org/xmltwig>
 
 Small documents (loaded in memory as a tree):
 
@@ -9457,7 +9524,7 @@ See L<http://testers.cpan.org/search?request=dist&dist=XML-Twig> for the
 CPAN testers reports on XML::Twig, which list all tested configurations.
 
 An Atom feed of the CPAN Testers results is available at
-L<http://xmltwig.com/rss/twig_testers.rss>
+L<http://xmltwig.org/rss/twig_testers.rss>
 
 Finally: 
 
@@ -11120,6 +11187,11 @@ same as C<get_xpath> (similar to the XML::LibXML method)
 Return the C<join> of all texts of the results of applying C<L<get_xpath>>
 to the node (similar to the XML::LibXML method)
 
+=item findvalues ( $optional_array_ref, $xpath, $optional_offset)
+
+Return an array of all texts of the results of applying C<L<get_xpath>>
+to the node 
+
 =item subs_text ($regexp, $replace)
 
 subs_text does text substitution on the whole document, similar to perl's 
@@ -11837,7 +11909,7 @@ parent.
 
 If the element is:
 
-  <config host="laptop.xmltwig.com">
+  <config host="laptop.xmltwig.org">
     <server>localhost</server>
     <dirs>
       <dir name="base">/home/mrodrigu/standards</dir>
@@ -11857,7 +11929,7 @@ C<templates> were not there.
 A YAML dump of the structure 
 
   base: '/home/mrodrigu/standards'
-  host: laptop.xmltwig.com
+  host: laptop.xmltwig.org
   server: localhost
   template:
     - std_def.templ
@@ -12004,8 +12076,8 @@ Here is a rather complex example:
                    'see &elt( a =>{ href => $1 }, $2)'
                  );
 
-This will replace text like I<link to http://www.xmltwig.com> by 
-I<< see <a href="www.xmltwig.com">www.xmltwig.com</a> >>, but not
+This will replace text like I<link to http://www.xmltwig.org> by 
+I<< see <a href="www.xmltwig.org">www.xmltwig.org</a> >>, but not
 I<do not link to...>
 
 Generating entities (here replacing spaces with &nbsp;):
@@ -13164,7 +13236,7 @@ Return the entity declaration text.
 =head1 EXAMPLES
 
 Additional examples (and a complete tutorial) can be found  on the
-F<XML::Twig PageL<http://www.xmltwig.com/xmltwig/>>
+F<XML::Twig PageL<http://www.xmltwig.org/xmltwig/>>
 
 To figure out what flush does call the following script with an
 XML file and an element name as arguments
@@ -13444,9 +13516,7 @@ for ALL twigs).
 A future version will try to support this while trying not to be to
 hard on performance (at least when a single twig is used!).
 
-
 =back
-
 
 =head1 AUTHOR
 
@@ -13462,17 +13532,17 @@ F<RT L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=XML-Twig>>
 
 Comments can be sent to mirod@cpan.org
 
-The XML::Twig page is at L<http://www.xmltwig.com/xmltwig/>
+The XML::Twig page is at L<http://www.xmltwig.org/xmltwig/>
 It includes the development version of the module, a slightly better version 
 of the documentation, examples, a tutorial and a: 
 F<Processing XML efficiently with Perl and XML::Twig: 
-L<http://www.xmltwig.com/xmltwig/tutorial/index.html>>
+L<http://www.xmltwig.org/xmltwig/tutorial/index.html>>
 
 =head1 SEE ALSO
 
 Complete docs, including a tutorial, examples, an easier to use HTML version of
 the docs, a quick reference card and a FAQ are available at 
-L<http://www.xmltwig.com/xmltwig/>
+L<http://www.xmltwig.org/xmltwig/>
 
 git repository at L<http://github.com/mirod/xmltwig>
 
@@ -13529,7 +13599,7 @@ XML::Parser.  It won't be as easy to use as XML::Twig: basically with XML::Twig
 you trade some speed (depending on what you do from a factor 3 to... none) 
 for ease-of-use, but it will be easier IMHO than using SAX (albeit not 
 standard), and at this point a LOT faster (see the last test in
-L<http://www.xmltwig.com/article/simple_benchmark/>).
+L<http://www.xmltwig.org/article/simple_benchmark/>).
 
 =cut
 
