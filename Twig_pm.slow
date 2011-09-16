@@ -940,11 +940,13 @@ sub _html2xml
 
         # then check that the declaration looks OK (so it parses), if not remove it,
         # better to parse without the declaration than to die stupidely
-        if(    $decl !~ m{<!DOCTYPE \s+ (?i:HTML) (\s+ PUBLIC \s+ "[^"]*" \s+ (SYSTEM \s+)? "[^"]*")? \s*>} # PUBLIC then SYSTEM
-            || $decl !~ m{<!DOCTYPE \s+ (?i:HTML) \s+ SYSTEM \s+ "[^"]*" \s*>}x                             # just SYSTEM
+        if(    $decl =~ m{<!DOCTYPE \s+ (?i:HTML) (\s+ PUBLIC \s+ "[^"]*" \s+ (SYSTEM \s+)? "[^"]*")? \s*>}x # PUBLIC then SYSTEM
+            || $decl =~ m{<!DOCTYPE \s+ (?i:HTML) \s+ SYSTEM \s+ "[^"]*" \s*>}x                             # just SYSTEM
           )
           { $xml= $decl; }
       } 
+
+    warn "declaration: $xml\n";
 
     $xml.= $tree->as_XML;
 
