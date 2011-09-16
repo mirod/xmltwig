@@ -10462,7 +10462,22 @@ example:
 
 Note that the index is not maintained after the parsing. If elements are 
 deleted, renamed or otherwise hurt during processing, the index is NOT updated.
+(changing the id element OTOH will update the index)
 
+=item use_tidy
+
+set this option to use HTML::Tidy instead of HTML::TreeBuilder to convert 
+HTML to XML. HTML, especially real (real "crap") HTML found in the wild,
+so depending on the data, one module or the other does a better job at 
+the conversion. Also, HTML::Tidy can be a bit difficult to install, so
+XML::Twig offers both option. TIMTOWTDI 
+
+=item output_html_doctype
+
+when using HTML::TreeBuilder to convert HTML, this option causes the DOCTYPE
+declaration to be output, which may be important for some legacy browsers.
+Without that option the DOCTYPE definition is NOT output. Also if the definition
+is completely wrong (ie not easily parsable), it is not output either.
 
 =back
 
@@ -11048,6 +11063,10 @@ will generate the following PI at the beginning of the document:
 
 option: the url of the stylesheet
 
+=item active_twig
+
+a class method that returns the last processed twig, so you don't necessarily
+need the object to call methods on it.
 
 =back
 
