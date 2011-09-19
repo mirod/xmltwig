@@ -1,0 +1,70 @@
+#!/usr/bin/perl -w
+use strict;
+
+
+use Carp;
+use File::Spec;
+use lib File::Spec->catdir(File::Spec->curdir,"t");
+use tools;
+
+$|=1;
+my $DEBUG=0;
+ 
+use XML::Twig;
+
+my $TMAX=6;
+print "1..$TMAX\n";
+
+=pod
+{ 
+my $doc='<d>foo bar fooo baz</d>';
+my $t= XML::Twig->parse( $doc);
+$t->root->split( '(fo+)', e => { att => '$1' } );
+is( $t->sprint, '<d><e att="foo">foo</e> bar <e att="fooo">fooo</e> baz</d>', 'split, with $1 on attribute value');
+
+$t= XML::Twig->parse( $doc);
+$t->root->split( '(fo+)', e => { '$1' => 'v$1' } );
+is( $t->sprint, '<d><e foo="vfoo">foo</e> bar <e fooo="vfooo">fooo</e> baz</d>', 'split, with $1 on attribute name and value');
+
+$t= XML::Twig->parse( $doc);
+$t->root->split( '(fo+)', '$1' );
+is( $t->sprint, '<d><foo>foo</foo> bar <fooo>fooo</fooo> baz</d>', 'split, with $1 on tag name');
+
+$t= XML::Twig->parse( $doc);
+$t->root->split( '(fo+)(.*?)(ba)', x => { class => '$1' }, '', x => { class => '$3' });
+is( $t->sprint, '<d><x class="foo">foo</x> <a class="ba">ba</x>r <x class="fooo">fooo</x> <x class="ba">ba</x>z</d>', 'split, with $1 and $2 on att value');
+
+$t= XML::Twig->parse( $doc);
+$t->root->split( '(foo+)', '$1', '' );
+is( $t->sprint, '<d><foo>foo</foo> bar <fooo>fooo</fooo> baz</d>', 'split, with $1 on tag name');
+}
+=cut
+
+{ my $t= XML::Twig->parse( '<d><e>e1</e><s><e>e2</e></s></d>');
+  is( join( '-', $t->findvalues( '//e')), 'e1-e2', 'findvalues');
+}
+
+{ my $html='<html xmlns="http://www.w3.org/1999/xhtml"><head><meta content="text/html; charset=utf-8" http-equiv="Content-Type"/></head><body>boo</body></html>';
+
+  my $well_formed   = qq{<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">$html};
+  my $short_doctype = qq{<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN">$html};
+
+  my $t= XML::Twig->new->parse( $well_formed);
+  is_like( $t->sprint, $well_formed, 'valid xhtml');
+  my $th= XML::Twig->new->parse_html( $well_formed);
+  is_like( $t->sprint, $well_formed, 'valid xhtml (parsed as html)');
+
+  
+
+  my $t2= XML::Twig->new->safe_parse( $short_doctype);
+  nok( $t2, 'xhtml without SYSTEM in DOCTYPE');
+
+  my $t3= XML::Twig->new->parse_html( $short_doctype);
+  is_like( $t3->sprint, $html, 'xhtml without SYSTEM in DOCTYPE (parsed as html, no DOCTYPE output)');
+
+  my $t4= XML::Twig->new( output_html_doctype => 1)->parse_html( $short_doctype);
+  is_like( $t4->sprint, $well_formed, 'xhtml without SYSTEM in DOCTYPE (parsed as html, with proper DOCTYPE output)');
+
+}
+
+

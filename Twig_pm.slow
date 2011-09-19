@@ -933,9 +933,10 @@ sub _html2xml
       { my $decl= $tree->{_decl}->as_XML;
 
         # first try to fix declarations that are missing the SYSTEM part 
-        $decl =~ s{^\s*<!DOCTYPE \s+ HTML \s+ PUBLIC \s+ "([^"]*)" \s* >}
-                  { my $system= $HTML_DECL{$1} || $HTML_DECL{$DEFAULT_HTML_TYPE};
-                    qq{<!DOCTYPE  HTML PUBLIC "$1" "$system">}
+        $decl =~ s{^\s*<!DOCTYPE \s+ ((?i)html) \s+ PUBLIC \s+ "([^"]*)" \s* >}
+                  { my $system= $HTML_DECL{$2} || $HTML_DECL{$DEFAULT_HTML_TYPE};
+                    qq{<!DOCTYPE $1 PUBLIC "$2" "$system">}
+                   
                   }xe;
 
         # then check that the declaration looks OK (so it parses), if not remove it,
@@ -945,8 +946,6 @@ sub _html2xml
           )
           { $xml= $decl; }
       } 
-
-    warn "declaration: $xml\n";
 
     $xml.= $tree->as_XML;
 

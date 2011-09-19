@@ -4,3 +4,43 @@ x $decl
 x $decl
 x $decl =~ m{<!DOCTYPE \s+ (?i:HTML) (\s+ PUBLIC \s+ "[^"]*" \s+ (SYSTEM \s+)? "[^"]*")? \s*>}
 x $decl =~ m{<!DOCTYPE \s+ (?i:HTML) (\s+ PUBLIC \s+ "[^"]*" \s+ (SYSTEM \s+)? "[^"]*")? \s*>}x
+b 21
+b 7372
+b 7373
+x $tag
+x $tags[$i]
+b 21
+b 7374
+x @matches
+x @tags
+x $tag
+x $tags[$i]->{atts}
+x %atts
+x %atts
+b 21
+b 7375
+b 7376
+x $tag
+x $atts
+x @atts
+x @atts
+x $atts
+a $atts->[0]
+b 21
+l 7370
+b 7371
+x @matches
+x $text
+x @matches
+b 65
+b parse_html
+x $op[C[C[C[C[C[C[C
+x $options
+x $html2xml->( $content, $options)
+x $options
+x $options
+x $options->{html_doctype}
+x $tree->{_decl}
+x $decl
+x $decl =~ m{<!DOCTYPE \s+ (?i:HTML) (\s+ PUBLIC \s+ "[^"]*" \s+ (SYSTEM \s+)? "[^"]*")? \s*>}
+x $decl =~ m{<!DOCTYPE \s+ (?i:HTML) \s+ SYSTEM \s+ "[^"]*" \s*>}x  
