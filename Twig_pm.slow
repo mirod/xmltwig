@@ -7327,6 +7327,7 @@ sub mark
 # only returns the elements created by matches in the split regexp
 # otherwise all elements (new and untouched) are returned
 
+
 { 
  
   sub _split
@@ -7335,8 +7336,9 @@ sub mark
       my $regexp= shift;
       my @tags;
 
-      while( my $tag= shift())
-        { if( ref $_[0]) 
+      while( @_)
+        { my $tag= shift();
+          if( ref $_[0]) 
             { push @tags, { tag => $tag, atts => shift }; }
           else
             { push @tags, { tag => $tag }; }
@@ -7376,9 +7378,11 @@ sub mark
               foreach my $match (@matches)
                 { # create new element, text is the match
                   _utf8_ify( $match) if( $[ < 5.010);
-                  my $tag  = $tags[$i]->{tag};
+                  my $tag  = _repl_match( $tags[$i]->{tag}, @matches) || '#PCDATA';
+                  #use Data::Show; show $i, $tag, @matches, @tags;
                   my $atts = \%{$tags[$i]->{atts}} || {};
-                  $elt= $elt->insert_new_elt( after => $tag, $atts, $match);
+                  my %atts= map { _repl_match( $_, @matches) => _repl_match( $atts->{$_}, @matches) } keys %$atts;
+                  $elt= $elt->insert_new_elt( after => $tag, \%atts, $match);
                   push @result, $elt;
                   $i= ($i + 1) % @tags;
                 }
@@ -7400,6 +7404,12 @@ sub mark
 
       return @result; # return all elements
    }
+
+sub _repl_match
+  { my( $val, @matches)= @_;
+    $val=~ s{\$(\d+)}{$matches[$1-1]}g;
+    return $val;
+  }
 
   # evil hack needed as sometimes 
   my $encode_is_loaded=0;   # so we only load Encode once
