@@ -20,8 +20,8 @@ DOM support.
 
 Other drawbacks: it is a big module, and with over 500 methods available
 it can be a bit overwhelming. A good starting point is the tutorial at
-http://xmltwig.com/xmltwig/tutorial/index.html. In fact the whole
-XML::Twig page at http://xmltwig.com/xmltwig/ has plenty of information
+http://xmltwig.org/xmltwig/tutorial/index.html. In fact the whole
+XML::Twig page at http://xmltwig.org/xmltwig/ has plenty of information
 to get you started with XML::Twig
 
 TOOLS
@@ -96,12 +96,12 @@ CHANGES
 AUTHOR
 
     Michel Rodriguez (mirod@cpan.org)
-    The Twig page is at http://www.xmltwig.com/xmltwig
+    The Twig page is at http://www.xmltwig.org/xmltwig
     git project repository: http://github.com/mirod/xmltwig
-    See the XML::Twig tutorial at http://www.xmltwig.com/xmltwig/tutorial/index.html
+    See the XML::Twig tutorial at http://www.xmltwig.org/xmltwig/tutorial/index.html
 
 COPYRIGHT
 
-       Copyright (c) 1999-2010, Michel Rodriguez. All Rights Reserved.
+       Copyright (c) 1999-2011, Michel Rodriguez. All Rights Reserved.
        This library is free software; you can redistribute it and/or modify
        it under the same terms as Perl itself.

@@ -3,7 +3,7 @@ name:               XML-Twig
 version:            3.33
 abstract:           XML, The Perl Way
 author:
-    - Michel Rodriguez <mirod@xmltwig.com>
+    - Michel Rodriguez <mirod@cpan.org>
 license:            perl
 distribution_type:  module
 configure_requires:

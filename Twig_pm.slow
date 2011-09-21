@@ -7379,7 +7379,6 @@ sub mark
                 { # create new element, text is the match
                   _utf8_ify( $match) if( $[ < 5.010);
                   my $tag  = _repl_match( $tags[$i]->{tag}, @matches) || '#PCDATA';
-                  #use Data::Show; show $i, $tag, @matches, @tags;
                   my $atts = \%{$tags[$i]->{atts}} || {};
                   my %atts= map { _repl_match( $_, @matches) => _repl_match( $atts->{$_}, @matches) } keys %$atts;
                   $elt= $elt->insert_new_elt( after => $tag, \%atts, $match);

@@ -89,7 +89,7 @@ __DATA__
   </server>
 </config>
 
-<config doc="example from XML::Twig" host="laptop.xmltwig.com">
+<config doc="example from XML::Twig" host="laptop.xmltwig.org">
   <server>localhost</server>
   <dirs>
     <dir name="base">/home/mrodrigu/standards</dir>

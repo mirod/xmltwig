@@ -14,14 +14,14 @@
    </credits>
 
    <overview><p>This FAQ contains information on XML::Twig, a perl module used to process XML documents.
-Please direct all corrections and additions to <a href="mailto:mirod@xmltwig.com">mirod@xmltwig.com</a>. </p>
-<p>This FAQ can be found on the Web at <a href="http://www.xmltwig.com/xmltwig/faq.html">
-		www.xmltwig.com/xmltwig/faq.html</a>.</p>
+Please direct all corrections and additions to <a href="mailto:mirod@cpan.org">mirod@cpan.org</a>. </p>
+<p>This FAQ can be found on the Web at <a href="http://www.xmltwig.org/xmltwig/faq.html">
+		www.xmltwig.org/xmltwig/faq.html</a>.</p>
 <p><a name="mlist"></a>Information in this FAQ is based mainly on question to the Perl XML email list. To join, send an email to <a href="mailto:Lyris@ActiveState.com">Lyris@ActiveState.com</a> with the message: 
 <b>SUBSCRIBE Perl-XML</b>.</p>
 
-      <p>This FAQ was generated using a Perl script (using XML::Twig ;--) and an XML file. The script is at <a href="http://www.xmltwig.com/xmltwig/twig_faq">http://www.xmltwig.com/xmltwig/twig_faq</a>. The XML source is at 
-	      <a href="http://www.xmltwig.com/xmltwig/faq.xml">http://www.xmltwig.com/xmltwig/faq.xml</a>. To generate the XML::Twig FAQ, run <B>twig_faq faq.xml</B> which prints the HTML to STDOUT.
+      <p>This FAQ was generated using a Perl script (using XML::Twig ;--) and an XML file. The script is at <a href="http://xmltwig.org/xmltwig/twig_faq">xmltwig.org/xmltwig/twig_faq</a>. The XML source is at 
+	      <a href="http://www.xmltwig.org/xmltwig/faq.xml">http://www.xmltwig.org/xmltwig/faq.xml</a>. To generate the XML::Twig FAQ, run <B>twig_faq faq.xml</B> which prints the HTML to STDOUT.
 </p>
    </overview>
 
@@ -40,11 +40,11 @@ Please direct all corrections and additions to <a href="mailto:mirod@xmltwig.com
       <question>Where can I get the latest version of XML::Twig?</question>
       <answer>The latest stable version:
         <ul><li><a href="http://www.cpan.org/modules/by-module/XML/MIROD/">CPAN</a></li>
-		<li><a href="http://www.xmltwig.com/xmltwig/">The Twig Homepage</a></li>
+		<li><a href="http://www.xmltwig.org/xmltwig/">The Twig Homepage</a></li>
 		<li><a href="http://standards.ieee.org/resources/spasystem/twig/index.html">The Twig Homepage (mirror hosted by the IEEE)</a></li>
         </ul>
         The latest development version:
-	<ul><li><a href="http://www.xmltwig.com/xmltwig/">The Twig Homepage</a></li>
+	<ul><li><a href="http://www.xmltwig.org/xmltwig/">The Twig Homepage</a></li>
 		<li><a href="http://standards.ieee.org/resources/spasystem/twig/index.html">The Twig Homepage (mirror hosted by the IEEE)</a></li>
         </ul>
       </answer>
@@ -54,22 +54,22 @@ Please direct all corrections and additions to <a href="mailto:mirod@xmltwig.com
    <q id="3">
       <question>Where is the documentation?</question>
       <answer><p>Development version:
-		      <a href="http://www.xmltwig.com/xmltwig/twig_dev.html">html</a> / 
-		      <a href="http://www.xmltwig.com/xmltwig/twig_dev.txt">text</a></p>
+		      <a href="http://www.xmltwig.org/xmltwig/twig_dev.html">html</a> / 
+		      <a href="http://www.xmltwig.org/xmltwig/twig_dev.txt">text</a></p>
              <p>Stable version:
-		     <a href="http://www.xmltwig.com/xmltwig/twig_stable.html">html</a> / 
-	             <a href="http://www.xmltwig.com/xmltwig/twig_stable.txt">text</a>
+		     <a href="http://www.xmltwig.org/xmltwig/twig_stable.html">html</a> / 
+	             <a href="http://www.xmltwig.org/xmltwig/twig_stable.txt">text</a>
              </p>
              <p>You can also type <tt>perldoc XML::Twig</tt> once you have installed the module
-		     or look at the <a href="http://www.xmltwig.com/xmltwig/quick_ref.html">XML::Twig Quick Reference</a>,
-		    or goto <a href="http://www.xmltwig.com">xmltwig.com</a> for more information, including a
-		    <a href="http://www.xmltwig.com/xmltwig/tutorial/index.html">tutorial</a>.</p>
+		     or look at the <a href="http://www.xmltwig.org/xmltwig/quick_ref.html">XML::Twig Quick Reference</a>,
+		    or goto <a href="http://www.xmltwig.org">xmltwig.org</a> for more information, including a
+		    <a href="http://www.xmltwig.org/xmltwig/tutorial/index.html">tutorial</a>.</p>
       </answer>
    </q>
 
    <q id="9">
       <question>How is XML::Twig supported?</question>
-      <answer><p>Twig is supported through email <a href="mailto:mirod@xmltwig.com">mirod@xmltwig.com</a>
+      <answer><p>Twig is supported through email <a href="mailto:mirod@cpan.org">mirod@cpan.org</a>
 		      and through the <a href="#mlist">Perl-XML mailing list</a>.</p>
 	      <p>You are encouraged to report bugs using RT at <a href="http://rt.cpan.org">rt.cpan.org</a>.</p>
 	      <p>Please send the following configuration information when you describe a bug:</p>
@@ -160,7 +160,7 @@ XML::Parser.  It won't be as easy to use as XML::Twig: basically with XML::Twig
 you trade some speed (depending on what you do from a factor 3 to... none) 
 for ease-of-use, but it will be easier IMHO than using SAX (albeit not 
 standard), and at this point a LOT faster (see the last test in
-<a href="http://www.xmltwig.com/article/simple_benchmark/">simple benchmark</a>).</p>
+<a href="http://www.xmltwig.org/article/simple_benchmark/">simple benchmark</a>).</p>
       </answer>
     </q>
    <q id="6">
@@ -454,7 +454,7 @@ close IN or die "error during the execution of xml_generator: $!";
 		<question>How to stop processing the document when a certain condition is met?</question>
 		<answer>
 				<p>There are 2 ways to do this:</p>
-				<ul><li>use <a href="http://xmltwig.com/xmltwig/twig_dev.html#METHODS_XML_Twig_finish"><tt>$twig->finish</tt></a>,
+				<ul><li>use <a href="http://xmltwig.org/xmltwig/twig_dev.html#METHODS_XML_Twig_finish"><tt>$twig->finish</tt></a>,
 							 	which will still parse (quickly) the file but without doing any processing on it.</li>
             <li>wrap the <tt>$twig->parse</tt> in an eval, and <tt>die</tt> when you find the element you are interested in:
 <code><![CDATA[#!/usr/bin/perl -w
@@ -466,7 +466,7 @@ my $t= XML::Twig->new( twig_handlers =>{ e => sub { print $_->id, "\n"; die 0; }
 eval { $t->parse( q{<doc>toto<e id="tata"/>tata<e id="titi"/></doc>});};
 print "done\n";'
 ]]></code></li></ul>
-<p><b>update</b>:  is now a third method: <a href="http://xmltwig.com/xmltwig/twig_dev.html#METHODS_XML_Twig_finish"><tt>$twig->finish_now</tt></a>
+<p><b>update</b>:  is now a third method: <a href="http://xmltwig.org/xmltwig/twig_dev.html#METHODS_XML_Twig_finish"><tt>$twig->finish_now</tt></a>
 method is, as you might have guessed, a little more imperative than <tt>finish</tt>: while <tt>finish</tt> still finishes to parse the XML, and
 dies if it isn't well-formed, <tt>finish_now</tt> just aborts the parsing and returns right away.</p>
 </answer>

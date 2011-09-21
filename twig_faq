@@ -24,7 +24,7 @@ my $t= XML::Twig->new( twig_handlers =>
                             'q'         => \&q,
                             question    => \&question,
                             answer      => \&answer,
-                            code        => sub { $_->set_gi( 'pre'); $_->remove_cdata; },
+                            code        => sub { $_->set_gi( 'pre'); },
                             copyright   => \&copyright,
                             markup      => \&markup,         
                           },
@@ -196,7 +196,7 @@ sub markup
   { my( $t, $markup)= @_;
     # replace the CDATA in markup by PCDATA with the same text
     $markup->set_gi( 'pre');
-    $markup->remove_cdata;
+    #$markup->remove_cdata;
   }
 
         

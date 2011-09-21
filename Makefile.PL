@@ -44,7 +44,7 @@ WriteMakefile1(
 
     NAME	 => 'XML::Twig',
     ABSTRACT     => 'XML, The Perl Way',
-    AUTHOR       => 'Michel Rodriguez <mirod@xmltwig.com>',
+    AUTHOR       => 'Michel Rodriguez <mirod@cpan.org>',
     LICENSE      => 'perl',
     EXE_FILES    => [ map {"tools/$_/$_"} @programs],
     VERSION_FROM => 'Twig.pm', 
