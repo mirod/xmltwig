@@ -118,7 +118,7 @@ my $DEFAULT_HTML_TYPE= "-//W3C//DTD HTML 4.0 Transitional//EN";
 
 BEGIN
 { 
-$VERSION = '3.39';
+$VERSION = '3.40';
 
 use XML::Parser;
 my $needVersion = '2.23';
@@ -9507,23 +9507,6 @@ This would convert prices in $ to prices in Euro in a document:
     }
 
 =head2 XML::Twig and various versions of Perl, XML::Parser and expat:
-
-Before being uploaded to CPAN, XML::Twig 3.22 has been tested under the 
-following environments:
-
-=over 4
-
-=item linux-x86
-
-perl 5.6.2, expat 1.95.8, XML::Parser 2.34
-perl 5.8.0, expat 1.95.8, XML::Parser 2.34
-perl 5.8.7, expat 1.95.8, XML::Parser2.34
-
-=item Solaris
-
-perl 5.6.1, expat 1.95.2, XML::Parser 2.31
-
-=back
 
 XML::Twig is a lot more sensitive to variations in versions of perl, 
 XML::Parser and expat than to the OS, so this should cover some
