@@ -1212,11 +1212,11 @@ sub _based_filename
 
 sub _slurp
   { my( $filename)= @_;
-    # use bareword filehandle to stay compatible with real old perl
-    open( TWIG_TO_SLURP, "<$filename") or croak "cannot open '$filename': $!"; 
+    my $to_slurp;
+    open( $to_slurp, "<$filename") or croak "cannot open '$filename': $!"; 
     local $/= undef;
-    my $content= <TWIG_TO_SLURP>;
-    close TWIG_TO_SLURP;
+    my $content= <$to_slurp>;
+    close $to_slurp;
     return $content;
   }
   
@@ -9820,10 +9820,10 @@ the document. The twig is built only for the C<title> elements.
 If the value is a reference to a file handle then the document outside the
 C<twig_roots> elements will be output to this file handle:
 
-  open( OUT, ">out_file") or die "cannot open out file out_file:$!";
+  open( my $out, '>', 'out_file.xml') or die "cannot open out file.xml out_file:$!";
   my $t= XML::Twig->new( twig_roots => { title => \&number_title },
-                         # default output to OUT
-                         twig_print_outside_roots => \*OUT, 
+                         # default output to $out
+                         twig_print_outside_roots => $out, 
                        );
 
          { my $nb;
@@ -9831,7 +9831,7 @@ C<twig_roots> elements will be output to this file handle:
              { my( $twig, $title);
                $nb++;
                $title->prefix( "$nb "; }
-               $title->print( \*OUT);    # you have to print to \*OUT here
+               $title->print( $out);    # you have to print to \*OUT here
              }
            }
 
