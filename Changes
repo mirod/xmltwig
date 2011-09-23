@@ -1,6 +1,13 @@
 $Id: /xmltwig/trunk/Changes 33 2008-04-30T08:03:41.004487Z mrodrigu  $
 
 CHANGES
+version 3.40
+date:
+# minor maintenance release
+added: the discard_all_spaces option that discards more aggressively
+       non-significant white spaces
+       see RT #71164 https://rt.cpan.org/Ticket/Display.html?id=71164 
+
 version 3.39
 date: 2011-09-22
 # minor maintenance release
