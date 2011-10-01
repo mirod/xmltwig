@@ -7,6 +7,9 @@ date:
 added: the discard_all_spaces option that discards more aggressively
        non-significant white spaces
        see RT #71164 https://rt.cpan.org/Ticket/Display.html?id=71164 
+fixed: did not use Text::Wrap with indented_c
+       see RT #71375 https://rt.cpan.org/Ticket/Display.html?id=71375
+       reported and patch provided by Martin Strömberg 
 
 version 3.39
 date: 2011-09-22

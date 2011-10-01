@@ -7667,6 +7667,7 @@ BEGIN {
 
   my ($NSGMLS, $NICE, $INDENTED, $INDENTEDCT, $INDENTEDC, $WRAPPED, $RECORD1, $RECORD2, $INDENTEDA)= (1..9);
   my %KEEP_TEXT_TAG_ON_ONE_LINE= map { $_ => 1 } ( $INDENTED, $INDENTEDCT, $INDENTEDC, $INDENTEDA, $WRAPPED);
+  my %WRAPPED =  map { $_ => 1 } ( $WRAPPED, $INDENTEDA, $INDENTEDC);
 
   my %pretty_print_style=
     ( none       => 0,          # no added \n
@@ -7782,8 +7783,8 @@ BEGIN {
         { croak "invalid pretty print style '$style'" unless( exists $pretty_print_style{$style});
           $pretty= $pretty_print_style{$style};
         }
-      if( ($pretty == $WRAPPED) || ($pretty == $INDENTEDA) )
-        { XML::Twig::_use( 'Text::Wrap') or croak( "Text::Wrap not available, cannot use 'wrapped' style"); }
+      if( $WRAPPED{$pretty} )
+        { XML::Twig::_use( 'Text::Wrap') or croak( "Text::Wrap not available, cannot use style $style"); }
       return $old_pretty;
     }
  
