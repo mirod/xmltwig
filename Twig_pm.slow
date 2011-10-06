@@ -11901,6 +11901,12 @@ Return a data structure suspiciously similar to XML::Simple's. Options are
 identical to XMLin options, see XML::Simple doc for more details (or use
 DATA::dumper or YAML to dump the data structure)
 
+B<Note>: there is no magic here, if you write 
+C<< $twig->parsefile( $file )->simplify(); >> then it will load the entire 
+document in memory. I am afraid you will have to put some work into it to 
+get just the bits you want and discard the rest. Look at the synopsys or
+the XML::Twig 101 section at the top of the docs for more information.
+
 =over 4
 
 =item content_key
