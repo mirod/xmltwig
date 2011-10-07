@@ -12,7 +12,7 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=3;
+my $TMAX=5;
 print "1..$TMAX\n";
 
 { my $d="<d><title section='1'>title</title><para>p 1</para> <para>p 2</para></d>";
@@ -26,8 +26,25 @@ sub lf_in_t
     return scalar @lfs;
   }
 
-{ my $d='<d><t1/><t2/></d>';
-  my $nb=0;
-  XML::Twig->new( twig_handlers => { 't1|t2' => sub { $nb++; } })->parse( $d);
-  is( $nb, 2, 'alternative in handler triggers');
+
+
+{ my $d='<d id="d"><t1 id="t1"/><t2 id="t2"/><t3 att="a|b" id="t3-1" /><t3 att="a" id="t3-2"/><t3 id="t3-3"><t4 id="t4"/></t3></d>';
+  my @tests=
+    ( [ 't1|t2',                         2 ],
+      [ 't1|t2|t3[@att="a|b"]',          3, 't1t2t3-1' ],
+      [ 't1|t2|t3[@att!="a|b"]',         4, 't1t2t3-2t3-3' ],
+      [ 't1|level(1)',                   6 ],
+      [ 't1|level(2)',                   2 ],
+      [ 't1|_all_',                      8, 't1t1t2t3-1t3-2t4t3-3d'],
+      [ qr/t[12]/ . '|t3/t4',            3, 't1t2t4' ],
+   );
+  foreach my $test (@tests)
+    { my $nb=0;
+      my $ids='';
+      my( $trigger, $expected_nb, $expected_ids)= @$test;
+      XML::Twig->new( twig_handlers => { $trigger => sub { $nb++; $ids.=$_->id; } })->parse( $d);
+      is( $nb, $expected_nb, "trigger with alt (nb): '$trigger'");
+      if( $expected_ids) { is( $ids, $expected_ids, "trigger with alt (ids): '$trigger'"); }
+    }
+
 }
