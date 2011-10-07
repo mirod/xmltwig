@@ -733,8 +733,12 @@ sub parse
               . "not to include 'D'";                                                                     # > perl 5.5
       }                                                                                                   # > perl 5.5
     $t= eval { $t->SUPER::parse( @_); }; 
-    if( !$t && $@=~m{syntax error at line 1, column 0, byte 0} && $_[0]=~m{\.xml$})
-      { carp "you seem to have used the parse method on a filename, you probably want parsefile instead"; }
+    
+    if(    !$t 
+        && $@=~m{(syntax error at line 1, column 0, byte 0|not well-formed \(invalid token\) at line 1, column 1, byte 1)} 
+        && -f $_[0]
+      )
+      { croak "you seem to have used the parse method on a filename ($_[0]), you probably want parsefile instead"; }
     return _checked_parse_result( $t, $@);
   }
 
