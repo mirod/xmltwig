@@ -1346,21 +1346,37 @@ sub _normalize_args
 sub _is_fh { return unless $_[0]; return $_[0] if( isa( $_[0], 'GLOB') || isa( $_[0], 'IO::Scalar')); }
 
 sub _set_handler
-  { my( $handlers, $path, $handler)= @_;
+  { my( $handlers, $whole_path, $handler)= @_;
 
-    my $prev_handler= $handlers->{handlers}->{string}->{$path} || undef;
+    my $H_SPECIAL = qr{($ALL|$DEFAULT|$COMMENT)};
+    my $H_PI      = qr{(\?|$PI)\s*(([^\s]*)\s*)};
+    my $H_LEVEL   = qr{level \s* \( \s* ([0-9]+) \s* \)}x;
+    my $H_REGEXP  = qr{\(\?([\^xism]*)(-[\^xism]*)?:(.*)\)}x;
+    my $H_XPATH   = qr{(/?/?$REG_NAME_WC? \s* ($REG_PREDICATE\s*)?)+}x;
 
-       _set_special_handler         ( $handlers, $path, $handler, $prev_handler)
-    || _set_pi_handler              ( $handlers, $path, $handler, $prev_handler)
-    || _set_level_handler           ( $handlers, $path, $handler, $prev_handler)
-    || _set_regexp_handler          ( $handlers, $path, $handler, $prev_handler)
-    || _set_xpath_handler           ( $handlers, $path, $handler, $prev_handler)
-    || croak "unrecognized expression in handler: '$path'";
+    my $prev_handler;
 
+    my $cpath= $whole_path;
+    #warn "\$cpath: '$cpath\n";
+    while( $cpath && $cpath=~ s{^\s*($H_SPECIAL|$H_PI|$H_LEVEL|$H_REGEXP|$H_XPATH)\s*($|\|)}{})
+      { my $path= $1;
+        #warn "\$cpath: '$cpath' - $path: '$path'\n";
+        $prev_handler ||= $handlers->{handlers}->{string}->{$path} || undef; # $prev_handler gets the first found handler
+
+           _set_special_handler         ( $handlers, $path, $handler, $prev_handler)
+        || _set_pi_handler              ( $handlers, $path, $handler, $prev_handler)
+        || _set_level_handler           ( $handlers, $path, $handler, $prev_handler)
+        || _set_regexp_handler          ( $handlers, $path, $handler, $prev_handler)
+        || _set_xpath_handler           ( $handlers, $path, $handler, $prev_handler)
+        || croak "unrecognized expression in handler: '$whole_path'";
+    
+        $handlers->{handlers}->{string}->{$path}= $handler;
+      }
+
+    if( $cpath) { croak "unrecognized expression in handler: '$whole_path'"; }
 
     # this both takes care of the simple (gi) handlers and store
     # the handler code reference for other handlers
-    $handlers->{handlers}->{string}->{$path}= $handler;
 
     return $prev_handler;
   }

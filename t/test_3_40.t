@@ -12,7 +12,7 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=2;
+my $TMAX=3;
 print "1..$TMAX\n";
 
 { my $d="<d><title section='1'>title</title><para>p 1</para> <para>p 2</para></d>";
@@ -25,4 +25,9 @@ sub lf_in_t
     my @lfs= $t->sprint=~ m{\n}g;
     return scalar @lfs;
   }
-      
+
+{ my $d='<d><t1/><t2/></d>';
+  my $nb=0;
+  XML::Twig->new( twig_handlers => { 't1|t2' => sub { $nb++; } })->parse( $d);
+  is( $nb, 2, 'alternative in handler triggers');
+}
