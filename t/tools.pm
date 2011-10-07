@@ -354,10 +354,13 @@ sub string_ent_text
 sub _use
   { my( $module, $version)= @_;
     $version ||= 0;
+    $version=~ s{^\s*(\d+\.\d+).*}{$1}; # trim version numbers like 2.42_01 
     if( eval "require $module") { import $module; 
                                   no strict 'refs';
-                                  if( ${"${module}::VERSION"} >= $version ) { return 1; }
-                                  else                                      { return 0; }
+                                  my $mversion= ${"${module}::VERSION"};
+                                  $mversion=~ s{^\s*(\d+\.\d+).*}{$1}; # trim version numbers like 2.42_01 
+                                  if( $mversion >= $version ) { return 1; }
+                                  else                        { return 0; }
                                 }
   }
 
