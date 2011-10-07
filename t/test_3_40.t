@@ -12,7 +12,7 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=19;
+my $TMAX=15;
 print "1..$TMAX\n";
 
 { my $d="<d><title section='1'>title</title><para>p 1</para> <para>p 2</para></d>";
@@ -47,7 +47,7 @@ sub lf_in_t
 
       if( $test_nav)
         { my $uniq_ids= join '', sort $expected_ids=~m{(t\d(?:-\d)?)}g;
-          is( join '', map { $_->id } $t->root->children( $trigger), $uniq_ids, "navigation with |: '$trigger'");
+          is( join( '', map { $_->id } $t->root->children( $trigger)), $uniq_ids, "navigation with |: '$trigger'");
         }
     }
 

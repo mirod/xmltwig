@@ -116,6 +116,8 @@ my %HTML_DECL= ( "-//W3C//DTD HTML 4.0 Transitional//EN"  => "http://www.w3.org/
 
 my $DEFAULT_HTML_TYPE= "-//W3C//DTD HTML 4.0 Transitional//EN";
 
+my $SEP= qr/\s*(?:$|\|)/;
+
 BEGIN
 { 
 $VERSION = '3.40';
@@ -5404,42 +5406,47 @@ sub reset_cond_cache { %cond_cache=(); }
       if( ref $cond eq 'Regexp')
         { $test = qq{(\$_[0]->gi=~ /$cond/)}; }
       else
-        { # the condition is a string
-          if( $cond eq $ELT)     
-            { $test = qq{\$_[0]->is_elt}; }
-          elsif( $cond eq $TEXT) 
-            { $test = qq{\$_[0]->is_text}; }
-          elsif( $cond=~ m{^\s*($REG_NAME_WC)\s*$}o)                  
-            { $test= _gi_test( $1); } 
-          elsif( $cond=~ m{^\s*($REG_REGEXP)\s*$}o)
-            { # /regexp/
-              $test = qq{ \$_[0]->gi=~ $1 }; 
-            }
-          elsif( $cond=~ m{^\s*($REG_NAME_WC)?\s*  # $1
-                           \[\s*(-?)\s*(\d+)\s*\]  #   [$2]
-                           \s*$}xo
-               )
-            { my( $gi, $neg, $index)= ($1, $2, $3);
-              my $siblings= $neg ? q{$_[0]->_next_siblings} : q{$_[0]->_prev_siblings};
-              if( $gi && ($gi ne '*')) 
-                #{ $test= qq{((\$_[0]->gi eq "$gi") && (scalar( grep { \$_->gi eq "$gi" } $siblings) + 1 == $index))}; }
-                { $test= _and( _gi_test( $gi), qq{ (scalar( grep { \$_->gi eq "$gi" } $siblings) + 1 == $index)}); }
+        { my @tests;
+          while( $cond)
+            { 
+              # the condition is a string
+              if( $cond=~ s{$ELT$SEP}{})     
+                { push @tests, qq{\$_[0]->is_elt}; }
+              elsif( $cond=~ s{$TEXT$SEP}{}) 
+                { push @tests, qq{\$_[0]->is_text}; }
+              elsif( $cond=~ s{^\s*($REG_NAME_WC)$SEP}{})                  
+                { push @tests, _gi_test( $1); } 
+              elsif( $cond=~ s{^\s*($REG_REGEXP)$SEP}{})
+                { # /regexp/
+                  push @tests, qq{ \$_[0]->gi=~ $1 }; 
+                }
+              elsif( $cond=~ s{^\s*($REG_NAME_WC)?\s*  # $1
+                               \[\s*(-?)\s*(\d+)\s*\]  #   [$2]
+                               $SEP}{}xo
+                   )
+                { my( $gi, $neg, $index)= ($1, $2, $3);
+                  my $siblings= $neg ? q{$_[0]->_next_siblings} : q{$_[0]->_prev_siblings};
+                  if( $gi && ($gi ne '*')) 
+                    #{ $test= qq{((\$_[0]->gi eq "$gi") && (scalar( grep { \$_->gi eq "$gi" } $siblings) + 1 == $index))}; }
+                    { push @tests, _and( _gi_test( $gi), qq{ (scalar( grep { \$_->gi eq "$gi" } $siblings) + 1 == $index)}); }
+                  else
+                    { push @tests, qq{(scalar( $siblings) + 1 == $index)}; }
+                }
+              elsif( $cond=~ s{^\s*\.([\w-]+)$SEP}{})
+                { # .class
+                  my $class= $1;
+                  push @tests, qq{(\$_[0]->in_class( "$class")) }; 
+                }
+              elsif( $cond=~ s{^\s*($REG_NAME_WC?)\s*($REG_PREDICATE)$SEP}{})
+                { my( $gi, $predicate)= ( $1, $2);
+                  push @tests, _and( _gi_test( $gi), _parse_predicate_in_step( $predicate));
+                }
+              elsif( $cond=~ s{^\s*($REG_NAKED_PREDICATE)$SEP}{})
+                { push @tests,   _parse_predicate_in_step( $1); }
               else
-                { $test= qq{(scalar( $siblings) + 1 == $index)}; }
+                { croak "wrong navigation condition '$original_cond' ($@)"; }
             }
-          elsif( $cond=~ m{^\s*\.([\w-]+)\s*$}o)
-            { # .class
-              my $class= $1;
-              $test = qq{(\$_[0]->in_class( "$class")) }; 
-            }
-          elsif( $cond=~ m{^\s*($REG_NAME_WC?)\s*($REG_PREDICATE)\s*$})
-            { my( $gi, $predicate)= ( $1, $2);
-              $test = _and( _gi_test( $gi), _parse_predicate_in_step( $predicate));
-            }
-          elsif( $cond=~ m{^\s*($REG_NAKED_PREDICATE)\s*$})
-            { $test .=   _parse_predicate_in_step( $1); }
-          else
-            { croak "wrong navigation condition '$original_cond' ($@)"; }
+           $test= @tests > 1 ? '(' . join( '||', map { "($_)" } @tests) . ')' : $tests[0];
         }
 
       #warn "init: '$init' - test: '$test'\n";
