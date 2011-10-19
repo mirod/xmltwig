@@ -18,7 +18,7 @@ if( !$os_ok{$^O}) { print "1..1\nok 1\n"; warn "skipping, test runs only on some
 
 if( $] < 5.006) { print "1..1\nok 1\n"; warn "skipping, xml_merge runs only on perl 5.6 and later\n"; exit; }
 
-print "1..50\n";
+print "1..54\n";
 
 my $perl= $Config{perlpath};
 if ($^O ne 'VMS') { $perl .= $Config{_exe} unless $perl =~ m/$Config{_exe}$/i; }
@@ -57,6 +57,8 @@ test_split_merge( $test_file, "",   "" );
 test_split_merge( $test_file, "-c elt1",   "" );
 test_split_merge( $test_file, "-g 2",   "" );
 test_split_merge( $test_file, "-l 1",   "" );
+test_split_merge( $test_file, "-s 1K",   "" );
+test_split_merge( $test_file, "-g 2 -l 2",   "" );
 
 if( _use( 'IO::CaptureOutput'))
   { test_error( $xml_split => "-h", 'xml_split ');

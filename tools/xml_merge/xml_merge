@@ -67,7 +67,7 @@ sub spit
     if( $opt->{v} && $opt->{file}) { warn "merging $opt->{file} (no parsing)\n"; }
     open( my $in, '<', $opt->{file}) or die "cannot open sub document '$opt->{file}': $!";
     while( <$in>)
-      { next if( m{^\Q<?xml version} || m{^</?xml_split:root\b});
+      { next if( m{^\Q<?xml version} || m{^\s*</?xml_split:root});
         if( $opt->{o}) { print {$opt->{fh}} $_; } else { print $_; } 
       }
     close $in;

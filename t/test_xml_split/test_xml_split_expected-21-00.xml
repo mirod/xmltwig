@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<doc>
+  <elt1>elt1 content 1</elt1>
+  <elt1>elt1 content 2</elt1>
+  <elt1>elt1 content 3</elt1>
+  <elt2>
+    <?merge subdocs = 0 :t/test_xml_split/test_xml_split-21-01.xml?>
+  </elt2>
+  <elt2>
+    <?merge subdocs = 0 :t/test_xml_split/test_xml_split-21-02.xml?>
+    <?merge subdocs = 0 :t/test_xml_split/test_xml_split-21-03.xml?></elt2>
+</doc>
