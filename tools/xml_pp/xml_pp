@@ -36,8 +36,6 @@ else
 push @twig_options, twig_handlers => { _all_ => sub { $_[0]->flush } }
   unless( $opt{load});
 
-warn "new version";
-  
 if( @ARGV)
   { foreach my $file (@ARGV)
       { print STDERR "$file\n" if( $opt{verbose});

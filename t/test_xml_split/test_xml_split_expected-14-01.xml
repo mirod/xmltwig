@@ -1,0 +1,4 @@
+<xml_split:root xmlns:xml_split="http://xmltwig.com/xml_split">
+  <elt>text with &lt; &gt; &amp; and &apos;</elt>
+    <elt><![CDATA[[text with < > & and ']]></elt>
+</xml_split:root>

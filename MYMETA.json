@@ -1,10 +1,10 @@
 {
    "abstract" : "XML, The Perl Way",
    "author" : [
-      "Michel Rodriguez <mirod@xmltwig.com>"
+      "Michel Rodriguez <mirod@cpan.org>"
    ],
    "dynamic_config" : 0,
-   "generated_by" : "ExtUtils::MakeMaker version 6.50, CPAN::Meta::Converter version 2.110930001",
+   "generated_by" : "ExtUtils::MakeMaker version 6.50, CPAN::Meta::Converter version 2.112150",
    "license" : [
       "perl_5"
    ],

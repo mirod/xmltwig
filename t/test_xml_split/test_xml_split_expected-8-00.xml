@@ -1,4 +1,2 @@
 <doc>
-    <?merge subdocs = 0 :t/test_xml_split/test_xml_split-8-01.xml?>
-    <?merge subdocs = 0 :t/test_xml_split/test_xml_split-8-02.xml?>
-</doc>
+  <xi:include href="t/test_xml_split/test_xml_split-8-01.xml" /></doc>

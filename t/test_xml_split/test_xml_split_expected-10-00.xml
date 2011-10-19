@@ -1,0 +1,7 @@
+<doc>
+  <xi:include href="t/test_xml_split/test_xml_split-10-01.xml" />
+  <xi:include href="t/test_xml_split/test_xml_split-10-02.xml" />
+  <xi:include href="t/test_xml_split/test_xml_split-10-03.xml" />
+  <xi:include href="t/test_xml_split/test_xml_split-10-04.xml" />
+  <xi:include href="t/test_xml_split/test_xml_split-10-05.xml" />
+</doc>

@@ -116,9 +116,11 @@ my %HTML_DECL= ( "-//W3C//DTD HTML 4.0 Transitional//EN"  => "http://www.w3.org/
 
 my $DEFAULT_HTML_TYPE= "-//W3C//DTD HTML 4.0 Transitional//EN";
 
+my $SEP= qr/\s*(?:$|\|)/;
+
 BEGIN
 { 
-$VERSION = '3.39';
+$VERSION = '3.40';
 
 use XML::Parser;
 my $needVersion = '2.23';
@@ -379,7 +381,7 @@ my $css_sel=0; # set through the css_sel option to allow .class selectors in tri
       LoadDTD               => 1, DTDHandler            => 1,
       DoNotOutputDTD        => 1, NoProlog              => 1,
       ExpandExternalEnts    => 1,
-      DiscardSpaces         => 1, KeepSpaces            => 1, 
+      DiscardSpaces         => 1, KeepSpaces            => 1, DiscardAllSpaces => 1,
       DiscardSpacesIn       => 1, KeepSpacesIn          => 1, 
       PrettyPrint           => 1, EmptyTags             => 1, 
       EscapeGt              => 1,
@@ -553,24 +555,38 @@ sub new
 
     # space policy
     if( $args{KeepSpaces})
-      { croak "cannot use both keep_spaces and discard_spaces" if( $args{DiscardSpaces});
-        croak "cannot use both keep_spaces and keep_spaces_in" if( $args{KeepSpacesIn});
+      { croak "cannot use both keep_spaces and discard_spaces"        if( $args{DiscardSpaces});
+        croak "cannot use both keep_spaces and discard_all_spaces"    if( $args{DiscardAllSpaces});
+        croak "cannot use both keep_spaces and keep_spaces_in"        if( $args{KeepSpacesIn});
         $self->{twig_keep_spaces}=1;
         delete $args{KeepSpaces}; 
       }
     if( $args{DiscardSpaces})
-      { croak "cannot use both discard_spaces and keep_spaces_in" if( $args{KeepSpacesIn});
+      { croak "cannot use both discard_spaces and keep_spaces"        if( $args{KeepSpaces});
+        croak "cannot use both discard_spaces and keep_spaces_in"     if( $args{KeepSpacesIn});
+        croak "cannot use both discard_spaces and discard_all_spaces" if( $args{DiscardAllSpaces});
+        croak "cannot use both discard_spaces and discard_spaces_in"  if( $args{DiscardSpacesIn});
         $self->{twig_discard_spaces}=1; 
         delete $args{DiscardSpaces}; 
       }
     if( $args{KeepSpacesIn})
-      { croak "cannot use both keep_spaces_in and discard_spaces_in" if( $args{DiscardSpacesIn});
+      { croak "cannot use both keep_spaces_in and discard_spaces_in"  if( $args{DiscardSpacesIn});
+        croak "cannot use both keep_spaces_in and discard_all_spaces" if( $args{DiscardAllSpaces});
         $self->{twig_discard_spaces}=1; 
         $self->{twig_keep_spaces_in}={}; 
         my @tags= @{$args{KeepSpacesIn}}; 
         foreach my $tag (@tags) { $self->{twig_keep_spaces_in}->{$tag}=1; } 
         delete $args{KeepSpacesIn}; 
       }
+
+    if( $args{DiscardAllSpaces})
+      { croak "cannot use both discard_all_spaces and keep_spaces"       if( $args{KeepSpaces});
+        croak "cannot use both discard_all_spaces and discard_spaces"    if( $args{DiscardSpaces});
+        croak "cannot use both discard_all_spaces and discard_spaces_in" if( $args{DiscardSpacesIn});
+        $self->{twig_discard_all_spaces}=1; 
+        delete $args{DiscardAllSpaces}; 
+      }
+
     if( $args{DiscardSpacesIn})
       { $self->{twig_keep_spaces}=1; 
         $self->{twig_discard_spaces_in}={}; 
@@ -719,8 +735,12 @@ sub parse
               . "not to include 'D'";                                                                     # > perl 5.5
       }                                                                                                   # > perl 5.5
     $t= eval { $t->SUPER::parse( @_); }; 
-    if( !$t && $@=~m{syntax error at line 1, column 0, byte 0} && $_[0]=~m{\.xml$})
-      { carp "you seem to have used the parse method on a filename, you probably want parsefile instead"; }
+    
+    if(    !$t 
+        && $@=~m{(syntax error at line 1, column 0, byte 0|not well-formed \(invalid token\) at line 1, column 1, byte 1)} 
+        && -f $_[0]
+      )
+      { croak "you seem to have used the parse method on a filename ($_[0]), you probably want parsefile instead"; }
     return _checked_parse_result( $t, $@);
   }
 
@@ -1212,11 +1232,11 @@ sub _based_filename
 
 sub _slurp
   { my( $filename)= @_;
-    # use bareword filehandle to stay compatible with real old perl
-    open( TWIG_TO_SLURP, "<$filename") or croak "cannot open '$filename': $!"; 
+    my $to_slurp;
+    open( $to_slurp, "<$filename") or croak "cannot open '$filename': $!"; 
     local $/= undef;
-    my $content= <TWIG_TO_SLURP>;
-    close TWIG_TO_SLURP;
+    my $content= <$to_slurp>;
+    close $to_slurp;
     return $content;
   }
   
@@ -1332,21 +1352,37 @@ sub _normalize_args
 sub _is_fh { return unless $_[0]; return $_[0] if( isa( $_[0], 'GLOB') || isa( $_[0], 'IO::Scalar')); }
 
 sub _set_handler
-  { my( $handlers, $path, $handler)= @_;
+  { my( $handlers, $whole_path, $handler)= @_;
 
-    my $prev_handler= $handlers->{handlers}->{string}->{$path} || undef;
+    my $H_SPECIAL = qr{($ALL|$DEFAULT|$COMMENT)};
+    my $H_PI      = qr{(\?|$PI)\s*(([^\s]*)\s*)};
+    my $H_LEVEL   = qr{level \s* \( \s* ([0-9]+) \s* \)}x;
+    my $H_REGEXP  = qr{\(\?([\^xism]*)(-[\^xism]*)?:(.*)\)}x;
+    my $H_XPATH   = qr{(/?/?$REG_NAME_WC? \s* ($REG_PREDICATE\s*)?)+}x;
 
-       _set_special_handler         ( $handlers, $path, $handler, $prev_handler)
-    || _set_pi_handler              ( $handlers, $path, $handler, $prev_handler)
-    || _set_level_handler           ( $handlers, $path, $handler, $prev_handler)
-    || _set_regexp_handler          ( $handlers, $path, $handler, $prev_handler)
-    || _set_xpath_handler           ( $handlers, $path, $handler, $prev_handler)
-    || croak "unrecognized expression in handler: '$path'";
+    my $prev_handler;
 
+    my $cpath= $whole_path;
+    #warn "\$cpath: '$cpath\n";
+    while( $cpath && $cpath=~ s{^\s*($H_SPECIAL|$H_PI|$H_LEVEL|$H_REGEXP|$H_XPATH)\s*($|\|)}{})
+      { my $path= $1;
+        #warn "\$cpath: '$cpath' - $path: '$path'\n";
+        $prev_handler ||= $handlers->{handlers}->{string}->{$path} || undef; # $prev_handler gets the first found handler
+
+           _set_special_handler         ( $handlers, $path, $handler, $prev_handler)
+        || _set_pi_handler              ( $handlers, $path, $handler, $prev_handler)
+        || _set_level_handler           ( $handlers, $path, $handler, $prev_handler)
+        || _set_regexp_handler          ( $handlers, $path, $handler, $prev_handler)
+        || _set_xpath_handler           ( $handlers, $path, $handler, $prev_handler)
+        || croak "unrecognized expression in handler: '$whole_path'";
+    
+        $handlers->{handlers}->{string}->{$path}= $handler;
+      }
+
+    if( $cpath) { croak "unrecognized expression in handler: '$whole_path'"; }
 
     # this both takes care of the simple (gi) handlers and store
     # the handler code reference for other handlers
-    $handlers->{handlers}->{string}->{$path}= $handler;
 
     return $prev_handler;
   }
@@ -1834,6 +1870,9 @@ sub _add_or_discard_stored_spaces
           { $current->{pcdata}.= $t->{twig_stored_spaces}; }
         else
           { my $current_gi= $XML::Twig::index2gi[$current->{'gi'}];
+
+            if( $t->{twig_discard_all_spaces}) { $t->{twig_stored_spaces}=''; return; }
+
             if( ! defined( $t->{twig_space_policy}->{$current_gi}))
               { $t->{twig_space_policy}->{$current_gi}= _space_policy( $t, $current_gi); }
 
@@ -5366,42 +5405,47 @@ sub reset_cond_cache { %cond_cache=(); }
       if( ref $cond eq 'Regexp')
         { $test = qq{(\$_[0]->gi=~ /$cond/)}; }
       else
-        { # the condition is a string
-          if( $cond eq $ELT)     
-            { $test = qq{\$_[0]->is_elt}; }
-          elsif( $cond eq $TEXT) 
-            { $test = qq{\$_[0]->is_text}; }
-          elsif( $cond=~ m{^\s*($REG_NAME_WC)\s*$}o)                  
-            { $test= _gi_test( $1); } 
-          elsif( $cond=~ m{^\s*($REG_REGEXP)\s*$}o)
-            { # /regexp/
-              $test = qq{ \$_[0]->gi=~ $1 }; 
-            }
-          elsif( $cond=~ m{^\s*($REG_NAME_WC)?\s*  # $1
-                           \[\s*(-?)\s*(\d+)\s*\]  #   [$2]
-                           \s*$}xo
-               )
-            { my( $gi, $neg, $index)= ($1, $2, $3);
-              my $siblings= $neg ? q{$_[0]->_next_siblings} : q{$_[0]->_prev_siblings};
-              if( $gi && ($gi ne '*')) 
-                #{ $test= qq{((\$_[0]->gi eq "$gi") && (scalar( grep { \$_->gi eq "$gi" } $siblings) + 1 == $index))}; }
-                { $test= _and( _gi_test( $gi), qq{ (scalar( grep { \$_->gi eq "$gi" } $siblings) + 1 == $index)}); }
+        { my @tests;
+          while( $cond)
+            { 
+              # the condition is a string
+              if( $cond=~ s{$ELT$SEP}{})     
+                { push @tests, qq{\$_[0]->is_elt}; }
+              elsif( $cond=~ s{$TEXT$SEP}{}) 
+                { push @tests, qq{\$_[0]->is_text}; }
+              elsif( $cond=~ s{^\s*($REG_NAME_WC)$SEP}{})                  
+                { push @tests, _gi_test( $1); } 
+              elsif( $cond=~ s{^\s*($REG_REGEXP)$SEP}{})
+                { # /regexp/
+                  push @tests, qq{ \$_[0]->gi=~ $1 }; 
+                }
+              elsif( $cond=~ s{^\s*($REG_NAME_WC)?\s*  # $1
+                               \[\s*(-?)\s*(\d+)\s*\]  #   [$2]
+                               $SEP}{}xo
+                   )
+                { my( $gi, $neg, $index)= ($1, $2, $3);
+                  my $siblings= $neg ? q{$_[0]->_next_siblings} : q{$_[0]->_prev_siblings};
+                  if( $gi && ($gi ne '*')) 
+                    #{ $test= qq{((\$_[0]->gi eq "$gi") && (scalar( grep { \$_->gi eq "$gi" } $siblings) + 1 == $index))}; }
+                    { push @tests, _and( _gi_test( $gi), qq{ (scalar( grep { \$_->gi eq "$gi" } $siblings) + 1 == $index)}); }
+                  else
+                    { push @tests, qq{(scalar( $siblings) + 1 == $index)}; }
+                }
+              elsif( $cond=~ s{^\s*\.([\w-]+)$SEP}{})
+                { # .class
+                  my $class= $1;
+                  push @tests, qq{(\$_[0]->in_class( "$class")) }; 
+                }
+              elsif( $cond=~ s{^\s*($REG_NAME_WC?)\s*($REG_PREDICATE)$SEP}{})
+                { my( $gi, $predicate)= ( $1, $2);
+                  push @tests, _and( _gi_test( $gi), _parse_predicate_in_step( $predicate));
+                }
+              elsif( $cond=~ s{^\s*($REG_NAKED_PREDICATE)$SEP}{})
+                { push @tests,   _parse_predicate_in_step( $1); }
               else
-                { $test= qq{(scalar( $siblings) + 1 == $index)}; }
+                { croak "wrong navigation condition '$original_cond' ($@)"; }
             }
-          elsif( $cond=~ m{^\s*\.([\w-]+)\s*$}o)
-            { # .class
-              my $class= $1;
-              $test = qq{(\$_[0]->in_class( "$class")) }; 
-            }
-          elsif( $cond=~ m{^\s*($REG_NAME_WC?)\s*($REG_PREDICATE)\s*$})
-            { my( $gi, $predicate)= ( $1, $2);
-              $test = _and( _gi_test( $gi), _parse_predicate_in_step( $predicate));
-            }
-          elsif( $cond=~ m{^\s*($REG_NAKED_PREDICATE)\s*$})
-            { $test .=   _parse_predicate_in_step( $1); }
-          else
-            { croak "wrong navigation condition '$original_cond' ($@)"; }
+           $test= @tests > 1 ? '(' . join( '||', map { "($_)" } @tests) . ')' : $tests[0];
         }
 
       #warn "init: '$init' - test: '$test'\n";
@@ -6518,6 +6562,7 @@ sub next_siblings
   
  
      #warn "xpath_exp= '$xpath_exp'\n";
+
       while( $xpath_exp &&
              $xpath_exp=~s{^\s*(/?)                            
                             # the xxx=~/regexp/ is a pain as it includes /  
@@ -7326,6 +7371,7 @@ sub mark
 # only returns the elements created by matches in the split regexp
 # otherwise all elements (new and untouched) are returned
 
+
 { 
  
   sub _split
@@ -7334,8 +7380,9 @@ sub mark
       my $regexp= shift;
       my @tags;
 
-      while( my $tag= shift())
-        { if( ref $_[0]) 
+      while( @_)
+        { my $tag= shift();
+          if( ref $_[0]) 
             { push @tags, { tag => $tag, atts => shift }; }
           else
             { push @tags, { tag => $tag }; }
@@ -7375,9 +7422,10 @@ sub mark
               foreach my $match (@matches)
                 { # create new element, text is the match
                   _utf8_ify( $match) if( $[ < 5.010);
-                  my $tag  = $tags[$i]->{tag};
+                  my $tag  = _repl_match( $tags[$i]->{tag}, @matches) || '#PCDATA';
                   my $atts = \%{$tags[$i]->{atts}} || {};
-                  $elt= $elt->insert_new_elt( after => $tag, $atts, $match);
+                  my %atts= map { _repl_match( $_, @matches) => _repl_match( $atts->{$_}, @matches) } keys %$atts;
+                  $elt= $elt->insert_new_elt( after => $tag, \%atts, $match);
                   push @result, $elt;
                   $i= ($i + 1) % @tags;
                 }
@@ -7399,6 +7447,12 @@ sub mark
 
       return @result; # return all elements
    }
+
+sub _repl_match
+  { my( $val, @matches)= @_;
+    $val=~ s{\$(\d+)}{$matches[$1-1]}g;
+    return $val;
+  }
 
   # evil hack needed as sometimes 
   my $encode_is_loaded=0;   # so we only load Encode once
@@ -7640,6 +7694,7 @@ BEGIN {
 
   my ($NSGMLS, $NICE, $INDENTED, $INDENTEDCT, $INDENTEDC, $WRAPPED, $RECORD1, $RECORD2, $INDENTEDA)= (1..9);
   my %KEEP_TEXT_TAG_ON_ONE_LINE= map { $_ => 1 } ( $INDENTED, $INDENTEDCT, $INDENTEDC, $INDENTEDA, $WRAPPED);
+  my %WRAPPED =  map { $_ => 1 } ( $WRAPPED, $INDENTEDA, $INDENTEDC);
 
   my %pretty_print_style=
     ( none       => 0,          # no added \n
@@ -7755,8 +7810,8 @@ BEGIN {
         { croak "invalid pretty print style '$style'" unless( exists $pretty_print_style{$style});
           $pretty= $pretty_print_style{$style};
         }
-      if( ($pretty == $WRAPPED) || ($pretty == $INDENTEDA) )
-        { XML::Twig::_use( 'Text::Wrap') or croak( "Text::Wrap not available, cannot use 'wrapped' style"); }
+      if( $WRAPPED{$pretty} )
+        { XML::Twig::_use( 'Text::Wrap') or croak( "Text::Wrap not available, cannot use style $style"); }
       return $old_pretty;
     }
  
@@ -9497,23 +9552,6 @@ This would convert prices in $ to prices in Euro in a document:
 
 =head2 XML::Twig and various versions of Perl, XML::Parser and expat:
 
-Before being uploaded to CPAN, XML::Twig 3.22 has been tested under the 
-following environments:
-
-=over 4
-
-=item linux-x86
-
-perl 5.6.2, expat 1.95.8, XML::Parser 2.34
-perl 5.8.0, expat 1.95.8, XML::Parser 2.34
-perl 5.8.7, expat 1.95.8, XML::Parser2.34
-
-=item Solaris
-
-perl 5.6.1, expat 1.95.2, XML::Parser 2.31
-
-=back
-
 XML::Twig is a lot more sensitive to variations in versions of perl, 
 XML::Parser and expat than to the OS, so this should cover some
 reasonable configurations.
@@ -9809,10 +9847,10 @@ the document. The twig is built only for the C<title> elements.
 If the value is a reference to a file handle then the document outside the
 C<twig_roots> elements will be output to this file handle:
 
-  open( OUT, ">out_file") or die "cannot open out file out_file:$!";
+  open( my $out, '>', 'out_file.xml') or die "cannot open out file.xml out_file:$!";
   my $t= XML::Twig->new( twig_roots => { title => \&number_title },
-                         # default output to OUT
-                         twig_print_outside_roots => \*OUT, 
+                         # default output to $out
+                         twig_print_outside_roots => $out, 
                        );
 
          { my $nb;
@@ -9820,7 +9858,7 @@ C<twig_roots> elements will be output to this file handle:
              { my( $twig, $title);
                $nb++;
                $title->prefix( "$nb "; }
-               $title->print( \*OUT);    # you have to print to \*OUT here
+               $title->print( $out);    # you have to print to \*OUT here
              }
            }
 
@@ -10151,8 +10189,18 @@ See C<L<BUGS> >
 =item discard_spaces
 
 If this optional argument is set to a true value then spaces are discarded
-when they look non-significant: strings containing only spaces are discarded.
-This argument is set to true by default.
+when they look non-significant: strings containing only spaces and at least
+one line feed are discarded. This argument is set to true by default.
+
+The exact algorithm to drop spaces is: strings including only spaces (perl \s)
+and at least one \n right before an open or close tag are dropped.
+
+=item discard_all_spaces
+
+If this argument is set to a true value, spaces are discarded more 
+aggressively than with C<discard_spaces>: strings not including a \n are also
+dropped. This option is appropriate for data-oriented XML. 
+
 
 =item keep_spaces
 
@@ -10595,6 +10643,10 @@ get get an extra CDATA section inside ( <!-- foo --> becomes
 parse an HTML file (by converting it to XML using HTML::TreeBuilder, which 
 needs to be available, or HTML::Tidy if the C<use_tidy> option was used).
 The file is loaded completely in memory and converted to XML before being parsed.
+
+this method is to be used with caution though, as it doesn't know about the
+file encoding, it is usually better to use C<L<parse_html>>, which gives you
+a chance to open the file with the proper encoding layer.
 
 =item parseurl_html ($url $optional_user_agent)
 
@@ -11878,6 +11930,12 @@ a "clean" element in which there all text fragments are as long as possible).
 Return a data structure suspiciously similar to XML::Simple's. Options are
 identical to XMLin options, see XML::Simple doc for more details (or use
 DATA::dumper or YAML to dump the data structure)
+
+B<Note>: there is no magic here, if you write 
+C<< $twig->parsefile( $file )->simplify(); >> then it will load the entire 
+document in memory. I am afraid you will have to put some work into it to 
+get just the bits you want and discard the rest. Look at the synopsys or
+the XML::Twig 101 section at the top of the docs for more information.
 
 =over 4
 

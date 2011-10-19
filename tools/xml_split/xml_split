@@ -14,7 +14,7 @@ $Getopt::Std::STANDARD_HELP_VERSION=1; # to stop processing after --help or --ve
 
 use vars qw( $VERSION $USAGE);
 
-$VERSION= "0.05";
+$VERSION= "0.06";
 $USAGE= "xml_split [-l <level> [-s <size> | -g <nb_grouped>] | -c <cond>] [-b <base>] [-n <nb>] [-e <ext>] [-p <plugin>] [-I <plugin_dir>] [-i] [-d] [-v] [-h] [-m] [-V] <files>\n";
 
 { # main block
@@ -163,11 +163,10 @@ sub parser_options
         $state->{main_fh}= $out;
         $state->{current_fh}= $out;
       }
-
    my $handlers= { Start   => sub { $state->{handlers}->{Start}->(   $state, shift( @_)); },
                    End     => sub { $state->{handlers}->{End}->(     $state, shift( @_)); },
                    Default => sub { $state->{handlers}->{Default}->( $state, shift( @_)); },
-                   XMLDecl => sub { parser_declaration->( $state, shift( @_));            },
+                   XMLDecl => sub { parser_declaration( $state, @_);                      },
                  };
     
     return { Handlers => $handlers };
@@ -181,6 +180,7 @@ sub parser_options
 
 sub parser_start_tag_level
   { my( $state, $p)= @_;
+
     if( $p->depth == $state->{level})
       { $state->{seq_nb}++;
         my $file_name= $state->file_name;
@@ -229,7 +229,6 @@ sub parser_start_tag_size
         warn "generating $file_name\n" if( $state->{verbose});
         open( my $out, '>', $file_name) or die "cannot create output file '$file_name': $!";
         $state->{current_fh}= $out;
-        $state->{xml_declaration} ||= '';
         print {$state->{current_fh}} qq{$state->{xml_declaration}\n<xml_split:root xmlns:xml_split="http://xmltwig.com/xml_split">\n};
         # output pi
         unless( $state->{no_pi})
@@ -339,9 +338,9 @@ sub char_parser
   }
 
 sub parser_declaration
-  { my( $state, $p)= @_;
-    my $decl= $p->original_string || $p->recognized_string;
-    $state->{xml_declaration}= $decl || '';
+  { my( $state, $p, $version, $encoding, $standalone)= @_;
+    $state->{xml_declaration}=  $p->recognized_string || ''; 
+    print {$state->{main_fh}} $state->{xml_declaration}; 
     # avoid calling original_string if not needed
     #if( !$state->{xml_declaration} || $state->{xml_declaration}=~ m{encoding\s*=\s*["']utf-?8["']}i)
     #  { $state->{utf8_encoded}=1;

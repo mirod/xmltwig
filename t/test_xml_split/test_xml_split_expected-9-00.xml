@@ -1,0 +1,7 @@
+<doc>
+  <?merge subdocs = 0 :t/test_xml_split/test_xml_split-9-01.xml?>
+  <?merge subdocs = 0 :t/test_xml_split/test_xml_split-9-02.xml?>
+  <?merge subdocs = 0 :t/test_xml_split/test_xml_split-9-03.xml?>
+  <?merge subdocs = 0 :t/test_xml_split/test_xml_split-9-04.xml?>
+  <?merge subdocs = 0 :t/test_xml_split/test_xml_split-9-05.xml?>
+</doc>

@@ -1,7 +1,6 @@
 #!/usr/bin/perl -w
 use strict;
 
-
 use Carp;
 use File::Spec;
 use lib File::Spec->catdir(File::Spec->curdir,"t");
@@ -30,9 +29,9 @@ sub lf_in_t
 
 { my $d='<d id="d"><t1 id="t1"/><t2 id="t2"/><t3 att="a|b" id="t3-1" /><t3 att="a" id="t3-2"/><t3 id="t3-3"><t4 id="t4"/></t3></d>';
   my @tests=
-    ( [ 't1|t2',                 x => 't1t2' ],
-      [ 't1|t2|t3[@att="a|b"]',  x => 't1t2t3-1' ],
-      [ 't1|t2|t3[@att!="a|b"]', x => 't1t2t3-2t3-3' ],
+    ( [ 't1|t2',                 N => 't1t2' ],
+      [ 't1|t2|t3[@att="a|b"]',  N => 't1t2t3-1' ],
+      [ 't1|t2|t3[@att!="a|b"]', N => 't1t2t3-2t3-3' ],
       [ 't1|level(1)',           0 => 't1t1t2t3-1t3-2t3-3' ],
       [ 't1|level(2)',           0 => 't1t4' ],
       [ 't1|_all_',              0 => 't1t1t2t3-1t3-2t4t3-3d'],
@@ -41,14 +40,19 @@ sub lf_in_t
   foreach my $test (@tests)
     { my $nb=0;
       my $ids='';
-      my( $trigger, $test_nav, $expected_ids)= @$test;
+      my( $trigger, $test_cat, $expected_ids)= @$test;
       my $t= XML::Twig->new( twig_handlers => { $trigger => sub { $ids.=$_->id; 1; } })->parse( $d);
       is( $ids, $expected_ids, "trigger with alt: '$trigger'"); 
 
-      if( $test_nav)
-        { my $uniq_ids= join '', sort $expected_ids=~m{(t\d(?:-\d)?)}g;
-          is( join( '', map { $_->id } $t->root->children( $trigger)), $uniq_ids, "navigation with |: '$trigger'");
+      my $uniq_ids= join '', sort $expected_ids=~m{(t\d(?:-\d)?)}g;
+
+      if( $test_cat =~ m{X})
+        { (my $xpath= "//$trigger")=~ s{\|t}{|//t}g;
+          is( join( '', map { $_->id } $t->findnodes( $xpath)), $uniq_ids, "path with |: '$trigger'"); 
         }
+
+      if( $test_cat =~ m{N})
+        { is( join( '', map { $_->id } $t->root->children( $trigger)), $uniq_ids, "navigation with |: '$trigger'"); }
     }
 
 }

@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<doc>
+  <?merge subdocs = 0 :t/test_xml_split/test_xml_split-18-01.xml?>
+  <?merge subdocs = 0 :t/test_xml_split/test_xml_split-18-02.xml?>
+  <?merge subdocs = 0 :t/test_xml_split/test_xml_split-18-03.xml?></doc>

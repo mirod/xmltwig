@@ -44,3 +44,55 @@ x $tree->{_decl}
 x $decl
 x $decl =~ m{<!DOCTYPE \s+ (?i:HTML) (\s+ PUBLIC \s+ "[^"]*" \s+ (SYSTEM \s+)? "[^"]*")? \s*>}
 x $decl =~ m{<!DOCTYPE \s+ (?i:HTML) \s+ SYSTEM \s+ "[^"]*" \s*>}x  
+x $ENV
+x %ENV
+b markup
+x $markup->dump
+x $markup->_dump
+xXML::Twig->parse( pretty_print => 'indented', discard_all_spaces => 1, $d)->sprint
+x XML::Twig->parse( pretty_print => 'indented', discard_all_spaces => 1, $d)->sprint
+x grep( /\n/, XML::Twig->parse( pretty_print => 'indented', discard_all_spaces => 1, $d)->sprint)
+x XML::Twig->parse( pretty_print => 'indented', discard_all_spaces => 1, $d)->sprint=~m{\n}
+x XML::Twig->parse( pretty_print => 'indented', discard_all_spaces => 1, $d)->sprint=~m{\n}g
+x scalar(XML::Twig->parse( pretty_print => 'indented', discard_all_spaces => 1, $d)->sprint=~m{\n}g)
+x scalar(XML::Twig->parse( pretty_print => 'indented', discard_all_spaces => 1, $d)->sprint=~m{\n})
+x scalar(XML::Twig->parse( pretty_print => 'indented', discard_all_spaces => 1, $d)->sprint=~m{\n}g)
+XML::Twig->parse( pretty_print => 'indented', discard_all_spaces => 1, $d)->sprint=~m{\n}g
+xXML::Twig->parse( pretty_print => 'indented', discard_all_spaces => 1, $d)->sprint=~m{\n}g
+x XML::Twig->parse( pretty_print => 'indented', discard_all_spaces => 1, $d)->sprint=~m{\n}g
+x XML::Twig->parse( pretty_print => 'indented', discard_all_spaces => 1, $d)->sprint=~m{\n}g + 1
+x XML::Twig->parse( pretty_print => 'indented', discard_all_spaces => 1, $d)->sprint=~m{\n}
+x XML::Twig->parse( pretty_print => 'indented', discard_all_spaces => 1, $d)->sprint=~m{\n}g
+@a=XML::Twig->parse( pretty_print => 'indented', discard_all_spaces => 1, $d)->sprint=~m{\n}g
+x @a
+print +@a
+x scalar @a
+x $ENV
+x $Devel::Cover::VERSION
+x $perl
+x $perl
+x $perl
+x $file
+x $split_opts, $merge_opts
+x $perl $xml_split $verbifdebug -b $base $split_opts $file
+x "$perl $xml_split $verbifdebug -b $base $split_opts $file"
+x $base
+x `cat $base`
+x $@
+x $!
+x `ls t/test_xml_split`
+x `cat $base`
+b 345
+x $p->recognized_string
+x $p->original_string
+x $p->original_string
+x $p->original_string
+b 184
+b 184
+x $state->{xml_declaration}
+x $state->{main_fh}
+x $out
+x $main::out
+x *main::$out
+x $state
+x $p->depth

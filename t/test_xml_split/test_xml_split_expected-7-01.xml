@@ -1,1 +1,19 @@
-<elt>text with &lt; &gt; &amp; and &apos;</elt>
+
+<xml_split:root xmlns:xml_split="http://xmltwig.com/xml_split">
+<elt1>elt1 content 1</elt1>
+  <elt1>elt1 content 2</elt1>
+  <elt1>elt1 content 3</elt1>
+  <elt2>
+    <elt1>elt1 content 4</elt1>
+    <elt1>elt1 content 5</elt1>
+  </elt2>
+  <elt2>
+    <elt2>
+      <elt1>elt1 content 6</elt1>
+      <elt1>elt1 content 7</elt1>
+    </elt2>
+    <elt1>elt1 content 8</elt1>
+    <elt1>elt1 content 9</elt1>
+  </elt2>
+
+</xml_split:root>

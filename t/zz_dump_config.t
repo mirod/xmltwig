@@ -82,6 +82,7 @@ warn version( XML::Handler::YAWriter, '');
 warn version( XML::SAX::Writer, '');
 warn version( XML::Filter::BufferText, '');
 warn version( IO::Scalar, '');
+warn version( IO::CaptureOutput, '');
 
 my $zz_dump_config= File::Spec->catfile( t => "zz_dump_config.t");
 warn "\n\nPlease add this information to bug reports (you can run $zz_dump_config to get it)\n\n";

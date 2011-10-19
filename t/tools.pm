@@ -134,6 +134,18 @@ if( grep /^-v$/, @ARGV) { $DEBUG= 1; }
 
     }
 
+  sub sys_nok
+    { my $message=pop;
+      $test_nb++; 
+      my $status= system join " ", @_, "2>$devnull";
+      if( $status)
+        { print "ok $test_nb"; 
+          print " $message" if( $DEBUG); 
+          print "\n";
+        }
+      else { print "not ok $test_nb\n"; warn "$message: $!\n"; }
+
+    }
 
 
   sub is_like

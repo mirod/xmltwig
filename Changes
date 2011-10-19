@@ -4,6 +4,10 @@ CHANGES
 version 3.40
 date:
 # minor maintenance release
+added: support for alternations ('|') at the top level of handler
+       triggers and navigation
+       you can now have twig_handlers => { 't1|t2' => \&handler }
+       and $elt->children( 't1|t2')
 added: the discard_all_spaces option that discards more aggressively
        non-significant white spaces
        see RT #71164 https://rt.cpan.org/Ticket/Display.html?id=71164 
