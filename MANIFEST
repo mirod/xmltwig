@@ -227,6 +227,12 @@ t/test_xml_split/test_xml_split_expected-19-02.xml
 t/test_xml_split/test_xml_split_expected-19-03.xml
 t/test_xml_split/test_xml_split_expected-19-04.xml
 t/test_xml_split/test_xml_split_expected-19-05.xml
+t/test_xml_split/test_xml_split_expected-20-00.xml
+t/test_xml_split/test_xml_split_expected-20-01.xml
+t/test_xml_split/test_xml_split_expected-21-00.xml
+t/test_xml_split/test_xml_split_expected-21-01.xml
+t/test_xml_split/test_xml_split_expected-21-02.xml
+t/test_xml_split/test_xml_split_expected-21-03.xml
 t/test_autoencoding_conversion.t
 t/tools.pm
 t/zz_dump_config.t

@@ -24,7 +24,7 @@ getopts('l:c:b:g:n:e:p:is:dvhmV', $opt);
 
 # defaults
 $opt->{n} ||= 2; # number of digits used for creating parts
-$opt->{I} ||= "$ENV{HOME}/.xml_split";
+$opt->{I} ||= ($ENV{HOME} || '') . "/.xml_split";
 
 if( $opt->{h}) { die $USAGE, "\n";            }
 if( $opt->{m}) { exec "pod2text $RealBin/$RealScript"; }

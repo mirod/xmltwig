@@ -81,6 +81,7 @@ else
 
 sub test_error
   { my( $command, $options, $expected)= @_;
+    warn "\$perl: $perl\n";
     my( $stdout, $stderr, $success, $exit_code) = IO::CaptureOutput::capture_exec( "$perl $command $options test_xml_split.xml");
     matches( $stderr, qr/^$expected/, "$command $options");
   }
@@ -106,7 +107,7 @@ sub test_split_merge
 
     my $merged= "$base.xml";
     system "$perl $xml_merge $verbifdebug -o $merged $merge_opts $base-00.xml";
-    system "$xml_pp -i $merged";
+    system "$perl $xml_pp -i $merged";
     ok( same_file( $merged, $file), "xml_merge $merge_opts $test_file ($merged  $base-00.xml");
     
     unlink( glob( "$base*")) unless( $DEBUG);
