@@ -65,8 +65,13 @@ if( _use( 'IO::CaptureOutput'))
     test_error( $xml_merge => "-h", 'xml_merge ');
     test_out( $xml_split => "-V", 'xml_split ');
     test_out( $xml_merge => "-V", 'xml_merge ');
-    test_out( $xml_split => "-m", 'NAME\s*xml_split ');
-    test_out( $xml_merge => "-m", 'NAME\s*xml_merge ');
+
+    if( `pod2text -h` && $^O !~ m{^MS})
+      { test_out( $xml_split => "-m", 'NAME\s*xml_split ');
+        test_out( $xml_merge => "-m", 'NAME\s*xml_merge ');
+      }
+    else
+      { skip( 2, "pod2text not found in the path, cannot use -m oprion for xml_split and xml_merge"); }
 
     test_error( $xml_split => "-c foo -s 1K", 'cannot use -c and -s at the same time');
     test_error( $xml_split => "-g 100 -s 1K", 'cannot use -g and -s at the same time');
