@@ -13064,6 +13064,11 @@ again.
 It looks like C</doc/sect[3]/title>: unique elements do not have an index,
 the others do.
 
+=item flush
+
+flushes the twig up to the current element (strictly equivalent to 
+C<< $elt->root->flush >>
+
 =item private methods
 
 Low-level methods on the twig:
@@ -13085,10 +13090,6 @@ Low-level methods on the twig:
 =item del_twig_current
 
 =item twig_current
-
-=item flush
-
-This method should NOT be used, always flush the twig, not an element.
 
 =item contains_text
 
