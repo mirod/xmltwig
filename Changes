@@ -14,6 +14,8 @@ added: the discard_all_spaces option that discards more aggressively
 fixed: did not use Text::Wrap with indented_c
        see RT #71375 https://rt.cpan.org/Ticket/Display.html?id=71375
        reported and patch provided by Martin Strömberg 
+fixed: doc change for XML::Twig::Elt flush, see RT #72279
+       https://rt.cpan.org/Ticket/Display.html?id=72279
 
 version 3.39
 date: 2011-09-22
