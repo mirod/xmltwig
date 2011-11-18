@@ -18,7 +18,7 @@ if( !$os_ok{$^O}) { print "1..1\nok 1\n"; warn "skipping, test runs only on some
 
 if( $] < 5.006) { print "1..1\nok 1\n"; warn "skipping, xml_merge runs only on perl 5.6 and later\n"; exit; }
 
-print "1..54\n";
+print "1..59\n";
 
 my $perl= $Config{perlpath};
 if ($^O ne 'VMS') { $perl .= $Config{_exe} unless $perl =~ m/$Config{_exe}$/i; }
@@ -69,24 +69,27 @@ if( _use( 'IO::CaptureOutput'))
     if( `pod2text -h` && $^O !~ m{^MS})
       { test_out( $xml_split => "-m", 'NAME\s*xml_split ');
         test_out( $xml_merge => "-m", 'NAME\s*xml_merge ');
+        test_out( $xml_pp => "-h", 'NAME\s*xml_pp ');
       }
     else
-      { skip( 2, "pod2text not found in the path, cannot use -m oprion for xml_split and xml_merge"); }
+      { skip( 3, "pod2text not found in the path, cannot use -m oprion for xml_split and xml_merge"); }
 
     test_error( $xml_split => "-c foo -s 1K", 'cannot use -c and -s at the same time');
     test_error( $xml_split => "-g 100 -s 1K", 'cannot use -g and -s at the same time');
     test_error( $xml_split => "-g 100 -c fo", 'cannot use -g and -c at the same time');
     test_error( $xml_split => "-s 1Kc", 'invalid size');
 
-
+    test_error( $xml_pp => "-s --style", 'usage:');
+    test_error( $xml_pp => "-i --in_place", 'usage:');
+    test_error( $xml_pp => "-e utf8 --encoding utf8", 'usage:');
+    test_error( $xml_pp => "-l --load", 'usage:');
   }
 else
-  { skip( 10, 'need IO::CaptureOutput to test tool options'); }
+  { skip( 15, 'need IO::CaptureOutput to test tool options'); }
 
 
 sub test_error
   { my( $command, $options, $expected)= @_;
-    warn "\$perl: $perl\n";
     my( $stdout, $stderr, $success, $exit_code) = IO::CaptureOutput::capture_exec( "$perl $command $options test_xml_split.xml");
     matches( $stderr, qr/^$expected/, "$command $options");
   }

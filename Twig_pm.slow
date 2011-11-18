@@ -967,10 +967,11 @@ sub _html2xml
           { $xml= $decl; }
       } 
 
-    $xml.= $tree->as_XML;
+    _fix_html_att_names( $tree);
+
+    $xml.= eval { $tree->as_XML};
 
     _fix_xml( $tree, \$xml);
-    $tree->delete;
 
     if( $options->{indent}) { _indent_xhtml( \$xml); }
     $tree->delete;
@@ -1066,9 +1067,6 @@ sub _tidy_html
                     }
                 }
             }
-        elsif( $@=~ m{has an invalid attribute name})
-          { $$xml=~ s{(<[^>]* )(\d+=)"}{$1a$2"}g; # <table 1> comes out as <table 1="1">, "fix the attribute
-          }
       }
   }
 
@@ -1079,6 +1077,21 @@ sub _tidy_html
       return map { $_ => 1 } @encodings;
     }
 }
+
+sub _fix_html_att_names
+  { my( $elt)= @_;
+    foreach my $att ( grep { ! m{^_} } keys %$elt)
+      { my $new_att= $att;
+        if( $att=~ m{^\d}) { $new_att= "a$att"; }
+        $new_att=~ s{[^\w\d:_-]}{}g;
+        $new_att ||= 'a'; 
+        if( $new_att ne $att) { $elt->{$new_att}= delete $elt->{$att}; }
+      }
+    foreach my $child ($elt->content_list) { _fix_html_att_names($child) if ref $child; }
+    return $elt;
+  }
+
+
 
 sub _check_xml
   { my( $xml)= @_; # $xml is a ref to the xml string
@@ -7183,7 +7196,7 @@ sub _simplify
               { $data= $text; }
           }
         else
-          { # element with sub elements
+          { # element with sub-elements
             my $child_gi= $child->gi;
 
             my $child_data= $child->_simplify( $options);
@@ -11599,7 +11612,7 @@ Counter-intuitive as it might look this allows you to loop through the
 whole document by starting from the root.
 
 The C<$optional_elt> is the root of a subtree. When the C<next_elt> is out of the
-subtree then the method returns undef. You can then walk a sub tree with:
+subtree then the method returns undef. You can then walk a sub-tree with:
 
   my $elt= $subtree_root;
   while( $elt= $elt->next_elt( $subtree_root)
@@ -11784,7 +11797,7 @@ Return the list of descendants
 
 =item copy        ($elt)
 
-Return a copy of the element. The copy is a "deep" copy: all sub elements of 
+Return a copy of the element. The copy is a "deep" copy: all sub-elements of 
 the element are duplicated.
 
 =item paste       ($optional_position, $ref)
@@ -13067,7 +13080,7 @@ the others do.
 =item flush
 
 flushes the twig up to the current element (strictly equivalent to 
-C<< $elt->root->flush >>
+C<< $elt->root->flush >>)
 
 =item private methods
 
