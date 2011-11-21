@@ -1101,7 +1101,7 @@ sub _fix_html_att_names
         if( $att=~ m{^\d}) { $new_att= "a$att"; }
         $new_att=~ s{[^\w\d:_-]}{}g;
         $new_att ||= 'a'; 
-        if( $new_att ne $att) { warn "updating att: '$att' => '$new_att'\n"; $elt->{$new_att}= delete $elt->{$att}; }
+        if( $new_att ne $att) { $elt->{$new_att}= delete $elt->{$att}; }
       }
     foreach my $child ($elt->content_list) { _fix_html_att_names($child) if ref $child; }
     return $elt;

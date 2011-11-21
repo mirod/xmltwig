@@ -229,9 +229,9 @@ if( _use( 'HTML::TreeBuilder', 4.00) )
     
     { my $doc=qq{<html><head><meta 555="er"/></head><body><p>dummy</p>\</body></html>};
       eval { XML::Twig->nparse( $doc); };
-      ok( $@, "error in html (normal mode, HTB < 2.23 or >= 4.00): $@"); 
+      nok( $@, "error in html (normal mode, HTB < 2.23 or >= 4.00): $@"); 
       eval { XML::Twig->nparse_e( $doc); };
-      ok( $@, "error in html (nparse_e mode): $@"); 
+      nok( $@, "error in html (nparse_e mode): $@"); 
     }
     
     { my $doc=qq{<html><head></head><body><!-- <foo> bar </foo> --><p 1="a" c!ass="duh">dummy</p></body></html>};
