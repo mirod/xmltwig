@@ -49,7 +49,7 @@ is( $t->sprint, '<d><x class="foo">foo</x> b<a class="ar">ar</a> <x class="fooo"
   is( join( '-', $t->findvalues( '//e')), 'e1-e2', 'findvalues');
 }
 
-{ my $html='<html xmlns="http://www.w3.org/1999/xhtml"><head><meta content="text/html; charset=utf-8" http-equiv="Content-Type"/></head><body>boo</body></html>';
+{ my $html='<html xmlns="http://www.w3.org/1999/xhtml"><head><meta content="text/html; charset=utf-8" http-equiv="Content-Type"/></head><body><p>boo</p></body></html>';
 
   my $well_formed   = qq{<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">$html};
   my $short_doctype = qq{<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN">$html};

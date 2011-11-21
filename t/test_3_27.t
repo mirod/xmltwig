@@ -234,14 +234,26 @@ if( _use( 'HTML::TreeBuilder', 4.00) )
       ok( $@, "error in html (nparse_e mode): $@"); 
     }
     
-    { my $doc=qq{<html><head></head><body><!-- <foo> bar </foo> --><p 1="a">dummy</p></body></html>};
-      eval { XML::Twig->nparse_e( $doc); };
-      ok( $@, "error in html (nparse_e mode 2, HTB < 3.23 or >= 4.00: $@)");
+    { my $doc=qq{<html><head></head><body><!-- <foo> bar </foo> --><p 1="a" c!ass="duh">dummy</p></body></html>};
+      # used to trigger an error, now XML::Twig is fault tolerant to bad attributes
+      #eval { XML::Twig->nparse_e( $doc); };
+      #ok( $@, "error in html (nparse_e mode 2, HTB < 3.23 or >= 4.00: $@)");
+      is_like( XML::Twig->nparse_e( $doc)->sprint,
+               '<html><head></head><body><!-- <foo> bar </foo> --><p a1="a" cass="duh">dummy</p></body></html>', 
+               'wrong attributes, nparse_e mode 2, HTB < 3.23 or >= 4.00'
+             ); 
+      
     }
     
-    { my $doc=qq{<html><head></head><body><![CDATA[  <foo> bar </foo>  ]]>\n\n<p 1="a">dummy</p></body>\n</html>};
-      eval { XML::Twig->nparse_e( $doc); };
-      ok( $@, "error in html (nparse_e mode 3, HTB < 3.23 or >= 4.00: $@)");
+    { my $doc=qq{<html><head><script type="text/javascript"><![CDATA[ a>b || a<b ]]></script></head><body c!ass="foo"><p 1="a">dummy</p></body></html>};
+      # used to trigger an error, now XML::Twig is fault tolerant to bad attributes
+      #eval { XML::Twig->nparse_e( $doc); };
+      #ok( $@, "error in html (nparse_e mode 3, HTB < 3.23 or >= 4.00: $@)");
+      is_like( XML::Twig->nparse_e( $doc)->sprint,
+               '<html><head><script type="text/javascript"><![CDATA[ a>b || a<b]]></script></head><body cass="foo"><p a1="a">dummy</p></body></html>', 
+               'wrong attributes, nparse_e mode 2, HTB < 3.23 or >= 4.00'
+             ); 
+      
     }
   }
 else

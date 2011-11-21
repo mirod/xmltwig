@@ -942,6 +942,7 @@ sub _html2xml
     _use( 'HTML::TreeBuilder', '3.13') or croak "cannot parse HTML: missing HTML::TreeBuilder v >= 3.13\n"; 
     my $tree= HTML::TreeBuilder->new;
     $tree->ignore_ignorable_whitespace( 0); 
+    $tree->ignore_unknown( 0); 
     $tree->no_space_compacting( 1);
     $tree->store_comments( 1);
     $tree->store_pis(1); 
@@ -967,9 +968,11 @@ sub _html2xml
           { $xml= $decl; }
       } 
 
+    #warn "before _fix_html_att_names: ", $tree->as_XML, "\n\n";
     _fix_html_att_names( $tree);
+    #warn "after _fix_html_att_names: ", $tree->as_XML, "\n\n";
 
-    $xml.= eval { $tree->as_XML};
+    $xml.= $tree->as_XML;
 
     _fix_xml( $tree, \$xml);
 
@@ -1067,7 +1070,11 @@ sub _tidy_html
                     }
                 }
             }
-      }
+        }
+
+      # some versions of HTML::TreeBuilder escape CDATA sections
+      $$xml=~ s{(&lt;!\[CDATA\[.*?\]\]&gt;)}{_unescape_cdata( $1)}eg;
+    
   }
 
   sub _xml_parser_encodings
@@ -1078,14 +1085,23 @@ sub _tidy_html
     }
 }
 
+
+sub _unescape_cdata
+  { my( $cdata)= @_;
+    $cdata=~s{&lt;}{<}g;
+    $cdata=~s{&gt;}{>}g;
+    $cdata=~s{&amp;}{&}g;
+    return $cdata;
+  }
+
 sub _fix_html_att_names
   { my( $elt)= @_;
-    foreach my $att ( grep { ! m{^_} } keys %$elt)
+    foreach my $att ( grep { ! m{^(_|/$)} } keys %$elt)
       { my $new_att= $att;
         if( $att=~ m{^\d}) { $new_att= "a$att"; }
         $new_att=~ s{[^\w\d:_-]}{}g;
         $new_att ||= 'a'; 
-        if( $new_att ne $att) { $elt->{$new_att}= delete $elt->{$att}; }
+        if( $new_att ne $att) { warn "updating att: '$att' => '$new_att'\n"; $elt->{$new_att}= delete $elt->{$att}; }
       }
     foreach my $child ($elt->content_list) { _fix_html_att_names($child) if ref $child; }
     return $elt;
