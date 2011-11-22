@@ -227,11 +227,9 @@ print "1..$TMAX\n";
 if( _use( 'HTML::TreeBuilder', 4.00) )
   { # first alternative is pre-3.23_1, second one with 3.23_1 (and beyond?)
     
-    { my $doc=qq{<html><head><meta 555="er"/></head><body><p>dummy</p>\</body></html>};
-      eval { XML::Twig->nparse( $doc); };
-      nok( $@, "error in html (normal mode, HTB < 2.23 or >= 4.00): $@"); 
-      eval { XML::Twig->nparse_e( $doc); };
-      nok( $@, "error in html (nparse_e mode): $@"); 
+    { my $doc=qq{<html><head><meta 555="er"/></head><body><p>dummy</p></body></html>};
+      is_like( XML::Twig->nparse( $doc)->sprint, '<html><head><meta a555="er"/></head><body><p>dummy</p></body></html>', 'invalid att');
+      is_like( XML::Twig->nparse_e( $doc)->sprint, '<html><head><meta a555="er"/></head><body><p>dummy</p></body></html>', 'invalid att (nparse_e)');
     }
     
     { my $doc=qq{<html><head></head><body><!-- <foo> bar </foo> --><p 1="a" c!ass="duh">dummy</p></body></html>};

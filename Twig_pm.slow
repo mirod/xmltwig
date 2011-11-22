@@ -968,11 +968,7 @@ sub _html2xml
           { $xml= $decl; }
       } 
 
-    #warn "before _fix_html_att_names: ", $tree->as_XML, "\n\n";
-    _fix_html_att_names( $tree);
-    #warn "after _fix_html_att_names: ", $tree->as_XML, "\n\n";
-
-    $xml.= $tree->as_XML;
+    $xml.= _as_XML( $tree);
 
     _fix_xml( $tree, \$xml);
 
@@ -1025,7 +1021,8 @@ sub _tidy_html
             }
           elsif( $@=~ m{undefined entity})
             { $$xml=~ s{&(amp;)?Amp;}{&amp;}g if $HTML::TreeBuilder::VERSION < 4.00;
-              $$xml=name2hex_xml( $$xml)      if _use( 'HTML::Entities::Numbered');
+              if( _use( 'HTML::Entities::Numbered')) { $$xml=name2hex_xml( $$xml); }
+              $$xml=~ s{&(\w+);}{ my $ent= $1; if( $ent !~ m{^(amp|lt|gt|apos|quote)$}) { "&amp;$ent;" } }eg;
             }
           elsif( $@=~ m{&Amp; used in html})
             # if $Amp; is used instead of &amp; then HTML::TreeBuilder's as_xml is tripped (old version)
@@ -1036,7 +1033,7 @@ sub _tidy_html
                 { $$xml=~ s{&(amp;)?Amp;}{&amp;}g; 
                   $$xml=~  s{(<[^>]* )(\d+=)"}{$1a$2"}g; # <table 1> comes out as <table 1="1">, "fix the attribute
                 }
-              my $q= '<img "="&#34;" '; # extracted so vim doesn't get confuse
+              my $q= '<img "="&#34;" '; # extracted so vim doesn't get confused
               if( _use( 'HTML::Entities::Numbered')) { $$xml=name2hex_xml( $$xml); }
               if( $$xml=~ m{$q}) 
                 { $$xml=~ s{$q}{<img }g; # happens with <img src="foo.png"" ...
@@ -1094,18 +1091,79 @@ sub _unescape_cdata
     return $cdata;
   }
 
-sub _fix_html_att_names
-  { my( $elt)= @_;
-    foreach my $att ( grep { ! m{^(_|/$)} } keys %$elt)
-      { my $new_att= $att;
-        if( $att=~ m{^\d}) { $new_att= "a$att"; }
-        $new_att=~ s{[^\w\d:_-]}{}g;
-        $new_att ||= 'a'; 
-        if( $new_att ne $att) { $elt->{$new_att}= delete $elt->{$att}; }
-      }
-    foreach my $child ($elt->content_list) { _fix_html_att_names($child) if ref $child; }
-    return $elt;
+sub _as_XML {
+
+    # fork of HTML::Element::as_XML, which is a little too buggy and inconsistent between versions for my liking
+    my ($elt) = @_;
+    my $xml= '';
+    my $empty_element_map = $elt->_empty_element_map;
+
+    my ( $tag, $node, $start );    # per-iteration scratch
+    $elt->traverse(
+        sub {
+            ( $node, $start ) = @_;
+            if ( ref $node ) 
+              { # it's an element
+                $tag = $node->{'_tag'};
+                if ($start)
+                  { # on the way in
+                    foreach my $att ( grep { ! m{^(_|/$)} } keys %$node ) 
+                       { # fix attribute names instead of dying
+                         my $new_att= $att;
+                         if( $att=~ m{^\d}) { $new_att= "a$att"; }
+                         $new_att=~ s{[^\w\d:_-]}{}g;
+                         $new_att ||= 'a'; 
+                         if( $new_att ne $att) { $node->{$new_att}= delete $node->{$att}; }
+                       }
+
+                    if ( $empty_element_map->{$tag} and !@{ $node->{'_content'} || []} )
+                      { $xml.= $node->starttag_XML( undef, 1 ); }
+                    else 
+                      { $xml.= $node->starttag_XML(undef); }
+                  }
+                else
+                 { # on the way out
+                   unless ( $empty_element_map->{$tag} and !@{ $node->{'_content'} || [] } )
+                    { $xml.= $node->endtag_XML();
+                    }     # otherwise it will have been an <... /> tag.
+                  }
+              }
+            elsif( $node=~ /<!\[CDATA\[/)  # the content includes CDATA
+              { 
+                foreach my $chunk (split /(<!\[CDATA\[.*?\]\]>)/, $node) # chunks are CDATA sections or normal text
+                  { $xml.= $chunk !~ m{<!\[CDATA\[} ? $chunk : _xml_escape( $chunk); }
+              }
+            else   # it's just text
+              { $xml .= _xml_escape($node); }
+            1;            # keep traversing
+        }
+    );
+  return $xml;
+}
+
+sub _xml_escape 
+  { my( $html)= @_;
+    $html =~ s{&(?!                     # An ampersand that isn't followed by...
+                  (  \#[0-9]+;       |  #   A hash mark, digits and semicolon, or
+                    \#x[0-9a-fA-F]+; |  #   A hash mark, "x", hex digits and semicolon, or
+                    [\w]+               #   A valid unicode entity name and semicolon
+                  )
+                )
+              }
+              {&amp;}gx;    # Needs to be escaped to amp
+
+    # in old versions of HTML::TreeBuilder &amp; can come out as &Amp;
+    if( $HTML::TreeBuilder::VERSION <= 3.23) { $html=~ s{&Amp;}{&amp;}g; }
+
+    # simple character escapes
+    $html =~ s/</&lt;/g;
+    $html =~ s/>/&gt;/g;
+    $html =~ s/"/&quot;/g;
+    $html =~ s/'/&apos;/g;
+
+    return $html;
   }
+
 
 
 
