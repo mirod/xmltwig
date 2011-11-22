@@ -16,6 +16,10 @@ fixed: did not use Text::Wrap with indented_c
        reported and patch provided by Martin Strömberg 
 fixed: doc change for XML::Twig::Elt flush, see RT #72279
        https://rt.cpan.org/Ticket/Display.html?id=72279
+fixed: replaced HTML::TreeBuilder::as_XML with am XML::Twig specific
+       version, to avoid bugs in the original version and improve
+       stability of the output
+       
 
 version 3.39
 date: 2011-09-22
