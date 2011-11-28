@@ -7491,13 +7491,13 @@ sub mark
         { $text= pop @matches;
           if( $previous_match)
             { # match, not the first one, create a new text ($gi) element
-              _utf8_ify( $pre_match) if( $[ < 5.010);
+              _utf8_ify( $pre_match) if( $] < 5.010);
               $elt= $elt->insert_new_elt( after => $gi, $pre_match);
               push @result, $elt if( $return_all);
             }
           else
             { # first match in $elt, re-use $elt for the first sub-string
-              _utf8_ify( $pre_match) if( $[ < 5.010);
+              _utf8_ify( $pre_match) if( $] < 5.010);
               $elt->set_text( $pre_match);
               $previous_match++;                # store the fact that there was a match
               push @result, $elt if( $return_all);
@@ -7509,7 +7509,7 @@ sub mark
               my $i=0;
               foreach my $match (@matches)
                 { # create new element, text is the match
-                  _utf8_ify( $match) if( $[ < 5.010);
+                  _utf8_ify( $match) if( $] < 5.010);
                   my $tag  = _repl_match( $tags[$i]->{tag}, @matches) || '#PCDATA';
                   my $atts = \%{$tags[$i]->{atts}} || {};
                   my %atts= map { _repl_match( $_, @matches) => _repl_match( $atts->{$_}, @matches) } keys %$atts;
