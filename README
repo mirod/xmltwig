@@ -35,8 +35,8 @@ XML::Twig comes with a few tools built on top of it:
   xml_spellcheck   spellcheck XML files skipping tags
 
 Running perl Makefile.PL will prompt you for each tool installation. 
-  perl Makefile -y     will install all of the tools without prompt
-  perl Makefile -n     will skip the installation of the tools
+  perl Makefile.PL -y     will install all of the tools without prompt
+  perl Makefile.PL -n     will skip the installation of the tools
 
 
 SYNOPSYS
