@@ -229,7 +229,8 @@ sub parser_start_tag_size
         warn "generating $file_name\n" if( $state->{verbose});
         open( my $out, '>', $file_name) or die "cannot create output file '$file_name': $!";
         $state->{current_fh}= $out;
-        print {$state->{current_fh}} qq{$state->{xml_declaration}\n<xml_split:root xmlns:xml_split="http://xmltwig.com/xml_split">\n};
+        print {$state->{current_fh}} qq{$state->{xml_declaration}\n} if $state->{xml_declaration};
+        print {$state->{current_fh}} qq{<xml_split:root xmlns:xml_split="http://xmltwig.com/xml_split">\n};
         # output pi
         unless( $state->{no_pi})
           { print {$state->{main_fh}} $state->include( $file_name) ; }
