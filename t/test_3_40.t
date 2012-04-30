@@ -11,7 +11,7 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=15;
+my $TMAX=18;
 print "1..$TMAX\n";
 
 { my $d="<d><title section='1'>title</title><para>p 1</para> <para>p 2</para></d>";
@@ -27,32 +27,35 @@ sub lf_in_t
 
 
 
-{ my $d='<d id="d"><t1 id="t1"/><t2 id="t2"/><t3 att="a|b" id="t3-1" /><t3 att="a" id="t3-2"/><t3 id="t3-3"><t4 id="t4"/></t3></d>';
+{ my $d='<d id="d"><t1 id="t1"/><t2 id="t2"/><t3 att="a|b" id="t3-1" /><t3 att="a" id="t3-2" a2="a|b"/><t3 id="t3-3"><t4 id="t4"/></t3></d>';
   my @tests=
-    ( [ 't1|t2',                 N => 't1t2' ],
-      [ 't1|t2|t3[@att="a|b"]',  N => 't1t2t3-1' ],
-      [ 't1|t2|t3[@att!="a|b"]', N => 't1t2t3-2t3-3' ],
-      [ 't1|level(1)',           0 => 't1t1t2t3-1t3-2t3-3' ],
-      [ 't1|level(2)',           0 => 't1t4' ],
-      [ 't1|_all_',              0 => 't1t1t2t3-1t3-2t4t3-3d'],
-      [ qr/t[12]/ . '|t3/t4',    0 => 't1t2t4' ],
+    ( [ 't1|t2',                  HN => 't1t2' ],
+      [ 't1|t2|t3[@att="a|b"]',   HN => 't1t2t3-1' ],
+      [ 't1|t2|t3[@att!="a|b"]',  HN => 't1t2t3-2t3-3' ],
+      [ 't1|level(1)',            H  => 't1t1t2t3-1t3-2t3-3' ],
+      [ 't1|level(2)',            H  => 't1t4' ],
+      [ 't1|_all_',               H  => 't1t1t2t3-1t3-2t4t3-3d'],
+      [ qr/t[12]/ . '|t3/t4',     H  => 't1t2t4' ],
+      [ 't3[@a2="a|b"]',          HN => 't3-2' ],
+      [ 't3[@a2="a|b"]|t3|t3/t4', H => 't3-1t3-2t3-2t4t3-3' ],
    );
   foreach my $test (@tests)
     { my $nb=0;
       my $ids='';
       my( $trigger, $test_cat, $expected_ids)= @$test;
-      my $t= XML::Twig->new( twig_handlers => { $trigger => sub { $ids.=$_->id; 1; } })->parse( $d);
-      is( $ids, $expected_ids, "trigger with alt: '$trigger'"); 
+      my $handlers= $test_cat =~ m{H} ?  { $trigger => sub { $ids.=$_->id; 1; } } : {};
+      my $t= XML::Twig->new( twig_handlers => $handlers )->parse( $d);
+      is( $ids, $expected_ids, "(H) trigger with alt: '$trigger'"); 
 
       my $uniq_ids= join '', sort $expected_ids=~m{(t\d(?:-\d)?)}g;
 
       if( $test_cat =~ m{X})
         { (my $xpath= "//$trigger")=~ s{\|t}{|//t}g;
-          is( join( '', map { $_->id } $t->findnodes( $xpath)), $uniq_ids, "path with |: '$trigger'"); 
+          is( join( '', map { $_->id } $t->findnodes( $xpath)), $uniq_ids, " (X) path with |: '$trigger'"); 
         }
 
       if( $test_cat =~ m{N})
-        { is( join( '', map { $_->id } $t->root->children( $trigger)), $uniq_ids, "navigation with |: '$trigger'"); }
+        { is( join( '', map { $_->id } $t->root->children( $trigger)), $uniq_ids, "(N)navigation with |: '$trigger'"); }
     }
 
 }
