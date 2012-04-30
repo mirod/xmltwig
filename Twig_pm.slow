@@ -562,7 +562,7 @@ sub new
         delete $args{KeepSpaces}; 
       }
     if( $args{DiscardSpaces})
-      { croak "cannot use both discard_spaces and keep_spaces"        if( $args{KeepSpaces});
+      { 
         croak "cannot use both discard_spaces and keep_spaces_in"     if( $args{KeepSpacesIn});
         croak "cannot use both discard_spaces and discard_all_spaces" if( $args{DiscardAllSpaces});
         croak "cannot use both discard_spaces and discard_spaces_in"  if( $args{DiscardSpacesIn});
@@ -580,8 +580,7 @@ sub new
       }
 
     if( $args{DiscardAllSpaces})
-      { croak "cannot use both discard_all_spaces and keep_spaces"       if( $args{KeepSpaces});
-        croak "cannot use both discard_all_spaces and discard_spaces"    if( $args{DiscardSpaces});
+      { 
         croak "cannot use both discard_all_spaces and discard_spaces_in" if( $args{DiscardSpacesIn});
         $self->{twig_discard_all_spaces}=1; 
         delete $args{DiscardAllSpaces}; 
@@ -10628,10 +10627,7 @@ XML::Twig normalizes them before processing them.
 =item parse ( $source)
 
 The C<$source> parameter should either be a string containing the whole XML
-document, or it should be an open C<IO::Handle>. Constructor options to
-C<XML::Parser::Expat> given as keyword-value pairs may follow theC<$source> 
-parameter. These override, for this call, any options or attributes passed
-through from the XML::Parser instance.
+document, or it should be an open C<IO::Handle> (aka a filehandle). 
 
 A die call is thrown if a parse error occurs. Otherwise it will return 
 the twig built by the parse. Use C<safe_parse> if you want the parsing

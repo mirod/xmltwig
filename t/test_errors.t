@@ -14,7 +14,7 @@ use tools;
 
 use XML::Twig;
 
-my $TMAX=110; 
+my $TMAX=111; 
 print "1..$TMAX\n";
 
 my $error_file= File::Spec->catfile('t','test_errors.errors');
@@ -85,6 +85,8 @@ my $init_warn= $SIG{__WARN__};
 
 { eval {XML::Twig->new( keep_spaces => 1, discard_spaces => 1 )};
   matches( $@, "cannot use both keep_spaces and discard_spaces", "invalid option combination 1");
+  eval {XML::Twig->new( keep_spaces => 1, discard_all_spaces => 1 )};
+  matches( $@, "cannot use both keep_spaces and discard_all_spaces", "invalid option combination 1");
   eval {XML::Twig->new( keep_spaces => 1, keep_spaces_in => ['p'])};
   matches( $@, "cannot use both keep_spaces and keep_spaces_in", "invalid option combination 2");
   eval {XML::Twig->new( discard_spaces => 1, keep_spaces_in => ['p'])};
