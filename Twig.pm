@@ -562,7 +562,7 @@ sub new
         delete $args{KeepSpaces}; 
       }
     if( $args{DiscardSpaces})
-      { croak "cannot use both discard_spaces and keep_spaces"        if( $args{KeepSpaces});
+      { 
         croak "cannot use both discard_spaces and keep_spaces_in"     if( $args{KeepSpacesIn});
         croak "cannot use both discard_spaces and discard_all_spaces" if( $args{DiscardAllSpaces});
         croak "cannot use both discard_spaces and discard_spaces_in"  if( $args{DiscardSpacesIn});
@@ -580,8 +580,7 @@ sub new
       }
 
     if( $args{DiscardAllSpaces})
-      { croak "cannot use both discard_all_spaces and keep_spaces"       if( $args{KeepSpaces});
-        croak "cannot use both discard_all_spaces and discard_spaces"    if( $args{DiscardSpaces});
+      { 
         croak "cannot use both discard_all_spaces and discard_spaces_in" if( $args{DiscardSpacesIn});
         $self->{twig_discard_all_spaces}=1; 
         delete $args{DiscardAllSpaces}; 
@@ -914,7 +913,7 @@ sub _parse_as_xml_or_html
         if( _is_well_formed_xml( $html))
           { $t->parse( $html); }
         else
-          { croak $@; }
+          { croak $@; } # can't really test this because HTML::Parser or HTML::Tidy may change how they deal with bas HTML between versions
       }
   }  
     
@@ -942,6 +941,7 @@ sub _html2xml
     _use( 'HTML::TreeBuilder', '3.13') or croak "cannot parse HTML: missing HTML::TreeBuilder v >= 3.13\n"; 
     my $tree= HTML::TreeBuilder->new;
     $tree->ignore_ignorable_whitespace( 0); 
+    $tree->ignore_unknown( 0); 
     $tree->no_space_compacting( 1);
     $tree->store_comments( 1);
     $tree->store_pis(1); 
@@ -967,10 +967,9 @@ sub _html2xml
           { $xml= $decl; }
       } 
 
-    $xml.= $tree->as_XML;
+    $xml.= _as_XML( $tree);
 
     _fix_xml( $tree, \$xml);
-    $tree->delete;
 
     if( $options->{indent}) { _indent_xhtml( \$xml); }
     $tree->delete;
@@ -1021,7 +1020,8 @@ sub _tidy_html
             }
           elsif( $@=~ m{undefined entity})
             { $$xml=~ s{&(amp;)?Amp;}{&amp;}g if $HTML::TreeBuilder::VERSION < 4.00;
-              $$xml=name2hex_xml( $$xml)      if _use( 'HTML::Entities::Numbered');
+              if( _use( 'HTML::Entities::Numbered')) { $$xml=name2hex_xml( $$xml); }
+              $$xml=~ s{&(\w+);}{ my $ent= $1; if( $ent !~ m{^(amp|lt|gt|apos|quote)$}) { "&amp;$ent;" } }eg;
             }
           elsif( $@=~ m{&Amp; used in html})
             # if $Amp; is used instead of &amp; then HTML::TreeBuilder's as_xml is tripped (old version)
@@ -1032,7 +1032,7 @@ sub _tidy_html
                 { $$xml=~ s{&(amp;)?Amp;}{&amp;}g; 
                   $$xml=~  s{(<[^>]* )(\d+=)"}{$1a$2"}g; # <table 1> comes out as <table 1="1">, "fix the attribute
                 }
-              my $q= '<img "="&#34;" '; # extracted so vim doesn't get confuse
+              my $q= '<img "="&#34;" '; # extracted so vim doesn't get confused
               if( _use( 'HTML::Entities::Numbered')) { $$xml=name2hex_xml( $$xml); }
               if( $$xml=~ m{$q}) 
                 { $$xml=~ s{$q}{<img }g; # happens with <img src="foo.png"" ...
@@ -1066,10 +1066,11 @@ sub _tidy_html
                     }
                 }
             }
-        elsif( $@=~ m{has an invalid attribute name})
-          { $$xml=~ s{(<[^>]* )(\d+=)"}{$1a$2"}g; # <table 1> comes out as <table 1="1">, "fix the attribute
-          }
-      }
+        }
+
+      # some versions of HTML::TreeBuilder escape CDATA sections
+      $$xml=~ s{(&lt;!\[CDATA\[.*?\]\]&gt;)}{_unescape_cdata( $1)}eg;
+    
   }
 
   sub _xml_parser_encodings
@@ -1079,6 +1080,91 @@ sub _tidy_html
       return map { $_ => 1 } @encodings;
     }
 }
+
+
+sub _unescape_cdata
+  { my( $cdata)= @_;
+    $cdata=~s{&lt;}{<}g;
+    $cdata=~s{&gt;}{>}g;
+    $cdata=~s{&amp;}{&}g;
+    return $cdata;
+  }
+
+sub _as_XML {
+
+    # fork of HTML::Element::as_XML, which is a little too buggy and inconsistent between versions for my liking
+    my ($elt) = @_;
+    my $xml= '';
+    my $empty_element_map = $elt->_empty_element_map;
+
+    my ( $tag, $node, $start );    # per-iteration scratch
+    $elt->traverse(
+        sub {
+            ( $node, $start ) = @_;
+            if ( ref $node ) 
+              { # it's an element
+                $tag = $node->{'_tag'};
+                if ($start)
+                  { # on the way in
+                    foreach my $att ( grep { ! m{^(_|/$)} } keys %$node ) 
+                       { # fix attribute names instead of dying
+                         my $new_att= $att;
+                         if( $att=~ m{^\d}) { $new_att= "a$att"; }
+                         $new_att=~ s{[^\w\d:_-]}{}g;
+                         $new_att ||= 'a'; 
+                         if( $new_att ne $att) { $node->{$new_att}= delete $node->{$att}; }
+                       }
+
+                    if ( $empty_element_map->{$tag} and !@{ $node->{'_content'} || []} )
+                      { $xml.= $node->starttag_XML( undef, 1 ); }
+                    else 
+                      { $xml.= $node->starttag_XML(undef); }
+                  }
+                else
+                 { # on the way out
+                   unless ( $empty_element_map->{$tag} and !@{ $node->{'_content'} || [] } )
+                    { $xml.= $node->endtag_XML();
+                    }     # otherwise it will have been an <... /> tag.
+                  }
+              }
+            elsif( $node=~ /<!\[CDATA\[/)  # the content includes CDATA
+              { 
+                foreach my $chunk (split /(<!\[CDATA\[.*?\]\]>)/, $node) # chunks are CDATA sections or normal text
+                  { $xml.= $chunk !~ m{<!\[CDATA\[} ? $chunk : _xml_escape( $chunk); }
+              }
+            else   # it's just text
+              { $xml .= _xml_escape($node); }
+            1;            # keep traversing
+        }
+    );
+  return $xml;
+}
+
+sub _xml_escape 
+  { my( $html)= @_;
+    $html =~ s{&(?!                     # An ampersand that isn't followed by...
+                  (  \#[0-9]+;       |  #   A hash mark, digits and semicolon, or
+                    \#x[0-9a-fA-F]+; |  #   A hash mark, "x", hex digits and semicolon, or
+                    [\w]+               #   A valid unicode entity name and semicolon
+                  )
+                )
+              }
+              {&amp;}gx;    # Needs to be escaped to amp
+
+    # in old versions of HTML::TreeBuilder &amp; can come out as &Amp;
+    if( $HTML::TreeBuilder::VERSION <= 3.23) { $html=~ s{&Amp;}{&amp;}g; }
+
+    # simple character escapes
+    $html =~ s/</&lt;/g;
+    $html =~ s/>/&gt;/g;
+    $html =~ s/"/&quot;/g;
+    $html =~ s/'/&apos;/g;
+
+    return $html;
+  }
+
+
+
 
 sub _check_xml
   { my( $xml)= @_; # $xml is a ref to the xml string
@@ -1282,7 +1368,8 @@ sub _parseurl
           }
       } 
     else 
-      { local $|=1;
+      { # VMS branch (hard to test!)
+        local $|=1;
         $agent    ||= LWP::UserAgent->new;
         my $request  = HTTP::Request->new( GET => $url);
         my $response = $agent->request( $request);
@@ -2080,7 +2167,6 @@ sub _a_proper_ns_prefix
       { if( $p->expand_ns_prefix( $prefix) eq $uri)
           { return $prefix; }
       }
-    warn "here";
     return;
   }
 
@@ -2850,7 +2936,6 @@ sub _twig_default
 
             return $ent;
           }
-        return
       }
   }
     
@@ -3946,10 +4031,10 @@ sub _twig_end_check_roots
         my $last_handler_res=1;
         foreach my $handler ( @handlers)
           { $last_handler_res= $handler->($t, $gi) || last; }
-        if( ! $last_handler_res) 
-          { pop @{$t->{_twig_context_stack}};
-            return;
-          }
+        #if( ! $last_handler_res) 
+        #  { pop @{$t->{_twig_context_stack}}; warn "tested";
+        #    return;
+        #  }
       }
     {
       ## no critic (TestingAndDebugging::ProhibitNoStrict);
@@ -4632,10 +4717,9 @@ sub print
 
 sub sprint
   { my ($ent)= @_;
-    my $text= $ent->text;
-    if( !defined( $text)) { $text=''; }
-    return $text;
+    return $ent->text;
   }
+
 sub text
   { my ($ent)= @_;
     #warn "text called: '", $ent->_dump, "'\n";
@@ -7182,7 +7266,7 @@ sub _simplify
               { $data= $text; }
           }
         else
-          { # element with sub elements
+          { # element with sub-elements
             my $child_gi= $XML::Twig::index2gi[$child->{'gi'}];
 
             my $child_data= $child->_simplify( $options);
@@ -7403,13 +7487,13 @@ sub mark
         { $text= pop @matches;
           if( $previous_match)
             { # match, not the first one, create a new text ($gi) element
-              _utf8_ify( $pre_match) if( $[ < 5.010);
+              _utf8_ify( $pre_match) if( $] < 5.010);
               $elt= $elt->insert_new_elt( after => $gi, $pre_match);
               push @result, $elt if( $return_all);
             }
           else
             { # first match in $elt, re-use $elt for the first sub-string
-              _utf8_ify( $pre_match) if( $[ < 5.010);
+              _utf8_ify( $pre_match) if( $] < 5.010);
               $elt->set_text( $pre_match);
               $previous_match++;                # store the fact that there was a match
               push @result, $elt if( $return_all);
@@ -7421,7 +7505,7 @@ sub mark
               my $i=0;
               foreach my $match (@matches)
                 { # create new element, text is the match
-                  _utf8_ify( $match) if( $[ < 5.010);
+                  _utf8_ify( $match) if( $] < 5.010);
                   my $tag  = _repl_match( $tags[$i]->{tag}, @matches) || '#PCDATA';
                   my $atts = \%{$tags[$i]->{atts}} || {};
                   my %atts= map { _repl_match( $_, @matches) => _repl_match( $atts->{$_}, @matches) } keys %$atts;
@@ -10539,10 +10623,7 @@ XML::Twig normalizes them before processing them.
 =item parse ( $source)
 
 The C<$source> parameter should either be a string containing the whole XML
-document, or it should be an open C<IO::Handle>. Constructor options to
-C<XML::Parser::Expat> given as keyword-value pairs may follow theC<$source> 
-parameter. These override, for this call, any options or attributes passed
-through from the XML::Parser instance.
+document, or it should be an open C<IO::Handle> (aka a filehandle). 
 
 A die call is thrown if a parse error occurs. Otherwise it will return 
 the twig built by the parse. Use C<safe_parse> if you want the parsing
@@ -11597,7 +11678,7 @@ Counter-intuitive as it might look this allows you to loop through the
 whole document by starting from the root.
 
 The C<$optional_elt> is the root of a subtree. When the C<next_elt> is out of the
-subtree then the method returns undef. You can then walk a sub tree with:
+subtree then the method returns undef. You can then walk a sub-tree with:
 
   my $elt= $subtree_root;
   while( $elt= $elt->next_elt( $subtree_root)
@@ -11782,7 +11863,7 @@ Return the list of descendants
 
 =item copy        ($elt)
 
-Return a copy of the element. The copy is a "deep" copy: all sub elements of 
+Return a copy of the element. The copy is a "deep" copy: all sub-elements of 
 the element are duplicated.
 
 =item paste       ($optional_position, $ref)
@@ -13062,6 +13143,11 @@ again.
 It looks like C</doc/sect[3]/title>: unique elements do not have an index,
 the others do.
 
+=item flush
+
+flushes the twig up to the current element (strictly equivalent to 
+C<< $elt->root->flush >>)
+
 =item private methods
 
 Low-level methods on the twig:
@@ -13083,10 +13169,6 @@ Low-level methods on the twig:
 =item del_twig_current
 
 =item twig_current
-
-=item flush
-
-This method should NOT be used, always flush the twig, not an element.
 
 =item contains_text
 

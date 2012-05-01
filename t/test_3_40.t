@@ -11,7 +11,7 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=18;
+my $TMAX=28;
 print "1..$TMAX\n";
 
 { my $d="<d><title section='1'>title</title><para>p 1</para> <para>p 2</para></d>";
@@ -68,4 +68,43 @@ sub lf_in_t
 
 { eval { XML::Twig->new(error_context => 1)->parse( $0); };
   matches( $@, "you seem to have used the parse method on a filename", 'parse on a file name');
+}
+
+{ my $got;
+  XML::Twig->parse( twig_handlers => { 'e[@a]' => sub { $got .= $_->id; } }, '<d><e a="a" id="i1"/><e id="i2"/><e a="0" id="i3"/></d>');
+  is( $got, 'i1i3', 'bare attribute in handler condition');
+}
+
+{ my $doc= q{<!DOCTYPE doc [ <!ELEMENT doc (#PCDATA)><!ENTITY ext SYSTEM "not_there.txt">]><doc>&ext;</doc>};
+  ok( XML::Twig->parse( expand_external_ents => -1, $doc), 'failsafe expand_external_ents');
+}
+  
+{ my $t=XML::Twig->parse( q{<doc><e><e1>e11</e1><e2>e21</e2></e><e><e1>e12</e1></e></doc>});
+  is( join( ':',  $t->findvalues( [$t->root->children], "./e1")), 'e11:e12', 'findvalues on array');
+}
+
+{ my $t=XML::Twig->parse( "<doc/>"); 
+  $t->set_encoding( "UTF-8");
+  is( $t->sprint, qq{<?xml version="1.0" encoding="UTF-8"?>\n<doc/>}, 'set_encoding without XML declaration');
+}
+
+{ my $t=XML::Twig->parse( "<doc/>"); 
+  $t->set_standalone( 1);
+  is( $t->sprint, qq{<?xml version="1.0" standalone="yes"?>\n<doc/>}, 'set_standalone (yes) without XML declaration');
+}
+
+{ my $t=XML::Twig->parse( "<doc/>"); 
+  $t->set_standalone( 0);
+  is( $t->sprint, qq{<?xml version="1.0" standalone="no"?>\n<doc/>}, 'set_standalone (no) without XML declaration');
+}
+
+{ my $t=XML::Twig->parse( "<doc/>"); 
+  nok( $t->xml_version, 'xml_version with no XML declaration');
+  $t->set_xml_version( 1.1);
+  is( $t->sprint, qq{<?xml version="1.1"?>\n<doc/>}, 'set_xml_version without XML declaration');
+  is( $t->xml_version, 1.1, 'xml_version after being set');
+}
+
+{ my $t= XML::Twig->new;
+  is( $t->_dump, "document\n", '_dump on an empty twig');
 }

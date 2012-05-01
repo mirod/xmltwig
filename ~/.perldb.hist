@@ -1,54 +1,3 @@
-b _html2xml
-x $options
-x $decl
-x $decl
-x $decl =~ m{<!DOCTYPE \s+ (?i:HTML) (\s+ PUBLIC \s+ "[^"]*" \s+ (SYSTEM \s+)? "[^"]*")? \s*>}
-x $decl =~ m{<!DOCTYPE \s+ (?i:HTML) (\s+ PUBLIC \s+ "[^"]*" \s+ (SYSTEM \s+)? "[^"]*")? \s*>}x
-b 21
-b 7372
-b 7373
-x $tag
-x $tags[$i]
-b 21
-b 7374
-x @matches
-x @tags
-x $tag
-x $tags[$i]->{atts}
-x %atts
-x %atts
-b 21
-b 7375
-b 7376
-x $tag
-x $atts
-x @atts
-x @atts
-x $atts
-a $atts->[0]
-b 21
-l 7370
-b 7371
-x @matches
-x $text
-x @matches
-b 65
-b parse_html
-x $op[C[C[C[C[C[C[C
-x $options
-x $html2xml->( $content, $options)
-x $options
-x $options
-x $options->{html_doctype}
-x $tree->{_decl}
-x $decl
-x $decl =~ m{<!DOCTYPE \s+ (?i:HTML) (\s+ PUBLIC \s+ "[^"]*" \s+ (SYSTEM \s+)? "[^"]*")? \s*>}
-x $decl =~ m{<!DOCTYPE \s+ (?i:HTML) \s+ SYSTEM \s+ "[^"]*" \s*>}x  
-x $ENV
-x %ENV
-b markup
-x $markup->dump
-x $markup->_dump
 xXML::Twig->parse( pretty_print => 'indented', discard_all_spaces => 1, $d)->sprint
 x XML::Twig->parse( pretty_print => 'indented', discard_all_spaces => 1, $d)->sprint
 x grep( /\n/, XML::Twig->parse( pretty_print => 'indented', discard_all_spaces => 1, $d)->sprint)
@@ -96,3 +45,56 @@ x $main::out
 x *main::$out
 x $state
 x $p->depth
+b 970
+l 970
+b _fix_html_att_names
+b 970
+b 970
+x eval { $tree->as_XML}
+x 1 $elt
+b 970
+x 2 $tree
+b 970
+x map { "$_: $elt->{$_}" } grep { ! m{^_} } values %$elt
+x map { "$_: $elt->{$_}" } grep { ! m{^_} } values %$elt
+x 1 $elt
+x 2 $elt
+b 970
+x $tree->as_XML
+b _fix_html_att_names
+x $elt->as_XML
+b _fix_html_att_names
+x $elt->as_XML
+b 970
+x $tree->as_XML
+x $HTML::TreeBuilder::VERSION
+b 1076
+x $$xml
+b 59
+b 972
+x eval { $tree->as_xml}
+x eval { $tree->as_XML}
+x eval { $tree->as_XML}
+b 231
+b 1109
+l 1100
+l 1108
+l 1109
+l 1109
+b 1109
+b 1110
+b 1111
+l 1109
+l 1110
+l 1111
+l 1112
+l 1113
+b 1113
+l 1156
+b 1156
+x $xml
+b 231
+l 1127
+b 1127
+x $att
+x $node->all_attr_names
