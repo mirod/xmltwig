@@ -913,7 +913,7 @@ sub _parse_as_xml_or_html
         if( _is_well_formed_xml( $html))
           { $t->parse( $html); }
         else
-          { croak $@; }
+          { croak $@; } # can't really test this because HTML::Parser or HTML::Tidy may change how they deal with bas HTML between versions
       }
   }  
     
@@ -1368,7 +1368,8 @@ sub _parseurl
           }
       } 
     else 
-      { local $|=1;
+      { # VMS branch (hard to test!)
+        local $|=1;
         $agent    ||= LWP::UserAgent->new;
         my $request  = HTTP::Request->new( GET => $url);
         my $response = $agent->request( $request);
@@ -2166,7 +2167,6 @@ sub _a_proper_ns_prefix
       { if( $p->expand_ns_prefix( $prefix) eq $uri)
           { return $prefix; }
       }
-    warn "here";
     return;
   }
 
@@ -2936,7 +2936,6 @@ sub _twig_default
 
             return $ent;
           }
-        return
       }
   }
     
@@ -4033,10 +4032,10 @@ sub _twig_end_check_roots
         my $last_handler_res=1;
         foreach my $handler ( @handlers)
           { $last_handler_res= $handler->($t, $gi) || last; }
-        if( ! $last_handler_res) 
-          { pop @{$t->{_twig_context_stack}};
-            return;
-          }
+        #if( ! $last_handler_res) 
+        #  { pop @{$t->{_twig_context_stack}}; warn "tested";
+        #    return;
+        #  }
       }
     {
       ## no critic (TestingAndDebugging::ProhibitNoStrict);
@@ -4712,17 +4711,15 @@ sub param { return defined( $_[0]->{param}) ? $_[0]->{param} : ''; }
 sub print
   { my ($ent, $fh)= @_;
     my $text= $ent->text;
-    if( !defined( $text)) { $text=''; }
     if( $fh) { print $fh $text . "\n"; }
     else     { print $text . "\n"; }
   }
 
 sub sprint
   { my ($ent)= @_;
-    my $text= $ent->text;
-    if( !defined( $text)) { $text=''; }
-    return $text;
+    return $ent->text;
   }
+
 sub text
   { my ($ent)= @_;
     #warn "text called: '", $ent->_dump, "'\n";
