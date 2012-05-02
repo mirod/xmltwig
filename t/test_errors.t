@@ -14,7 +14,7 @@ use tools;
 
 use XML::Twig;
 
-my $TMAX=115; 
+my $TMAX=117; 
 print "1..$TMAX\n";
 
 my $error_file= File::Spec->catfile('t','test_errors.errors');
@@ -317,6 +317,16 @@ my $init_warn= $SIG{__WARN__};
 
       matches( slurp( $error), "cannot parse the output of a pipe", 'parse a pipe with perlIO layer set to UTF8 (RT #17500)');
     }
+}
+
+{ my $e1= XML::Twig::Elt->new( 'foo');
+  my $e2= XML::Twig::Elt->new( 'foo');
+
+  eval { $e1->paste_before( $e2); };
+  matches( $@, "cannot paste before an orphan element", 'paste before an orphan element' );
+
+  eval { $e1->paste_after( $e2); };
+  matches( $@, "cannot paste after an orphan element", 'paste after an orphan element' );
 }
 
 exit 0;

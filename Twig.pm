@@ -4566,8 +4566,8 @@ sub getRootNode        { return $_[0]; }
 sub getParentNode      { return undef; }
 sub getChildNodes      { my @children= ($_[0]->root); return wantarray ? @children : \@children; }
 
-sub _weakrefs
-  { return $weakrefs; }
+sub _weakrefs     { return $weakrefs;       }
+sub _set_weakrefs { $weakrefs=shift() || 0; } # for testing purposes
 
 sub _dump
   { my $t= shift;
@@ -4710,7 +4710,6 @@ sub param { return defined( $_[0]->{param}) ? $_[0]->{param} : ''; }
 sub print
   { my ($ent, $fh)= @_;
     my $text= $ent->text;
-    if( !defined( $text)) { $text=''; }
     if( $fh) { print $fh $text . "\n"; }
     else     { print $text . "\n"; }
   }

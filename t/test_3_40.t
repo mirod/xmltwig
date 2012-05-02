@@ -11,7 +11,7 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=28;
+my $TMAX=34;
 print "1..$TMAX\n";
 
 { my $d="<d><title section='1'>title</title><para>p 1</para> <para>p 2</para></d>";
@@ -108,3 +108,32 @@ sub lf_in_t
 { my $t= XML::Twig->new;
   is( $t->_dump, "document\n", '_dump on an empty twig');
 }
+
+{ my $t=XML::Twig->parse( pretty_print => 'none', '<doc><f a="a">foo</f><f a="b">bar</f></doc>');
+  $t->root->field_to_att( 'f[@a="b"]', 'g');
+  is( $t->sprint, '<doc g="bar"><f a="a">foo</f></doc>', 'field_to_att on non-simple condition');
+  $t->root->att_to_field( g => 'gg');
+  is( $t->sprint, '<doc><gg>bar</gg><f a="a">foo</f></doc>', 'att_to_field with att != field');
+}
+
+{ my $t=XML::Twig->parse( '<root/>');
+  $t->root->wrap_in( 'nroot');
+  is( $t->sprint, '<nroot><root/></nroot>', 'wrapping the root');
+}
+
+{
+my $t=XML::Twig->new;
+XML::Twig::_set_weakrefs(0);
+my $doc='<doc>\n  <e att="a">text</e><e>text <![CDATA[cdata text]]> more text <e>foo</e>\n more</e></doc>';
+$t->parse( $doc);
+$doc=~ s{\n  }{}; # just the first one
+is( $t->sprint, $doc, 'parse with no weakrefs');
+$t->root->insert_new_elt( first_child => x => 'text');
+$doc=~ s{<doc>}{<doc><x>text</x>};
+is( $t->sprint, $doc, 'insert first child with no weakrefs');
+$t->root->insert_new_elt( last_child => x => 'text');
+$doc=~ s{</doc>}{<x>text</x></doc>};
+is( $t->sprint, $doc, 'insert last child with no weakrefs');
+}
+
+XML::Twig::_set_weakrefs(1);
