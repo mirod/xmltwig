@@ -4567,8 +4567,8 @@ sub getRootNode        { return $_[0]; }
 sub getParentNode      { return undef; }
 sub getChildNodes      { my @children= ($_[0]->root); return wantarray ? @children : \@children; }
 
-sub _weakrefs
-  { return $weakrefs; }
+sub _weakrefs     { return $weakrefs;       }
+sub _set_weakrefs { $weakrefs=shift() || 0; } # for testing purposes
 
 sub _dump
   { my $t= shift;
