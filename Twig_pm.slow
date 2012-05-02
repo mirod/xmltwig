@@ -5460,6 +5460,7 @@ sub _twig_through_cut
   }
 
 
+# used for navigation
 # returns undef or the element, depending on whether $elt passes $cond
 # $cond can be
 # - empty: the element passes the condition
@@ -6713,10 +6714,21 @@ sub next_siblings
                           do
                             { if( $pred =~ s{^string\(\s*\)\s*=\s*($REG_STRING)\s*}{}o)  # string()="string" pred
                                 { $test .= "\$_->text eq $1"; }
+                              elsif( $pred =~ s{^string\(\s*\)\s*!=\s*($REG_STRING)\s*}{}o)  # string()!="string" pred
+                                { $test .= "\$_->text ne $1"; }
+                              if( $pred =~ s{^string\(\s*\)\s*=\s*($REG_NUMBER)\s*}{}o)  # string()=<number> pred
+                                { $test .= "\$_->text eq $1"; }
+                              elsif( $pred =~ s{^string\(\s*\)\s*!=\s*($REG_NUMBER)\s*}{}o)  # string()!=<number> pred
+                                { $test .= "\$_->text ne $1"; }
+                              elsif( $pred =~ s{^string\(\s*\)\s*(>|<|>=|<=)\s*($REG_NUMBER)\s*}{}o)  # string()!=<number> pred
+                                { $test .= "\$_->text $1 $2"; }
+
                              elsif( $pred =~ s{^string\(\s*\)\s*($REG_MATCH)\s*($REG_REGEXP)\s*}{}o)  # string()=~/regex/ pred
                                 { my( $match, $regexp)= ($1, $2);
                                   $test .= "\$_->text $match $regexp"; 
                                 }
+                              elsif( $pred =~ s{^string\(\s*\)\s*}{}o)  # string() pred
+                                { $test .= "\$_->text"; }
                              elsif( $pred=~ s{^@($REG_NAME)\s*($REG_OP)\s*($REG_STRING|$REG_NUMBER)}{}o)  # @att="val" pred
                                 { my( $att, $oper, $val)= ($1, _op( $2), $3);
                                   $test .= qq{((defined \$_->att("$att"))  && (\$_->att( "$att") $oper $val))};

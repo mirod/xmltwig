@@ -11,7 +11,7 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=41;
+my $TMAX=62;
 print "1..$TMAX\n";
 
 
@@ -165,5 +165,34 @@ XML::Twig::_set_weakrefs(1);
 }
 
 { my $t= XML::Twig->parse( '<d><e class="a" id="e1"/><e class="b" id="e2"/><f class="a" id="f1"/></d>');
-  is( join( ':', map { $_->id } $t->root->children( '.a')), 'e1:f1', 'nav on class');
+  is( ids( $t->root->children( '.a')), 'e1:f1', 'nav on class');
 }
+
+{ my $t=XML::Twig->parse( '<doc><e id="e1">foo</e><e id="e2">bar</e><e id="e3">foobar</e><e id="e4"/><n id="n1">1</n><n id="n2">2</n><n id="n3">3</n></doc>');
+
+  is ( ids( $t->root->children( 'e[string()="foo"]')), 'e1', 'navigation condition using string() =');
+  is ( ids( $t->root->children( 'e[string()=~/foo/]')), 'e1:e3', 'navigation condition using string() =~');
+  is ( ids( $t->root->children( 'e[string()!~/foo/]')), 'e2:e4', 'navigation condition using string() !~');
+  is ( ids( $t->root->children( 'e[string()!="foo"]')), 'e2:e3:e4', 'navigation condition using string() !=');
+  is ( ids( $t->root->children( 'e[string()]')), 'e1:e2:e3', 'navigation condition using bare string()');
+
+  is ( ids( $t->root->findnodes( './e[string()="foo"]')), 'e1', 'xpath condition using string() =');
+  is ( ids( $t->root->findnodes( './e[string()=~/foo/]')), 'e1:e3', 'xpath condition using string() =~');
+  is ( ids( $t->root->findnodes( './e[string()!~/foo/]')), 'e2:e4', 'xpath condition using string() !~');
+  is ( ids( $t->root->findnodes( './e[string()!="foo"]')), 'e2:e3:e4', 'xpath condition using string() !=');
+  is ( ids( $t->root->findnodes( './e[string()]')), 'e1:e2:e3', 'xpath condition using bare string()');
+
+  is( ids( $t->root->children( 'n[string()=2]')), 'n2', 'navigation string() =');
+  is( ids( $t->root->children( 'n[string()!=2]')), 'n1:n3', 'navigation string() !=');
+  is( ids( $t->root->children( 'n[string()>2]')), 'n3', 'navigation string() >');
+  is( ids( $t->root->children( 'n[string()>=2]')), 'n2:n3', 'navigation string() >=');
+  is( ids( $t->root->children( 'n[string()<2]')), 'n1', 'navigation string() <');
+
+  is( ids( $t->root->findnodes( './n[string()=2]')), 'n2', 'xpath string() =');
+  is( ids( $t->root->findnodes( './n[string()!=2]')), 'n1:n3', 'xpath string() !=');
+  is( ids( $t->root->findnodes( './n[string()>2]')), 'n3', 'xpath string() >');
+  is( ids( $t->root->findnodes( './n[string()>=2]')), 'n2:n3', 'xpath string() >=');
+  is( ids( $t->root->findnodes( './n[string()<2]')), 'n1', 'xpath string() <');
+  is( ids( $t->root->findnodes( './n[string()<=2]')), 'n1:n2', 'xpath string() <=');
+}
+

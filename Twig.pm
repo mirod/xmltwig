@@ -1751,6 +1751,7 @@ sub _parse_predicate_in_handler
                elsif( $att)           { $att=~ m{^#} ? qq{ (\$elt->{_elt} && \$elt->{_elt}->{att}->{'$att'})}
                                                      : qq{\$elt->{'$att'}}
                                       }
+                                        # for some reason Devel::Cover flags the following lines as not tested. They are though.
                elsif( $bare_att)      { $bare_att=~ m{^#} ? qq{(\$elt->{_elt} && defined(\$elt->{_elt}->{att}->{'$bare_att'}))}
                                                           : qq{defined( \$elt->{'$bare_att'})}
                                       }
@@ -5458,6 +5459,7 @@ sub _twig_through_cut
   }
 
 
+# used for navigation
 # returns undef or the element, depending on whether $elt passes $cond
 # $cond can be
 # - empty: the element passes the condition
@@ -5477,7 +5479,7 @@ sub reset_cond_cache { %cond_cache=(); }
    sub _install_cond
     { my $cond= shift;
       my $test;
-      my $init='';
+      my $init=''; 
 
       my $original_cond= $cond;
 
@@ -5513,11 +5515,6 @@ sub reset_cond_cache { %cond_cache=(); }
                     { push @tests, _and( _gi_test( $gi), qq{ (scalar( grep { \$_->gi eq "$gi" } $siblings) + 1 == $index)}); }
                   else
                     { push @tests, qq{(scalar( $siblings) + 1 == $index)}; }
-                }
-              elsif( $cond=~ s{^\s*\.([\w-]+)$SEP}{})
-                { # .class
-                  my $class= $1;
-                  push @tests, qq{(\$_[0]->in_class( "$class")) }; 
                 }
               elsif( $cond=~ s{^\s*($REG_NAME_WC?)\s*($REG_PREDICATE)$SEP}{})
                 { my( $gi, $predicate)= ( $1, $2);
@@ -6716,10 +6713,21 @@ sub next_siblings
                           do
                             { if( $pred =~ s{^string\(\s*\)\s*=\s*($REG_STRING)\s*}{}o)  # string()="string" pred
                                 { $test .= "\$_->text eq $1"; }
+                              elsif( $pred =~ s{^string\(\s*\)\s*!=\s*($REG_STRING)\s*}{}o)  # string()!="string" pred
+                                { $test .= "\$_->text ne $1"; }
+                              if( $pred =~ s{^string\(\s*\)\s*=\s*($REG_NUMBER)\s*}{}o)  # string()=<number> pred
+                                { $test .= "\$_->text eq $1"; }
+                              elsif( $pred =~ s{^string\(\s*\)\s*!=\s*($REG_NUMBER)\s*}{}o)  # string()!=<number> pred
+                                { $test .= "\$_->text ne $1"; }
+                              elsif( $pred =~ s{^string\(\s*\)\s*(>|<|>=|<=)\s*($REG_NUMBER)\s*}{}o)  # string()!=<number> pred
+                                { $test .= "\$_->text $1 $2"; }
+
                              elsif( $pred =~ s{^string\(\s*\)\s*($REG_MATCH)\s*($REG_REGEXP)\s*}{}o)  # string()=~/regex/ pred
                                 { my( $match, $regexp)= ($1, $2);
                                   $test .= "\$_->text $match $regexp"; 
                                 }
+                              elsif( $pred =~ s{^string\(\s*\)\s*}{}o)  # string() pred
+                                { $test .= "\$_->text"; }
                              elsif( $pred=~ s{^@($REG_NAME)\s*($REG_OP)\s*($REG_STRING|$REG_NUMBER)}{}o)  # @att="val" pred
                                 { my( $att, $oper, $val)= ($1, _op( $2), $3);
                                   $test .= qq{((defined \$_->{'att'}->{"$att"})  && (\$_->{'att'}->{"$att"} $oper $val))};
@@ -9244,7 +9252,6 @@ sub sort_children_on_value
     my $get_key= \&text;
     return $elt->sort_children( $get_key, @_); 
   }
-
 
 sub sort_children
   { my( $elt, $get_key, %opt)=@_;
