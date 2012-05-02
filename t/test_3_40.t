@@ -11,8 +11,9 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=34;
+my $TMAX=41;
 print "1..$TMAX\n";
+
 
 { my $d="<d><title section='1'>title</title><para>p 1</para> <para>p 2</para></d>";
   is( lf_in_t( XML::Twig->parse( pretty_print => 'indented', discard_spaces => 1, $d)), 1, 'space prevents indentation'); 
@@ -134,6 +135,35 @@ is( $t->sprint, $doc, 'insert first child with no weakrefs');
 $t->root->insert_new_elt( last_child => x => 'text');
 $doc=~ s{</doc>}{<x>text</x></doc>};
 is( $t->sprint, $doc, 'insert last child with no weakrefs');
+XML::Twig::_set_weakrefs(1);
 }
 
-XML::Twig::_set_weakrefs(1);
+{ my $doc= '<d><e a="a" get1="1" id="e1">foo</e><e a="b" id="e2"><e1 id="e11"/>bar</e><e a="b" id="e3"><e2 id="e21"/>bar</e></d>';
+  my( $got1, $got2);
+  XML::Twig->new( twig_handlers => { e1 => sub { $_->parent->set_att( get1 => 1); },
+                                     e2 => sub { $_->parent->set_att( '#get2' => 1); },
+                                     '[@get1]'  => sub { $got1 .= 'a' . $_->id; },
+                                     '[@#get2]' => sub { $got2 .= 'a' . $_->id; },
+                                     'e[@get1]'  => sub { $got1 .= 'b' . $_->id; },
+                                     'e[@#get2]' => sub { $got2 .= 'b' . $_->id; },
+                                   },
+                )
+            ->parse( $doc);
+  is( $got1, 'be1ae1', 'handler on bare attribute');
+  is( $got2, 'be3ae3', 'handler on private (starting with #) bare attribute');
+}
+
+{ my $t=XML::Twig->parse( '<foo><e/>foo<!-- comment --></foo>');
+  my $root= $t->root;
+  ok( $root->closed, 'closed on completely parsed tree'); 
+  ok( $root->_extra_data_before_end_tag, '_extra_data_before_end_tag (success)');
+  nok( $root->first_child->_extra_data_before_end_tag, '_extra_data_before_end_tag (no data)');
+}
+
+{ my $t= XML::Twig->parse( pi => 'process', '<d><?target?></d>');
+  is( $t->first_elt( '#PI')->pi_string, '<?target?>', 'pi_string with empty data');
+}
+
+{ my $t= XML::Twig->parse( '<d><e class="a" id="e1"/><e class="b" id="e2"/><f class="a" id="f1"/></d>');
+  is( join( ':', map { $_->id } $t->root->children( '.a')), 'e1:f1', 'nav on class');
+}
