@@ -11,7 +11,7 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=64;
+my $TMAX=65;
 print "1..$TMAX\n";
 
 
@@ -209,4 +209,28 @@ XML::Twig::_set_weakrefs(1);
   my $expected=qq{<html>\n  <head>\n    <title>foo</title>\n    <script><![CDATA[ a> b]]></script></head>\n  <body id="b1"><!-- test -->\n    <p>foo<b>blank</b></p>\n    <hr />\n    <div /></body></html>};
   XML::Twig::_indent_xhtml( \$d);
   is( $d, $expected, '_indent_xhtml');
+}
+
+{ my $d='<d><e a="a" b="b">c</e></d>';
+  my $got;
+  XML::Twig->parse( twig_handlers => { 
+                                       
+                                       '/d/e[@a="a" or @b="b"]' => sub { $got .= 1; },
+                                       '/d/e[@a="a"]'           => sub { $got .= 2; },
+                                       '/d/e[@b="b"]'           => sub { $got .= 3; },
+                                       '/d/e'                   => sub { $got .= 4; },
+                                       'd/e[@a="a" and @b="b"]' => sub { $got .= 5; },
+                                       'd/e[@a="a"]'            => sub { $got .= 6; },
+                                       'd/e[@b="b"]'            => sub { $got .= 7; },
+                                       'd/e'                    => sub { $got .= 8; },
+                                       'e[@a="a" or @b="b"]'    => sub { $got .= 9; },
+                                       'e[@b="b" or @a="a"]'    => sub { $got .= 10; },
+                                       'e[@a="a"]'              => sub { $got .= 11; },
+                                       'e[@b="b"]'              => sub { $got .= 12; },
+                                        qr/e|f/                 => sub { $got .= 13; },
+                                        qr/e|f|g/                 => sub { $got .= 14; },
+                                       'level(1)'               => sub { $got .= 15; },
+                                     },
+                     $d);
+  is( $got, '123456789101112131415', 'handler order');
 }

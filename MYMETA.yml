@@ -6,9 +6,8 @@ build_requires:
   ExtUtils::MakeMaker: 0
 configure_requires:
   ExtUtils::MakeMaker: 0
-distribution_type: module
 dynamic_config: 0
-generated_by: 'ExtUtils::MakeMaker version 6.57_05'
+generated_by: 'ExtUtils::MakeMaker version 6.50, CPAN::Meta::Converter version 2.112150'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -20,6 +19,4 @@ no_index:
     - inc
 requires:
   XML::Parser: 2.23
-resources:
-  repository: http://github.com/mirod/xmltwig
-version: 3.40
+version: 3.33
