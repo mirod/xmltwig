@@ -1223,16 +1223,20 @@ sub _indent_xhtml
 
     my $level=0;
     $$xhtml=~ s{( (?:<!(?:--.*?-->|[CDATA[.*?]]>)) # ignore comments and CDATA sections
-                  | <(\w+)                        # start tag
-                  |(</\(\w+)                      # end tag 
+                  | <(\w+)((?:\s+\w+\s*=\s*(?:"[^"]*"|'[^']*'))*\s*/>) # empty tag
+                  | <(\w+)                         # start tag
+                  |</(\w+)                         # end tag 
                 )
                }
-               {
-                 if(    $2 && $block_tag{$2})  { my $indent= "  " x $level; 
-                                                 $level++ unless( $2=~ m{/>});
-                                                 "\n$indent<$2"; 
+               { if(    $2 && $block_tag{$2})  { my $indent= "  " x $level;
+                                                 "\n$indent<$2$3"; 
                                                }
-                 elsif( $3  && $block_tag{$3}) { $level--; "</$3"; }
+                 elsif( $4 && $block_tag{$4})  { my $indent= "  " x $level; 
+                                                 $level++ unless( $4=~ m{/>});
+                                                 my $nl= $4 eq 'html' ? '' : "\n";
+                                                 "$nl$indent<$4"; 
+                                               }
+                 elsif( $5  && $block_tag{$5}) { $level--; "</$5"; }
                  else                          { $1; }
                }xesg;
   }

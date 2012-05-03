@@ -11,7 +11,7 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=62;
+my $TMAX=64;
 print "1..$TMAX\n";
 
 
@@ -196,3 +196,17 @@ XML::Twig::_set_weakrefs(1);
   is( ids( $t->root->findnodes( './n[string()<=2]')), 'n1:n2', 'xpath string() <=');
 }
 
+{ my $got;
+  my $t=XML::Twig->parse( twig_handlers => { d => sub { $got .="wrong"; },
+                                             'd[@id]' => sub { $got .= "ok"; 0 },
+                                           },
+                          '<d id="i1"/>'
+                        );
+  is( $got, 'ok', 'returning 0 prevents the next handler to be called');
+} 
+
+{ my $d=q{<html><head><title>foo</title><script><![CDATA[ a> b]]></script></head><body id="b1"><!-- test --><p>foo<b>blank</b></p><hr /><div /></body></html>};
+  my $expected=qq{<html>\n  <head>\n    <title>foo</title>\n    <script><![CDATA[ a> b]]></script></head>\n  <body id="b1"><!-- test -->\n    <p>foo<b>blank</b></p>\n    <hr />\n    <div /></body></html>};
+  XML::Twig::_indent_xhtml( \$d);
+  is( $d, $expected, '_indent_xhtml');
+}
