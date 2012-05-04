@@ -1,10 +1,3 @@
-xXML::Twig->parse( pretty_print => 'indented', discard_all_spaces => 1, $d)->sprint
-x XML::Twig->parse( pretty_print => 'indented', discard_all_spaces => 1, $d)->sprint
-x grep( /\n/, XML::Twig->parse( pretty_print => 'indented', discard_all_spaces => 1, $d)->sprint)
-x XML::Twig->parse( pretty_print => 'indented', discard_all_spaces => 1, $d)->sprint=~m{\n}
-x XML::Twig->parse( pretty_print => 'indented', discard_all_spaces => 1, $d)->sprint=~m{\n}g
-x scalar(XML::Twig->parse( pretty_print => 'indented', discard_all_spaces => 1, $d)->sprint=~m{\n}g)
-x scalar(XML::Twig->parse( pretty_print => 'indented', discard_all_spaces => 1, $d)->sprint=~m{\n})
 x scalar(XML::Twig->parse( pretty_print => 'indented', discard_all_spaces => 1, $d)->sprint=~m{\n}g)
 XML::Twig->parse( pretty_print => 'indented', discard_all_spaces => 1, $d)->sprint=~m{\n}g
 xXML::Twig->parse( pretty_print => 'indented', discard_all_spaces => 1, $d)->sprint=~m{\n}g
@@ -98,3 +91,10 @@ l 1127
 b 1127
 x $att
 x $node->all_attr_names
+b 3125
+x $doctype
+x $update_dtd
+b 3150
+x $doctype_text
+x $t->dtd_text
+x $t->{twig_dtd}

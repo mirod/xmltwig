@@ -11,7 +11,7 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=65;
+my $TMAX=66;
 print "1..$TMAX\n";
 
 
@@ -234,3 +234,9 @@ XML::Twig::_set_weakrefs(1);
                      $d);
   is( $got, '123456789101112131415', 'handler order');
 }
+
+{ my $t=XML::Twig->parse( "<d/>");
+  $t->{twig_dtd}="<!ELEMENT d EMPTY>";
+  is( $t->doctype(UpdateDTD => 1), "<!ELEMENT d EMPTY>\n", 'doctype with an updated DTD');
+}
+

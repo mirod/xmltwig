@@ -3146,7 +3146,7 @@ sub doctype
         elsif( !$t->{'twig_dtd'} && keys %{$t->entity_list}) 
           { $doctype_text .= "<!DOCTYPE " . $t->root->gi . " [\n" . $t->entity_list->text . "\n]>";;}
         else
-          { my $doctype_text= $t->{twig_dtd};
+          { $doctype_text= $t->{twig_dtd};
             $doctype_text .= $t->dtd_text;
           }            
       }
