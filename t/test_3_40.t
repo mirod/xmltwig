@@ -11,7 +11,7 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=66;
+my $TMAX=76;
 print "1..$TMAX\n";
 
 
@@ -212,31 +212,61 @@ XML::Twig::_set_weakrefs(1);
 }
 
 { my $d='<d><e a="a" b="b">c</e></d>';
-  my $got;
-  XML::Twig->parse( twig_handlers => { 
-                                       
-                                       '/d/e[@a="a" or @b="b"]' => sub { $got .= 1; },
-                                       '/d/e[@a="a"]'           => sub { $got .= 2; },
-                                       '/d/e[@b="b"]'           => sub { $got .= 3; },
-                                       '/d/e'                   => sub { $got .= 4; },
-                                       'd/e[@a="a" and @b="b"]' => sub { $got .= 5; },
-                                       'd/e[@a="a"]'            => sub { $got .= 6; },
-                                       'd/e[@b="b"]'            => sub { $got .= 7; },
-                                       'd/e'                    => sub { $got .= 8; },
-                                       'e[@a="a" or @b="b"]'    => sub { $got .= 9; },
-                                       'e[@b="b" or @a="a"]'    => sub { $got .= 10; },
-                                       'e[@a="a"]'              => sub { $got .= 11; },
-                                       'e[@b="b"]'              => sub { $got .= 12; },
-                                        qr/e|f/                 => sub { $got .= 13; },
-                                        qr/e|f|g/                 => sub { $got .= 14; },
-                                       'level(1)'               => sub { $got .= 15; },
-                                     },
-                     $d);
-  is( $got, '123456789101112131415', 'handler order');
+  my @handlers= ( '/d/e[@a="a" or @b="b"]',
+                  '/d/e[@a="a" or @b="c"]|e',
+                  '/d/e[@a="a"]',
+                  '/d/e[@b="b"]',
+                  '/d/e',
+                  'd/e[@a="a" and @b="b"]',
+                  'd/e[@a="a"]',
+                  'd/e[@b="b"]',
+                  'd/e',
+                  'e[@a="a" or @b="b"]',
+                  'e[@b="b" or @a="a"]',
+                  'e[@a="a"]|f',
+                  'e[@b="b"]',
+                  'e',
+                  qr/e|f/,
+                  qr/e|f|g/,
+                  'level(1)',
+                );
+my $got;
+my $i=1;
+XML::Twig->parse( twig_handlers => { map { $_ => sub { $got .= $i++; } } @handlers } , $d);
+my $expected= join '', (1..@handlers);
+  is( $got, $expected, 'handler order');
 }
 
 { my $t=XML::Twig->parse( "<d/>");
   $t->{twig_dtd}="<!ELEMENT d EMPTY>";
   is( $t->doctype(UpdateDTD => 1), "<!ELEMENT d EMPTY>\n", 'doctype with an updated DTD');
+}
+
+{ my $t=XML::Twig->parse( '<d><e id="e1"/><e id="e2"><se id="se1"/><se a="1" id="se2"/></e></d>');
+  $t->elt_accessors( 'e', 'e');
+  $t->elt_accessors( { e2 => 'e[2]', se => 'se', sea => 'se[@a]' });
+  my $root= $t->root;
+  is( $root->e->id, 'e1', 'accessor, no alias, scalar context');
+  my $e2= ($root->e)[-1];
+  is( $e2->id, 'e2', 'accessor no alias, list context');
+  my $e2= $root->e2;
+  is( $e2->id, 'e2', 'accessor alias, list context');
+  is( $e2->se->id, 'se1',  'accessor alias, scalar context');
+  is( $e2->sea->id, 'se2',  'accessor, with complex step, alias, scalar context');
+}
+{ my $t=XML::Twig->new( elt_accessors => [ 'e', 'se' ])
+                 ->parse( '<d><e id="e1"/><e id="e2"><se id="se1"/><se a="1" id="se2"/></e></d>');
+  my $root= $t->root;
+  is( $root->e->id, 'e1', 'accessor (created in new), no alias, scalar context');
+  my $se= ($root->e)[-1]->se;
+  is( $se->id, 'se1', 'accessor (created in new) no alias, scalar context, 2');
+}
+
+{ my $t=XML::Twig->new( elt_accessors =>  { e2 => 'e[2]', se => 'se', sea => 'se[@a]' })
+                 ->parse( '<d><e id="e1"/><e id="e2"><se id="se1"/><se a="1" id="se2"/></e></d>');
+  my $e2= $t->root->e2;
+  is( $e2->id, 'e2', 'accessor (created in new) alias, list context');
+  is( $e2->se->id, 'se1',  'accessor (created in new) alias, scalar context');
+  is( $e2->sea->id, 'se2',  'accessor (created in new), with complex step, alias, scalar context');
 }
 
