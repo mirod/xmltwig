@@ -1,11 +1,3 @@
-x scalar(XML::Twig->parse( pretty_print => 'indented', discard_all_spaces => 1, $d)->sprint=~m{\n}g)
-XML::Twig->parse( pretty_print => 'indented', discard_all_spaces => 1, $d)->sprint=~m{\n}g
-xXML::Twig->parse( pretty_print => 'indented', discard_all_spaces => 1, $d)->sprint=~m{\n}g
-x XML::Twig->parse( pretty_print => 'indented', discard_all_spaces => 1, $d)->sprint=~m{\n}g
-x XML::Twig->parse( pretty_print => 'indented', discard_all_spaces => 1, $d)->sprint=~m{\n}g + 1
-x XML::Twig->parse( pretty_print => 'indented', discard_all_spaces => 1, $d)->sprint=~m{\n}
-x XML::Twig->parse( pretty_print => 'indented', discard_all_spaces => 1, $d)->sprint=~m{\n}g
-@a=XML::Twig->parse( pretty_print => 'indented', discard_all_spaces => 1, $d)->sprint=~m{\n}g
 x @a
 print +@a
 x scalar @a
@@ -98,3 +90,11 @@ b 3150
 x $doctype_text
 x $t->dtd_text
 x $t->{twig_dtd}
+b 253
+b 247
+x $twig_or_class
+x $elt_class
+x %exp_to_alias
+x $alias
+x $alias
+x $alias

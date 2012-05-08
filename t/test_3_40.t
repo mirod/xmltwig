@@ -11,7 +11,7 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=76;
+my $TMAX=94;
 print "1..$TMAX\n";
 
 
@@ -127,15 +127,51 @@ my $t=XML::Twig->new;
 XML::Twig::_set_weakrefs(0);
 my $doc='<doc>\n  <e att="a">text</e><e>text <![CDATA[cdata text]]> more text <e>foo</e>\n more</e></doc>';
 $t->parse( $doc);
+
 $doc=~ s{\n  }{}; # just the first one
 is( $t->sprint, $doc, 'parse with no weakrefs');
+
 $t->root->insert_new_elt( first_child => x => 'text');
 $doc=~ s{<doc>}{<doc><x>text</x>};
 is( $t->sprint, $doc, 'insert first child with no weakrefs');
+
 $t->root->insert_new_elt( last_child => x => 'text');
 $doc=~ s{</doc>}{<x>text</x></doc>};
 is( $t->sprint, $doc, 'insert last child with no weakrefs');
+
+$t->root->wrap_in( 'dd');
+$doc=~ s{<doc>}{<dd><doc>}; $doc=~s{</doc>}{</doc></dd>};
+is( $t->sprint, $doc, 'wrap with no weakrefs');
+
+$t->root->unwrap;
+$doc=~s{</?dd>}{}g;
+is( $t->sprint, $doc, 'unwrap with no weakrefs');
+
+my $new_e= XML::Twig::Elt->new( ee => { c => 1 }, 'ee text');
+$new_e->replace( $t->root->first_child( 'e'));
+$doc=~ s{<e.*?</e>}{<ee c="1">ee text</ee>};
+is( $t->sprint, $doc, 'replace with no weakrefs');
+
 XML::Twig::_set_weakrefs(1);
+
+}
+
+{ 
+my $t= XML::Twig->new( no_expand => 1);
+XML::Twig::_set_weakrefs(0);
+my $doc='<!DOCTYPE d [<!ENTITY foo SYSTEM "foo.xml"><!ENTITY bar SYSTEM "bar.xml">]><d a="foo"> bar &bar; bar<e/><f>&bar;</f><f>&foo; <e/>&bar; bar &foo;</f><e/>&bar; na &foo;<e/></d>';
+$t->parse( $doc);
+(my $got= $t->sprint)=~ s{\n}{}g;
+is( $got, $doc, 'external entities without weakrefs');
+
+XML::Twig::_set_weakrefs(1);
+}
+
+{ 
+  XML::Twig::_set_weakrefs(0);
+  { my $t= XML::Twig->new; undef $t; } 
+  ok( 1, "DESTROY doesn't crash when weakrefs is off");
+  XML::Twig::_set_weakrefs(1);
 }
 
 { my $doc= '<d><e a="a" get1="1" id="e1">foo</e><e a="b" id="e2"><e1 id="e11"/>bar</e><e a="b" id="e3"><e2 id="e21"/>bar</e></d>';
@@ -249,7 +285,7 @@ my $expected= join '', (1..@handlers);
   is( $root->e->id, 'e1', 'accessor, no alias, scalar context');
   my $e2= ($root->e)[-1];
   is( $e2->id, 'e2', 'accessor no alias, list context');
-  my $e2= $root->e2;
+  $e2= $root->e2;
   is( $e2->id, 'e2', 'accessor alias, list context');
   is( $e2->se->id, 'se1',  'accessor alias, scalar context');
   is( $e2->sea->id, 'se2',  'accessor, with complex step, alias, scalar context');
@@ -270,3 +306,44 @@ my $expected= join '', (1..@handlers);
   is( $e2->sea->id, 'se2',  'accessor (created in new), with complex step, alias, scalar context');
 }
 
+{ my $doc= '<?xml version="1.0"?><!DOCTYPE d [<!ENTITY foo SYSTEM "foo.xml">]><d/>';
+  my $t= XML::Twig->parse( do_not_output_DTD => 1, $doc);
+  is( $t->sprint, qq{<?xml version="1.0"?>\n<d/>}, 'do_not_output_DTD');
+}
+
+{ my $t= XML::Twig->parse( no_prolog => 1, '<?xml version="1.0"?><!DOCTYPE d [<!ENTITY foo SYSTEM "foo.xml">]><d/>');
+  is( $t->sprint, qq{<d/>}, 'no_prolog');
+}
+
+{ my $t= XML::Twig->parse( '<?xml version="1.0"?><!DOCTYPE d [<!ENTITY foo SYSTEM "foo.xml">]><d/>');
+  is( $t->sprint, qq{<?xml version="1.0"?>\n<!DOCTYPE d [\n<!ENTITY foo SYSTEM "foo.xml">\n]>\n<d/>}, 'no_prolog');
+}
+
+{ my $e= XML::Twig::Elt->new( 'e');
+  $e->set_empty;
+  is( $e->sprint, '<e/>', 'set_empty with no value');
+  $e->set_empty( 0);
+  is( $e->sprint, '<e></e>', 'set_empty(0)');
+  $e->set_empty;
+  is( $e->sprint, '<e/>', 'set_empty with no value');
+  $e->set_empty( 1);
+  is( $e->sprint, '<e/>', 'set_empty(1');
+  $e->set_empty;
+  is( $e->sprint, '<e/>', 'set_empty with no value');
+  $e->set_empty( 1);
+  is( $e->sprint, '<e/>', 'set_empty(1)');
+  my $e2= XML::Twig::Elt->parse( '<e></e>');
+  $e2->set_not_empty();
+  is( $e2->sprint, '<e></e>', 'set_not_empty');
+
+  ok( ! $e2->closed, 'closed on an orphan elt');
+}
+
+{ my $t= XML::Twig->parse( '<d a="d"><l1><l2 a="l2"><l3><l4/></l3></l2></l1></d>');
+  my $l2= $t->first_elt( 'l2');
+  my $l4= $t->first_elt( 'l4');
+  $l2->cut;
+  $l4->cut;
+  is( $l4->_root_through_cut->tag, 'd', '_root_through_cut');
+  is( $l4->_inherit_att_through_cut( 'a', 'd'), 'd', '_inherit_att_through_cut');
+}

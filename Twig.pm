@@ -676,7 +676,7 @@ sub new
     if( my $tdh= $args{TopDownHandlers}) { $self->{twig_tdh}=1; delete $args{TopDownHandlers}; }
 
     if( my $acc_a= $args{AttAccessors})   { $self->att_accessors( @$acc_a);  }
-    if( my $acc_e= $args{EltAccessors})   { $self->elt_accessors( @$acc_e);   }
+    if( my $acc_e= $args{EltAccessors})   { $self->elt_accessors( isa( $acc_e, 'ARRAY') ? @$acc_e : $acc_e);   }
     if( my $acc_f= $args{FieldAccessors}) { $self->field_accessors( @$acc_f); }
 
     if( $args{UseTidy}) { $self->{use_tidy}= 1; }
@@ -3466,21 +3466,23 @@ sub elt_accessors
     my $elt_class= ref $twig_or_class ? $twig_or_class->{twig_elt_class}
                                       : 'XML::Twig::Elt'
                                       ;
+
+    # if arg is a hash ref, it's exp => name, otherwise it's a list of tags
+    my %exp_to_alias= ref( $_[0]) && isa( $_[0], 'HASH') ? %{$_[0]}
+                                                         : map { $_ => $_ } @_;
     ## no critic (TestingAndDebugging::ProhibitNoStrict);
     no strict 'refs';
-    foreach my $exp (@_)
-      { _croak( "attempt to redefine existing method $exp using elt_accessors")
-          if( $elt_class->can( $exp) && !$accessor{$exp});
+    while( my( $alias, $exp)= each %exp_to_alias )
+      { if( $elt_class->can( $alias) && !$accessor{$alias})
+          { _croak( "attempt to redefine existing method $alias using elt_accessors"); }
 
-        if( !$accessor{$exp})
-          { *{"$elt_class\::$exp"}= 
+        if( !$accessor{$alias})
+          { *{"$elt_class\::$alias"}= 
                 sub
                   { my $elt= shift;
-                    my $child= $elt->first_child( $exp);
-                    if( @_) { $child= $_[0]; }
-                    $child;
+                    return wantarray ? $elt->children( $exp) : $elt->first_child( $exp);
                   };
-            $accessor{$exp}=1;
+            $accessor{$alias}=1;
           }                                            
       }
     return $twig_or_class;
@@ -3814,7 +3816,7 @@ sub dispose
   
 sub DESTROY
   { my $t= shift;
-    if( $t->{twig_root} && isa(  $t->{twig_root}, 'XML::Twig')) 
+    if( $t->{twig_root} && isa(  $t->{twig_root}, 'XML::Twig::Elt')) 
       { $t->{twig_root}->delete } 
 
     # added to break circular references
@@ -5644,7 +5646,7 @@ sub set_parent
 sub parent
   { my $elt= shift;
     my $cond= shift || return $elt->{parent};
-    do { $elt= $elt->{parent} || return; } until (!$elt || $elt->passes( $cond));
+    do { $elt= $elt->{parent} || return; } until ( $elt->passes( $cond));
     return $elt;
   }
 
@@ -9010,7 +9012,8 @@ sub wrap_in
           { # wrapping the root
             my $twig= $elt->twig;
             if( $twig && $twig->root && ($twig->root eq $elt) )
-              { $twig->{twig_root}= $new_elt; }
+              { $twig->set_root( $new_elt); 
+              }
           }
 
         if( my $prev_sibling= $elt->{prev_sibling})
@@ -10561,34 +10564,6 @@ It takes a reference to either a list of triggering expressions or to a hash
 name => expression, and for each one generates the list of elements that 
 match the expression. The list can be accessed through the C<L<index>> method.
 
-=item att_accessors <list of attribute names>
-
-creates methods that give direct access to attribute:
-
-  my $t= XML::Twig->new( att_accessors => [ 'href', 'src'])
-                  ->parsefile( $file);
-  my $first href= $t->first_elt( 'img')->src; # same as ->att( 'src')
-  $t->first_elt( 'img')->src( 'new_logo.png') # changes the attribute value
-
-=item elt_accessors
-
-creates methods that give direct access to the first child element:
-
-  my $t=  XML::Twig->new( elt_accessors => [ 'head'])
-                  ->parsefile( $file);
-  my $title_text= $t->root->head->field( 'title');
-  # same as $title_text= $t->root->first_child( 'head')->field( 'title');
-
-=item field_accessors
-
-creates methods that give direct access to the first child element text:
-
-  my $t=  XML::Twig->new( field_accessors => [ 'h1'])
-                  ->parsefile( $file);
-  my $div_title_text= $t->first_elt( 'div')->title;
-  # same as $title_text= $t->first_elt( 'div')->field( 'title');
-
-
 example:
 
   # using an array ref
@@ -10606,6 +10581,42 @@ example:
 Note that the index is not maintained after the parsing. If elements are 
 deleted, renamed or otherwise hurt during processing, the index is NOT updated.
 (changing the id element OTOH will update the index)
+
+=item att_accessors <list of attribute names>
+
+creates methods that give direct access to attribute:
+
+  my $t= XML::Twig->new( att_accessors => [ 'href', 'src'])
+                  ->parsefile( $file);
+  my $first href= $t->first_elt( 'img')->src; # same as ->att( 'src')
+  $t->first_elt( 'img')->src( 'new_logo.png') # changes the attribute value
+
+=item elt_accessors
+
+creates methods that give direct access to the first child element (in scalar context) 
+or the list of elements (in list context):
+
+the list of accessors to create can be given 1 2 different ways: in an array, 
+or in a hash alias => expression
+  my $t=  XML::Twig->new( elt_accessors => [ 'head'])
+                  ->parsefile( $file);
+  my $title_text= $t->root->head->field( 'title');
+  # same as $title_text= $t->root->first_child( 'head')->field( 'title');
+
+  my $t=  XML::Twig->new( elt_accessors => { warnings => 'p[@class="warning"]', d2 => 'div[2]', )
+                  ->parsefile( $file);
+  my $body= $t->first_elt( 'body');
+  my @warnings= $body->warnings; # same as $body->children( 'p[@class="warning"]');
+  my $s2= $body->d2;             # same as $body->first_child( 'div[2]')
+
+=item field_accessors
+
+creates methods that give direct access to the first child element text:
+
+  my $t=  XML::Twig->new( field_accessors => [ 'h1'])
+                  ->parsefile( $file);
+  my $div_title_text= $t->first_elt( 'div')->title;
+  # same as $title_text= $t->first_elt( 'div')->field( 'title');
 
 =item use_tidy
 

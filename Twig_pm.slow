@@ -3817,7 +3817,7 @@ sub dispose
   
 sub DESTROY
   { my $t= shift;
-    if( $t->{twig_root} && isa(  $t->{twig_root}, 'XML::Twig')) 
+    if( $t->{twig_root} && isa(  $t->{twig_root}, 'XML::Twig::Elt')) 
       { $t->{twig_root}->delete } 
 
     # added to break circular references
@@ -5647,7 +5647,7 @@ sub set_parent
 sub parent
   { my $elt= shift;
     my $cond= shift || return $elt->_parent;
-    do { $elt= $elt->_parent || return; } until (!$elt || $elt->passes( $cond));
+    do { $elt= $elt->_parent || return; } until ( $elt->passes( $cond));
     return $elt;
   }
 
@@ -9014,7 +9014,8 @@ sub wrap_in
           { # wrapping the root
             my $twig= $elt->twig;
             if( $twig && $twig->root && ($twig->root eq $elt) )
-              { $twig->{twig_root}= $new_elt; }
+              { $twig->set_root( $new_elt); 
+              }
           }
 
         if( my $prev_sibling= $elt->_prev_sibling)

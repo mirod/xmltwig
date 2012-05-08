@@ -1265,8 +1265,8 @@ sub rot13 { $_[0]=~ tr/a-z/n-za-m/; $_[0]; }
       $t->root->toSAX1( $writer);
       is( normalize_xml( $writer->end_document), $doc, 'root toSAX1');# test 360
 
-      my $doc_flush="<doc><p>p 1</p><add/><p/><p>text<flush/> more text</p></doc>";
-      my $doc_flushed=qq{<?xml version="1.0" encoding="UTF-8"?><doc><p>p 1</p><add/><g>a</g><p/><p>text<flush/> more text</p></doc>};
+      my $doc_flush='<!DOCTYPE doc [<!ENTITY foo "bar">]><doc><p>p 1</p><add/><p/><p>text<flush/> more text &foo; </p></doc>';
+      my $doc_flushed=qq{<?xml version="1.0" encoding="UTF-8"?><doc><p>p 1</p><add/><g>a</g><p/><p>text<flush/> more text bar </p></doc>};
       $writer = XML::Handler::YAWriter->new( AsString => 1, Pretty => { CatchEmptyElement => 1 });
       $writer->start_document;
 
