@@ -2,7 +2,7 @@ $Id: /xmltwig/trunk/Changes 33 2008-04-30T08:03:41.004487Z mrodrigu  $
 
 CHANGES
 version 3.40
-date:
+date: 2012-05-10
 # minor maintenance release
 added: support for alternations ('|') at the top level of handler
        triggers and navigation
