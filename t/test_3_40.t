@@ -11,7 +11,7 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=94;
+my $TMAX=96;
 print "1..$TMAX\n";
 
 
@@ -266,11 +266,16 @@ XML::Twig::_set_weakrefs(1);
                   qr/e|f|g/,
                   'level(1)',
                 );
-my $got;
-my $i=1;
-XML::Twig->parse( twig_handlers => { map { $_ => sub { $got .= $i++; } } @handlers } , $d);
-my $expected= join '', (1..@handlers);
-  is( $got, $expected, 'handler order');
+my $t= XML::Twig->new();
+
+for my $stem ( 1, 100)
+  { my $i= $stem;
+    my $expected= join '', ($stem..$stem+$#handlers);
+    my $got;
+    $t->setTwigHandlers( { map { $_ => sub { $got .= $i++; } } @handlers });
+    $t->parse( $d);
+    is( $got, $expected, 'handler order');
+  }
 }
 
 { my $t=XML::Twig->parse( "<d/>");
@@ -346,4 +351,8 @@ my $expected= join '', (1..@handlers);
   $l4->cut;
   is( $l4->_root_through_cut->tag, 'd', '_root_through_cut');
   is( $l4->_inherit_att_through_cut( 'a', 'd'), 'd', '_inherit_att_through_cut');
+}
+
+{ my $s= "foo";
+  is( XML::Twig::_to_utf8( 'iso-8859-1', $s), $s, 'trivial test of _to_utf8'); 
 }

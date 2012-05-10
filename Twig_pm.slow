@@ -1414,7 +1414,7 @@ sub _twig_stop_storing_internal_dtd
     if( @saved_default_handler && defined $saved_default_handler[1])
       { $p->setHandlers( @saved_default_handler); }
     else
-      { my $t= $p->{twig};
+      { 
         $p->setHandlers( Default => undef);
       }
     $p->{twig}->{twig_doctype}->{internal}=~ s{^\s*\[}{};

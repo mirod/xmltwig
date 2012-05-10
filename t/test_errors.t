@@ -14,7 +14,7 @@ use tools;
 
 use XML::Twig;
 
-my $TMAX=117; 
+my $TMAX=118; 
 print "1..$TMAX\n";
 
 my $error_file= File::Spec->catfile('t','test_errors.errors');
@@ -84,25 +84,28 @@ my $init_warn= $SIG{__WARN__};
 }
 
 { eval {XML::Twig->new( keep_spaces => 1, discard_spaces => 1 )};
-  matches( $@, "cannot use both keep_spaces and discard_spaces", "invalid option combination 1");
+  matches( $@, "cannot use both keep_spaces and discard_spaces", "invalid option combination keep_spaces and discard_spaces");
   eval {XML::Twig->new( keep_spaces => 1, discard_all_spaces => 1 )};
-  matches( $@, "cannot use both keep_spaces and discard_all_spaces", "invalid option combination 2");
+  matches( $@, "cannot use both keep_spaces and discard_all_spaces", "invalid option combination keep_spaces and discard_all_spaces");
   eval {XML::Twig->new( keep_spaces => 1, keep_spaces_in => ['p'])};
-  matches( $@, "cannot use both keep_spaces and keep_spaces_in", "invalid option combination 3");
+  matches( $@, "cannot use both keep_spaces and keep_spaces_in", "invalid option combination keep_spaces and keep_spaces_in");
   eval {XML::Twig->new( discard_spaces => 1, discard_all_spaces => 1)};
-  matches( $@, "cannot use both discard_spaces and discard_all_spaces", "invalid option combination 4");
+  matches( $@, "cannot use both discard_spaces and discard_all_spaces", "invalid option combination discard_spaces and discard_all_spaces");
   eval {XML::Twig->new( discard_spaces => 1, keep_spaces_in => ['p'])};
-  matches( $@, "cannot use both discard_spaces and keep_spaces_in", "invalid option combination 5");
+  matches( $@, "cannot use both discard_spaces and keep_spaces_in", "invalid option combination discard_spaces and keep_spaces_in");
   eval {XML::Twig->new( keep_spaces_in => [ 'doc' ], discard_spaces_in => ['p'])};
-  matches( $@, "cannot use both keep_spaces_in and discard_spaces_in", "invalid option combination 6");
+  matches( $@, "cannot use both keep_spaces_in and discard_spaces_in", "invalid option combination keep_spaces_in and discard_spaces_in");
   eval {XML::Twig->new( discard_spaces => 1, discard_spaces_in => ['p'])};
-  matches( $@, "cannot use both discard_spaces and discard_spaces_in", "invalid option combination 7");
+  matches( $@, "cannot use both discard_spaces and discard_spaces_in", "invalid option combination discard_spaces and discard_spaces_in");
   eval {XML::Twig->new( keep_spaces_in => [ 'doc' ], discard_all_spaces => 1)};
-  matches( $@, "cannot use both keep_spaces_in and discard_all_spaces", "invalid option combination 8");
+  matches( $@, "cannot use both keep_spaces_in and discard_all_spaces", "invalid option combination keep_spaces_in and discard_all_spaces");
+  eval {XML::Twig->new( discard_all_spaces => 1, discard_spaces_in => ['p'])};
+  matches( $@, "cannot use both discard_all_spaces and discard_spaces_in", "invalid option combination discard_all_spaces and discard_spaces_in");
   eval {XML::Twig->new( comments => 'wrong') };
   matches( $@, "wrong value for comments argument: 'wrong'", "invalid option value for comment");
   eval {XML::Twig->new( pi => 'wrong') };
   matches( $@, "wrong value for pi argument: 'wrong'", "invalid option value for pi");
+
 }
 
 { my $t=XML::Twig->new->parse( '<doc><p> p1</p><p>p 2</p></doc>');
