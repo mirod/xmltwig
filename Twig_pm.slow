@@ -120,7 +120,7 @@ my $SEP= qr/\s*(?:$|\|)/;
 
 BEGIN
 { 
-$VERSION = '3.40';
+$VERSION = '3.41';
 
 use XML::Parser;
 my $needVersion = '2.23';
@@ -1467,13 +1467,12 @@ sub _set_handler
         || _set_xpath_handler           ( $handlers, $path, $handler, $prev_handler)
         || croak "unrecognized expression in handler: '$whole_path'";
     
+        # this both takes care of the simple (gi) handlers and store
+        # the handler code reference for other handlers
         $handlers->{handlers}->{string}->{$path}= $handler;
       }
 
     if( $cpath) { croak "unrecognized expression in handler: '$whole_path'"; }
-
-    # this both takes care of the simple (gi) handlers and store
-    # the handler code reference for other handlers
 
     return $prev_handler;
   }
@@ -1963,15 +1962,15 @@ sub _add_or_discard_stored_spaces
         else
           { my $current_gi= $current->gi;
 
-            if( $t->{twig_discard_all_spaces}) { $t->{twig_stored_spaces}=''; return; }
+            if( ! $t->{twig_discard_all_spaces}) 
+              { if( ! defined( $t->{twig_space_policy}->{$current_gi}))
+                  { $t->{twig_space_policy}->{$current_gi}= _space_policy( $t, $current_gi); }
 
-            if( ! defined( $t->{twig_space_policy}->{$current_gi}))
-              { $t->{twig_space_policy}->{$current_gi}= _space_policy( $t, $current_gi); }
-
-            if(    $t->{twig_space_policy}->{$current_gi} ||  ($t->{twig_stored_spaces}!~ m{\n})
-                || $t->{twig_preserve_space}
-              )
-              { _insert_pcdata( $t, $t->{twig_stored_spaces} ); }
+                if(    $t->{twig_space_policy}->{$current_gi} ||  ($t->{twig_stored_spaces}!~ m{\n})
+                    || $t->{twig_preserve_space}
+                  )
+                  { _insert_pcdata( $t, $t->{twig_stored_spaces} ); }
+              }
             $t->{twig_stored_spaces}='';
 
           }
@@ -6828,8 +6827,17 @@ sub cut
   { my $elt= shift;
     my( $parent, $prev_sibling, $next_sibling, $last_elt);
 
-    # you can't cut the root, sorry
-    unless( $parent= $elt->_parent) { return; }
+    $parent=  $elt->_parent;
+    if( ! $parent)
+      { # are we cutting the root?
+        my $t= $elt->twig;
+        if( $t && $t->root == $elt)
+          { $t->set_root( undef);
+            return $elt;
+          }  # cutting the root
+        else
+          { return;  }  # cutting an orphan, returning $elt would break backward compatibility
+      }
 
     # save the old links, that'll make it easier for some loops
     foreach my $link ( qw(parent prev_sibling next_sibling) )
@@ -9390,7 +9398,7 @@ sub _dump
         if( $elt->is_pcdata)
           { $dump .= "$indent|-PCDATA:  '"  . _short_text( $elt->pcdata, $short_text) . "'\n" }
         elsif( $elt->is_ent)
-          { warn "here"; $dump .= "$indent|-ENTITY:  '" . _short_text( $elt->ent, $short_text) . "'\n" }
+          { $dump .= "$indent|-ENTITY:  '" . _short_text( $elt->ent, $short_text) . "'\n" }
         elsif( $elt->is_cdata)
           { $dump .= "$indent|-CDATA:   '" . _short_text( $elt->cdata, $short_text) . "'\n" }
         elsif( $elt->is_comment)

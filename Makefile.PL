@@ -28,16 +28,66 @@ else
           "    'perl Makefile.PL -n' to skip installation\n";
     foreach my $prompt (@prompts)
       { my ($program, $default, $description) = @$prompt;
-        if( prompt("Do you want to install '$program' ($description)?", $default) =~ /^y/)
+        if( prompt("Do you want to install '$program' ($description)?", $default) =~ /^y/i)
           { push(@programs, $program); }
       }
   }
 
-WriteMakefile1(
+MyWriteMakefile(
     META_MERGE => {
       resources => {
         repository => 'http://github.com/mirod/xmltwig',
       },
+    },
+    META_ADD => {
+      prereqs => {
+        build => {
+         requires => {
+            'ExtUtils::MakeMaker' => "0",
+         }
+      },
+      configure => {
+         requires => {
+            'ExtUtils::MakeMaker' => "0",
+         }
+      },
+
+          test => {
+            recommends => {
+              'Test'                     =>    '1.25_02',
+              'IO::Scalar'               =>    '2.110',
+              'IO::CaptureOutput'        =>    '1.1102',
+      
+            },
+            suggests => {
+              'Test::Pod'                =>    '1.45',
+              'XML::Simple'              =>    '2.18',
+              'XML::Handler::YAWriter'   =>    '0.23',
+              'XML::SAX::Writer'         =>    '0.53',
+              'XML::Filter::BufferText'  =>    '1.01',
+            },
+          },
+          
+          runtime => {
+            requires => {
+              'XML::Parser'              =>    '2.23',
+            },
+            recommends => {
+              'Scalar::Util'             =>    '1.23',
+              'Encode'                   =>    '2.42_01',
+              'XML::XPathEngine'         =>    '0.13',
+            },
+            suggests => {
+              'LWP'                      =>    '6.04',
+              'HTML::TreeBuilder'        =>    '4.2',
+              'HTML::Entities::Numbered' =>    '0.04',
+              'HTML::Tidy'               =>    '1.50',
+              'HTML::Entities'           =>    '3.69',
+              'Tie::IxHash'              =>    '1.22',
+              'Text::Wrap'               => '2009.0305',
+            },
+          }
+        }
     },
     #BUILD_REQUIRES => {
     #},
@@ -58,7 +108,7 @@ WriteMakefile1(
 );
 
 
-sub WriteMakefile1 {  #Written by Alexandr Ciornii, version 0.21. Added by eumm-upgrade.
+sub MyWriteMakefile {  #Written by Alexandr Ciornii, version 0.21. Added by eumm-upgrade.
   my %params=@_;
   my $eumm_version=$ExtUtils::MakeMaker::VERSION;
   $eumm_version=eval $eumm_version;
@@ -79,5 +129,38 @@ sub WriteMakefile1 {  #Written by Alexandr Ciornii, version 0.21. Added by eumm-
   delete $params{BINARY_LOCATION} if $] < 5.005;
 
   WriteMakefile(%params);
+
+  add_prereqs_to_mymeta( $params{META_ADD}->{prereqs});
 }
 
+sub add_prereqs_to_mymeta
+  { my $prereqs= shift;
+
+    my $MYJSON= 'MYMETA.json';
+    my $MYYAML= 'MYMETA.yml';
+    my $JSON  = 'META.json';
+
+    if( eval { require JSON; })
+      { my $json= JSON->new()->pretty->canonical;
+        my $meta= $json->decode( slurp( $MYJSON));
+        $meta->{prereqs}= $prereqs;
+        spit( $JSON, $json->encode( $meta));
+        warn "updated prereqs in $JSON\n";
+      }
+  }
+
+
+sub slurp
+  { my( $file)= @_;
+    my $in;
+    open( $in, "<$file") or return ''; # can't use fancy open so this works in 5.005
+    local undef $/;
+    return <$in>;
+  }
+
+sub spit
+  { my $file= shift;
+    my $out;
+    open( $out, ">$file") or ( warn "cannot update $file: $!" && return);
+    print {$out} @_;
+  }

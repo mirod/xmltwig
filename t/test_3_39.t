@@ -56,10 +56,12 @@ is( $t->sprint, '<d><x class="foo">foo</x> b<a class="ar">ar</a> <x class="fooo"
 
   my $t= XML::Twig->new->parse( $well_formed);
   is_like( $t->sprint, $well_formed, 'valid xhtml');
-  my $th= XML::Twig->new->parse_html( $well_formed);
-  is_like( $t->sprint, $well_formed, 'valid xhtml (parsed as html)');
-
-  
+  if( _use( 'HTML::TreeBuilder'))
+    { my $th= XML::Twig->new->parse_html( $well_formed);
+      is_like( $t->sprint, $well_formed, 'valid xhtml (parsed as html)');
+    }
+  else
+    { skip( 1); }
 
   my $t2= XML::Twig->new->safe_parse( $short_doctype);
   nok( $t2, 'xhtml without SYSTEM in DOCTYPE');

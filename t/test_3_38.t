@@ -105,17 +105,17 @@ is( $t->first_elt( '_foo')->id, 'foo', 'navigation, element name starts with und
 is( $t->first_elt( '*[@_a="2"]')->id, 'bar', 'navigation, attribute name starts with underscore'); 
 }
 
-{ if( _use( 'LWP'))
+{ if( _use( 'LWP') && _use( 'HTML::TreeBuilder') )
     { my $html=q{<html><body><h1>Title</h1><p>foo<br>bar</p>};
       my $expected= qq{<html><head></head><body><h1>Title</h1><p>foo<br />bar</p></body></html>};
  
       my $html_file= "t/test_3_38.html";
       spit( $html_file, $html);
       is( scrub_xhtml( XML::Twig->new( )->parseurl_html( "file:$html_file")->sprint), $expected, 'parseurl_html');
-      #unlink $html_file;
+      unlink $html_file;
     }
   else
-    { skip( 1, "LWP not available, cannot test safe_parseurl_html"); }
+    { skip( 1, "LWP and/or HTML::TreeBuilder not available, cannot test safe_parseurl_html"); }
 
 
 }
