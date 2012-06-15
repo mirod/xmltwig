@@ -5,6 +5,7 @@ my $PRIVATE   = join( '|', qw( parent first_child last_child prev_sibling next_s
                                extra_data_in_pcdata extra_data_before_end_tag
                              )
                     ); # _$private is inlined
+my $FORMER    = join( '|', qw( parent prev_sibling next_sibling)); # former_$former is inlined
 my $SET_FIELD = join( '|', qw( first_child next_sibling ent data pctarget comment flushed));
 my $SET_NOT_EMPTY= join( '|', qw( pcdata cdata)); # set the field and mark as not empty
 
@@ -45,6 +46,8 @@ while( <>)
     s/$var->($FIELD)\b(?!\()/$1\->\{$2\}/g;
     #s/$var->_($PRIVATE)\b(?!\()/$1\->\{$2\}/g;
     s/$var->_($PRIVATE)\b(\s*\(\s*\))?(?!\s*\()/$1\->\{$2\}/g;
+
+    s{($elt)->former_($FORMER)}{($1\->{former} && $1\->{former}\->{$2})}g;
 
     s{($elt)->set_(parent|prev_sibling)\(\s*($set_to)\s*\)}{$1\->{$2}=$3; if( \$XML::Twig::weakrefs) { weaken( $1\->{$2});} }g;
     s{($elt)->set_(first_child)\(\s*($set_to)\s*\)}{ $1\->set_not_empty; $1\->{$2}=$3; }g;
