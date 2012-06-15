@@ -139,7 +139,9 @@ sub add_prereqs_to_mymeta
     my $MYJSON= 'MYMETA.json';
     my $MYYAML= 'MYMETA.yml';
     my $JSON  = 'META.json';
+    my $YAML  = 'META.yml';
 
+    rename $MYYAML, $YAML;
     if( eval { require JSON; })
       { my $json= JSON->new()->pretty->canonical;
         my $meta= $json->decode( slurp( $MYJSON));
@@ -147,6 +149,7 @@ sub add_prereqs_to_mymeta
         spit( $JSON, $json->encode( $meta));
         warn "updated prereqs in $JSON\n";
       }
+
   }
 
 
