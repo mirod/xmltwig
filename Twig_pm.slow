@@ -1939,7 +1939,7 @@ sub _reset_twig
     delete $t->{twig_stored_space};
     delete $t->{twig_entity_list};
     $t->root->delete if( $t->root);
-    delete $t->{root};
+    delete $t->{twig_root};
     return $t;
   }
 
@@ -2214,8 +2214,10 @@ sub _parse_start_tag
 sub set_root
   { my( $t, $elt)= @_;
     $t->{twig_root}= $elt;
-    $elt->{twig}= $t;
-    if( $weakrefs) { weaken(  $elt->{twig}); }
+    if( $elt)
+      { $elt->{twig}= $t;
+        if( $weakrefs) { weaken(  $elt->{twig}); }
+      }
     return $t;
   }
 
@@ -2667,7 +2669,7 @@ sub _twig_final
         push @args,  @{$t->{twig_autoflush_data}->{args}} if( $t->{twig_autoflush_data}->{args});
         $t->flush( @args);
         delete $t->{twig_autoflush_data};
-        $t->root->delete;
+        $t->root->delete if $t->root;
       }
 
     # tries to clean-up (probably not very well at the moment)
@@ -3362,7 +3364,7 @@ sub sprint
       
     my $string=   $t->prolog( %args)       # xml declaration and doctype
                 . $t->_leading_cpi( %args) # leading comments and pi's in 'process' mode
-                . $t->{twig_root}->sprint  
+                . ( ($t->{twig_root} && $t->{twig_root}->sprint) || '')
                 . $t->_trailing_cpi        # trailing comments and pi's (elements, in 'process' mode)
                 . $t->_trailing_cpi_text   # trailing comments and pi's (in 'keep' mode)
                 ;
@@ -6830,11 +6832,12 @@ sub cut
     $parent=  $elt->_parent;
     if( ! $parent)
       { # are we cutting the root?
-        my $t= $elt->twig;
-        if( $t && $t->root == $elt)
-          { $t->set_root( undef);
+         my $t= $elt->{twig};
+        if( $t && $t->{twig_root} == $elt && ! $t->{twig_parsing})
+          { delete $t->{twig_root}; 
+            delete $elt->{twig};
             return $elt;
-          }  # cutting the root
+          }  # cutt`ing the root
         else
           { return;  }  # cutting an orphan, returning $elt would break backward compatibility
       }
