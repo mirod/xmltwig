@@ -70,7 +70,7 @@ print "1..$TMAX\n";
   XML::Twig::Elt::init_global_state();
   my $with_dneaia=XML::Twig->new(do_not_escape_amp_in_atts => 1)->parse( $doc)->root->sprint;
   if( $with_dneaia eq '<doc att="Mnchen"><elt att=""/><elt att="A&amp;E">&ent3;</elt></doc>')
-    { skip( 1, "option do_not_escape_amp_in_atts not available, no worries"); }
+    { skip( 1, "option do_not_escape_amp_in_atts not available (it's only available in an old version of expat), no worries"); }
   else
     { is( $with_dneaia => $text, "entities in atts with do_not_escape_amp_in_atts"); }
     
