@@ -3,11 +3,16 @@
 use strict;
 use Config;
 
+use Carp;
 
-my $DEBUG=0;
-if( grep { m{^-d$} } @ARGV) { $DEBUG=1; warn "debug!\n"; }
 
-if( grep /^-v$/, @ARGV) { $DEBUG= 1; }
+use vars qw/$TDEBUG $TFATAL/;
+
+BEGIN
+  { 
+    if( grep { m{-[f]*[dv][f]*} }  @ARGV) { $TDEBUG=1; warn "debug!\n"; }
+    if( grep { m{-[dv]*f[dv]*\b} } @ARGV) { $TFATAL= 1; warn "fatal!\n";}
+  }
 
 { my $test_nb;
   BEGIN { $test_nb=0; }
@@ -17,7 +22,7 @@ if( grep /^-v$/, @ARGV) { $DEBUG= 1; }
 
       if( ( !defined( $expected) && !defined( $got) ) || ($expected eq $got) ) 
         { print "ok $test_nb";
-          print " $message" if( $DEBUG);
+          print " $message" if( $TDEBUG);
           print "\n";
           return 1;
         }
@@ -27,6 +32,7 @@ if( grep /^-v$/, @ARGV) { $DEBUG= 1; }
             { warn "$message:\nexpected: '$expected'\ngot     : '$got'\n"; }
           else
             { warn "$message: expected '$expected', got '$got'\n"; }
+          croak if $TFATAL;
           return 0;
         }
     }
@@ -37,7 +43,7 @@ if( grep /^-v$/, @ARGV) { $DEBUG= 1; }
 
       if( $expected ne $got) 
         { print "ok $test_nb";
-          print " $message" if( $DEBUG);
+          print " $message" if( $TDEBUG);
           print "\n"; 
           return 1;
         }
@@ -47,6 +53,7 @@ if( grep /^-v$/, @ARGV) { $DEBUG= 1; }
             { warn "$message:\ngot     : '$got'\n"; }
           else
             { warn "$message: got '$got'\n"; }
+          croak if $TFATAL;
           return 0;
         }
     }
@@ -59,12 +66,13 @@ if( grep /^-v$/, @ARGV) { $DEBUG= 1; }
 
       if( $got=~ /$expected_regexp/) 
         { print "ok $test_nb"; 
-          print " $message" if( $DEBUG);
+          print " $message" if( $TDEBUG);
           print "\n"; 
           return 1;
         }
       else { print "not ok $test_nb\n"; 
              warn "$message: expected to match /$expected_regexp/, got '$got'\n";
+             croak if $TFATAL;
              return 0;
            }
     }
@@ -75,13 +83,14 @@ if( grep /^-v$/, @ARGV) { $DEBUG= 1; }
 
       if( $cond)
         { print "ok $test_nb"; 
-          print " $message" if( $DEBUG); 
+          print " $message" if( $TDEBUG); 
           print "\n";
           return 1;
         }
       else 
         { print "not ok $test_nb\n"; 
           warn "$message: false\n"; 
+          croak if $TFATAL;
           return 0;
         }
     }
@@ -92,13 +101,14 @@ if( grep /^-v$/, @ARGV) { $DEBUG= 1; }
 
       if( !$cond)
         { print "ok $test_nb"; 
-          print " $message" if( $DEBUG); 
+          print " $message" if( $TDEBUG); 
           print "\n";
           return 1;
         }
       else 
         { print "not ok $test_nb\n"; 
           warn "$message: true (should be false): '$cond'\n"; 
+          croak if $TFATAL;
           return 0;
         }
     }
@@ -109,13 +119,14 @@ if( grep /^-v$/, @ARGV) { $DEBUG= 1; }
 
       if( ! defined( $cond)) 
         { print "ok $test_nb"; 
-          print "$message" if( $DEBUG); 
+          print "$message" if( $TDEBUG); 
           print "\n";
           return 1;
         }
       else 
         { print "not ok $test_nb\n";
           warn "$message is defined: '$cond'\n"; 
+          croak if $TFATAL;
           return 0;
         }
     }
@@ -127,7 +138,7 @@ if( grep /^-v$/, @ARGV) { $DEBUG= 1; }
       my $status= system join " ", @_, "2>$devnull";
       if( !$status)
         { print "ok $test_nb"; 
-          print " $message" if( $DEBUG); 
+          print " $message" if( $TDEBUG); 
           print "\n";
         }
       else { print "not ok $test_nb\n"; warn "$message: $!\n"; }
@@ -140,7 +151,7 @@ if( grep /^-v$/, @ARGV) { $DEBUG= 1; }
       my $status= system join " ", @_, "2>$devnull";
       if( $status)
         { print "ok $test_nb"; 
-          print " $message" if( $DEBUG); 
+          print " $message" if( $TDEBUG); 
           print "\n";
         }
       else { print "not ok $test_nb\n"; warn "$message: $!\n"; }
@@ -155,7 +166,7 @@ if( grep /^-v$/, @ARGV) { $DEBUG= 1; }
 
       if( clean_sp( $expected) eq clean_sp( $got)) 
         { print "ok $test_nb";
-          print " $message" if( $DEBUG); 
+          print " $message" if( $TDEBUG); 
           print "\n";
           return 1;
         }
@@ -167,6 +178,7 @@ if( grep /^-v$/, @ARGV) { $DEBUG= 1; }
             { warn "$message: expected '$expected', got '$got'\n"; }
           warn "compact expected: ", clean_sp( $expected), "\n",
                "compact got:      ", clean_sp( $got), "\n";  
+          croak if $TFATAL;
           return 0;
         }
     }
@@ -312,7 +324,7 @@ my %seen_message;
         }
       for my $test ( ($test_nb + 1) .. ($test_nb + $nb_skip))
         { print "ok $test\n";
-          warn "skipping $test ($message)\n" if( $DEBUG); 
+          warn "skipping $test ($message)\n" if( $TDEBUG); 
         }
       $test_nb= $test_nb + $nb_skip;
       return 1;
@@ -372,7 +384,7 @@ sub _use
                                   my $mversion= ${"${module}::VERSION"};
                                   $mversion=~ s{^\s*(\d+\.\d+).*}{$1}; # trim version numbers like 2.42_01 
                                   if( $mversion >= $version ) { return 1; }
-                                  else                        { return 0; }
+                                  else                        { croak if $TFATAL; return 0; }
                                 }
   }
 
@@ -385,7 +397,7 @@ sub perl_io_layer_used
   { if( $] >= 5.008)
       { return eval '${^UNICODE} & 24'; } # in a eval to pass tests in 5.005
     else
-      { return 0; }
+      { croak if $TFATAL; return 0; }
   }
 
 # slurp and discard locale errors
