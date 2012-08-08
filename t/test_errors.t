@@ -14,7 +14,7 @@ use tools;
 
 use XML::Twig;
 
-my $TMAX=118; 
+my $TMAX=119; 
 print "1..$TMAX\n";
 
 my $error_file= File::Spec->catfile('t','test_errors.errors');
@@ -330,6 +330,11 @@ my $init_warn= $SIG{__WARN__};
 
   eval { $e1->paste_after( $e2); };
   matches( $@, "cannot paste after an orphan element", 'paste after an orphan element' );
+}
+
+{ my $r=  XML::Twig->parse( '<doc/>')->root;
+  eval { $r->find_nodes( '//foo/following::') };
+  matches( $@, "error in xpath expression", 'error in xpath expression');
 }
 
 exit 0;

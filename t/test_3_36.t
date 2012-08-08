@@ -113,6 +113,9 @@ my $NS= 'xmlns="http://www.w3.org/1999/xhtml"';
   elsif( !XML::Twig::_use( 'LWP'))
     { skip( 4 => "need LWP to use set_inner_html method");
     }
+  elsif( !XML::Twig::_use( 'HTML::TreeBuilder'))
+    { skip( 4 => "need LWP to use set_inner_html method");
+    }
   else
     {
       my $doc= '<html><head><title>a title</title></head><body>par 1<p>par 2<br>after the break</body></html>';
@@ -310,9 +313,11 @@ my $NS= 'xmlns="http://www.w3.org/1999/xhtml"';
      );
 }
 
-{ XML::Twig::_set_debug_handler( 3);
+{ 
+  XML::Twig::_set_debug_handler( 3);
   XML::Twig->new( twig_handlers => { 'foo[@a="bar"]' => sub { $_->att( 'a')++; } });
-  is( XML::Twig::_return_debug_handler(), q#
+  my $expected=<<'EXPECTED';
+
 
 parsing path 'foo[@a="bar"]'
 predicate is: '@a="bar"'
@@ -324,24 +329,30 @@ my( $stack)= @_;
 my @current_elts= (scalar @$stack); 
 my @new_current_elts;               
 my $elt;                            
-warn q{checking path 'foo\[\@a=\"bar\"\]'
+warn q{checking path 'foo[@a="bar"]'
 };
 foreach my $current_elt (@current_elts)              
   { next if( !$current_elt);                         
     $current_elt--;                                  
     $elt= $stack->[$current_elt];                    
-    if( ($elt->{_tag} eq "foo") && $elt->{'a'} eq "bar") { push @new_current_elts, $current_elt;} 
+    if( ($elt->{'##tag'} eq "foo") && $elt->{'a'} eq "bar") { push @new_current_elts, $current_elt;} 
   }                                                  
-unless( @new_current_elts) { warn qq%fail at cond '($elt->{_tag} eq "foo") && $elt->{'a'} eq "bar"'%;
+unless( @new_current_elts) { warn qq%fail at cond '($elt->{'##tag'} eq "foo") && $elt->{'a'} eq "bar"'%;
  return 0; } 
 @current_elts= @new_current_elts;           
 @new_current_elts=();                       
-warn "handler for 'foo\[\@a=\"bar\"\]' triggered\n";
+warn "handler for 'foo[@a="bar"]' triggered\n";
 return q{foo[@a="bar"]};
 
 last tag: 'foo', test_on_text: '0'
 score: anchored: 0 predicates: 3 steps: 1 type: 3
-#, 'handler content');
+EXPECTED
+
+my $got=  XML::Twig::_return_debug_handler();
+$got=~ s{\\}{}g;
+$expected=~ s{\\}{}g;
+
+  is( $got, $expected, 'handler content');
   XML::Twig::_set_debug_handler( 0);
 }
 
