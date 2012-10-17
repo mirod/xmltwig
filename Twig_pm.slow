@@ -124,7 +124,7 @@ my $SEP= qr/\s*(?:$|\|)/;
 
 BEGIN
 { 
-$VERSION = '3.41';
+$VERSION = '3.42';
 
 use XML::Parser;
 my $needVersion = '2.23';
@@ -681,7 +681,7 @@ sub new
 
     if( my $acc_a= $args{AttAccessors})   { $self->att_accessors( @$acc_a);  }
     if( my $acc_e= $args{EltAccessors})   { $self->elt_accessors( isa( $acc_e, 'ARRAY') ? @$acc_e : $acc_e);   }
-    if( my $acc_f= $args{FieldAccessors}) { $self->field_accessors( @$acc_f); }
+    if( my $acc_f= $args{FieldAccessors}) { $self->field_accessors( isa( $acc_f, 'ARRAY') ? @$acc_f : $acc_f); }
 
     if( $args{UseTidy}) { $self->{use_tidy}= 1; }
     $self->{tidy_options}= $args{TidyOptions} || {};
@@ -3519,26 +3519,26 @@ sub field_accessors
     my $elt_class= ref $twig_or_class ? $twig_or_class->{twig_elt_class}
                                       : 'XML::Twig::Elt'
                                       ;
+    my %exp_to_alias= ref( $_[0]) && isa( $_[0], 'HASH') ? %{$_[0]}
+                                                         : map { $_ => $_ } @_;
+
     ## no critic (TestingAndDebugging::ProhibitNoStrict);
     no strict 'refs';
-    foreach my $exp (@_)
-      { _croak( "attempt to redefine existing method $exp using field_accessors")
-          if( $elt_class->can( $exp) && !$accessor{$exp});
-
-        if( !$accessor{$exp})                                
-          { *{"$elt_class\::$exp"}=                          
+    while( my( $alias, $exp)= each %exp_to_alias )
+      { if( $elt_class->can( $alias) && !$accessor{$alias})
+          { _croak( "attempt to redefine existing method $exp using field_accessors"); }
+        if( !$accessor{$alias})                                
+          { *{"$elt_class\::$alias"}=                          
                 sub                                          
                   { my $elt= shift;                          
                     $elt->field( $exp)                       
                   };                                         
-            $accessor{$exp}=1;                               
+            $accessor{$alias}=1;                               
           }                                                  
       }
     return $twig_or_class;
   }
 }
-
-
 
 sub first_elt
   { my( $t, $cond)= @_;
@@ -9508,11 +9508,13 @@ Huge documents (processed in combined stream/tree mode):
     pretty_print => 'indented',                # output will be nicely formatted
     empty_tags   => 'html',                    # outputs <empty_tag />
                          );
-    $twig->flush;                              # flush the end of the document
+  $twig->parsefile( 'my_big.xml');
 
 See L<XML::Twig 101|/XML::Twig 101> for other ways to use the module, as a 
 filter for example.
 
+
+=encoding utf8
 
 =head1 DESCRIPTION
 
@@ -9594,8 +9596,6 @@ relevant element has been parsed.
                           },
                        );
   $t->parsefile( 'doc.xml');
-  $t->flush; # don't forget to flush one last time in the end or anything
-             # after the last </section> tag will not be output 
 
   # the handler is called once a section is completely parsed, ie when 
   # the end tag for section is found, it receives the twig itself and
@@ -11059,6 +11059,9 @@ one more time to print the end of the document.
 The doctype and entity declarations are also printed.
 
 flush take an optional filehandle as an argument.
+
+If you use C<flush> at any point during parsing, the document will be flushed
+one last time at the end of the parsing, to the proper filehandle.
 
 options: use the C<update_DTD> option if you have updated the (internal) DTD 
 and/or the entity list and you want the updated DTD to be output 
@@ -13542,14 +13545,11 @@ If you need to modify the entity list this is probably the easiest way to do it.
 
 =head2 Flush
 
-If you set handlers and use C<flush>, do not forget to flush the twig one
-last time AFTER the parsing, or you might be missing the end of the document.
-
 Remember that element handlers are called when the element is CLOSED, so
 if you have handlers for nested elements the inner handlers will be called
 first. It makes it for example trickier than it would seem to number nested
-clauses.
-
+sections (or clauses, or divs), as the titles in the inner sections are handled
+before the outer sections.
 
 
 =head1 BUGS
