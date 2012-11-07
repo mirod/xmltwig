@@ -1,6 +1,18 @@
-$Id: /xmltwig/trunk/Changes 33 2008-04-30T08:03:41.004487Z mrodrigu  $
-
 CHANGES
+
+version 3.42
+date: 2012-11-06
+# minor maintenance release
+fixed: bug, elements created with XML::Twig::Elt->parse were 
+       garbage collected too early, 
+       see http://stackoverflow.com/questions/13263193/xmltwig-changes-erased
+added: some tests
+
+version 3.41
+date 2012-08-08
+# minor maintenance release
+fixed: META.json generation
+
 version 3.40
 date: 2012-05-10
 # minor maintenance release

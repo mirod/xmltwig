@@ -4963,6 +4963,8 @@ sub parse
     delete $elt->{twig};         # get rid of the twig data
     delete $elt->{twig_current}; # better get rid of this too
     if( $t->{twig_id_list}) { $elt->{twig_id_list}= $t->{twig_id_list}; }
+    $elt->cut; 
+    undef $t->{twig_root};
     return $elt;
   }
    
