@@ -144,10 +144,11 @@ sub add_prereqs_to_mymeta
     rename $MYYAML, $YAML;
     if( eval { require JSON; })
       { my $json= JSON->new()->pretty->canonical;
-        my $meta= $json->decode( slurp( -s $MYJSON ?  $MYJSON : $JSON ));
-        $meta->{prereqs}= $prereqs;
-        spit( $JSON, $json->encode( $meta));
-        warn "updated prereqs in $JSON\n";
+        if( my $meta= eval { $json->decode( slurp( -s $MYJSON ?  $MYJSON : $JSON )); })
+          { $meta->{prereqs}= $prereqs;
+            spit( $JSON, $json->encode( $meta));
+            warn "updated prereqs in $JSON\n";
+          }
       }
 
   }
