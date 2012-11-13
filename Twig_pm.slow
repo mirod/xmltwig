@@ -124,7 +124,7 @@ my $SEP= qr/\s*(?:$|\|)/;
 
 BEGIN
 { 
-$VERSION = '3.42';
+$VERSION = '3.43';
 
 use XML::Parser;
 my $needVersion = '2.23';
@@ -1572,7 +1572,7 @@ sub _set_regexp_handler
       { return 0; }
   }
 
-my $DEBUG_HANDLER= 0; # 0 or 1 (output the handler checking code) or 2 (super verbose)
+my $DEBUG_HANDLER= 1; # 0 or 1 (output the handler checking code) or 2 (super verbose)
 my $handler_string;   # store the handler itself
 sub _set_debug_handler    { $DEBUG_HANDLER= shift; }
 sub _warn_debug_handler   { if( $DEBUG_HANDLER < 3) { warn @_; } else { $handler_string .= join( '', @_); } }
