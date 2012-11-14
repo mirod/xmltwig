@@ -186,6 +186,7 @@ $BUFSIZE = 32768;
 $XML::Twig::SPECIAL_GI= @XML::Twig::index2gi;
 
 %XML::Twig::base_ent= ( '>' => '&gt;', '<' => '&lt;', '&' => '&amp;', "'" => '&apos;', '"' => '&quot;',);
+foreach my $c ( "\n", "\r", "\t") { $XML::Twig::base_ent{$c}= sprintf( "&#x%02x;", ord( $c)); }
 
 # now set some aliases
 *find_nodes           = *get_xpath;               # same as XML::XPath
@@ -1572,7 +1573,7 @@ sub _set_regexp_handler
       { return 0; }
   }
 
-my $DEBUG_HANDLER= 1; # 0 or 1 (output the handler checking code) or 2 (super verbose)
+my $DEBUG_HANDLER= 0; # 0 or 1 (output the handler checking code) or 2 (super verbose)
 my $handler_string;   # store the handler itself
 sub _set_debug_handler    { $DEBUG_HANDLER= shift; }
 sub _warn_debug_handler   { if( $DEBUG_HANDLER < 3) { warn @_; } else { $handler_string .= join( '', @_); } }
@@ -8124,7 +8125,7 @@ BEGIN {
                   :                       ' '
                   ;
 
-      my $replace_in_att_value= $replaced_ents . $quote;
+      my $replace_in_att_value= $replaced_ents . "$quote\t\r\n";
       if( $option->{escape_gt} && $replaced_ents !~ m{>}) { $replace_in_att_value.= '>'; }
 
       my $tag;
@@ -8535,7 +8536,7 @@ sub print_to_file
         { 
           if( ! $elt->_extra_data_in_pcdata)
             { 
-              $string=~ s/([$replaced_ents])/$XML::Twig::base_ent{$1}/g unless( $keep_encoding || $elt->{asis});  
+              $string=~ s/([$replaced_ents])/$XML::Twig::base_ent{$1}/g unless( !$replaced_ents || $keep_encoding || $elt->{asis});  
               $string=~ s{\Q]]>}{]]&gt;}g;
             }
           else
@@ -8600,7 +8601,7 @@ sub print_to_file
     { my $elt= shift;
       my $att= shift;
 
-      my $replace= $replaced_ents . $quote;
+      my $replace= $replaced_ents . "$quote\n\r\t";
       if($_[0] && $_[0]->{escape_gt} && ($replace!~ m{>}) ) { $replace .='>'; }
 
       if( defined (my $string= $elt->{att}->{$att}))
@@ -10699,6 +10700,14 @@ If this method is called as a class method
 created, using the parameters except the last one (eg 
 C<< XML::Twig->parse( pretty_print => 'indented', $some_xml_or_html) >>)
 and C<L<xparse>> is called on it.
+
+Note that when parsing a filehandle, the handle should NOT be open with an 
+encoding (ie open with C<open( my $in, '<', $filename)>. The file will be
+parsed by C<expat>, so specifying the encoding actually causes problems
+for the parser (as in: it can crash it, see
+https://rt.cpan.org/Ticket/Display.html?id=78877). For parsing a file it
+is actually recommended to use C<parsefile> on the file name, instead of
+<parse> on the open file.
 
 =item parsestring
 
