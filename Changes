@@ -3,6 +3,13 @@ CHANGES
 version 3.43
 date
 # minor maintenance release
+improved: docs for parse, see RT #78877
+       https://rt.cpan.org/Ticket/Display.html?id=78877
+fixed:    xml_pp -i now preserves the permissions of the
+       original file, see RT #81165
+       https://rt.cpan.org/Ticket/Display.html?id=81165 
+       reported by Alberto Simoes
+
 
 version 3.42
 date: 2012-11-06

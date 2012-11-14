@@ -57,11 +57,13 @@ if( @ARGV)
 
             if( $opt{in_place})
               { close PP_OUTPUT;
+                my $mode= mode( $file);
                 if( $opt{backup})  
                   { my $backup= backup( $file, $opt{backup});
                     rename( $file, $backup) or die "cannot create backup file $backup: $!"; 
                   }
                 rename( $tempfile, $file) or die "cannot overwrite file $file: $!";
+                if( $mode ne mode( $file)) { chmod $mode, $file or die "cannot set $file mode to $mode: $!"; }
               }
 
           }
@@ -78,7 +80,12 @@ else
     if( $opt{load}) { $t->print; }
   }
 
-  
+ 
+sub mode
+  { my( $file)= @_;
+    return (stat($file))[2];
+  }
+ 
 sub process_options
   { my %opt; 
     while( @ARGV && ($ARGV[0]=~ m{^-}) )
