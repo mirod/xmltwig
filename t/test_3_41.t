@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use XML::Twig;
-use Test::More tests => 14;
+use Test::More tests => 16;
 
 
 {
@@ -75,3 +75,57 @@ is( XML::Twig->parse( '<?xml version="1.0"?><d/>')->standalone, undef, 'standalo
 ok( XML::Twig->parse( '<?xml version="1.0" standalone="yes"?><d/>')->standalone, 'standalone, yes');
 ok( ! XML::Twig->parse( '<?xml version="1.0" standalone="no"?><d/>')->standalone, 'standalone, no');
 
+{
+  XML::Twig::_set_weakrefs(0);
+  my $t= XML::Twig->parse( '<d><e/><e><f/><f/></e><e/></d>');
+  $t->root->first_child( 'e')->next_sibling( 'e')->erase;
+  is( $t->sprint, '<d><e/><f/><f/><e/></d>', 'erase without weakrefs');
+  XML::Twig::_set_weakrefs(1)
+}
+
+{
+my $doc='<ns1:list xmlns:ns1="http://namespace/CommandService" xmlns:ns2="http://namespace/ShelfService" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <commands>
+    <commandId>1</commandId>
+    <command xsi:type="ns2:find">
+      <equipmentFilter>...</equipmentFilter>
+    </command>
+  </commands>
+  <commands>
+    <commandId>2</commandId>
+    <command xsi:type="ns2:getByName">
+      <name>...</name>
+    </command>
+  </commands>
+</ns1:list>
+';
+
+my $expected= $doc;
+$expected=~ s{ns1}{cmdsvc}g;
+$expected=~ s{ns2}{shlsvc}g;
+
+my %map= reverse ( cmdsvc => "http://namespace/CommandService",
+                   shlsvc => "http://namespace/ShelfService",
+                   xsi    => "http://www.w3.org/2001/XMLSchema-instance",
+                 );
+
+my $x = XML::Twig->new( map_xmlns => { %map }, 
+                        twig_handlers => { '*[@xsi:type]' => sub { upd_xsi_type( @_, \%map) } },
+                        pretty_print => "indented"
+                      );
+$x->parse($doc);
+
+is( $x->sprint, $expected, 'original_uri');
+
+sub upd_xsi_type
+  { my( $t, $elt, $map)= @_;
+    my $type= $elt->att( 'xsi:type');
+    my( $old_prefix)= $type=~ m{^([^:]*):}; 
+    if( my $new_prefix=  $map->{$t->original_uri( $old_prefix)})
+      { $type=~ s{^$old_prefix}{$new_prefix}; 
+        $elt->set_att( 'xsi:type' => $type);
+      }
+    return 1; # to make sure other handlers are called
+  }
+    
+}
