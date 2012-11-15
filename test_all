@@ -1,0 +1,11 @@
+#!/usr/bin/perl
+
+system "make clean && perl Makefile.PL -n && make && make test";
+system "./cover_twig " if $ARGV[0] eq '-c';
+
+# missing: 'perl-5.6.2',  'threaded-perl-5.12.3'
+foreach my $perl ( 'perl-5.17.5', 'perl-5.16.1', 'perl-5.14.3', 'perl-5.12.5', 'perl-5.10.1', 'perl-5.8.9', 'threaded-perl-5.12.3')
+  { system "perlbrew switch $perl && make clean && perl Makefile.PL -n && make && make test"; 
+    system "./cover_twig -i" if $ARGV[0] eq '-c';
+  }
+
