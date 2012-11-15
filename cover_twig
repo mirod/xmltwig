@@ -4,7 +4,7 @@ use warnings;
 
 use Getopt::Std;
 my %opt;
-getopts( 'vrh', \%opt);
+getopts( 'ivrh', \%opt);
 
 my $run=<<RUN;
 TEST_AUTHOR=1 TEST_COVER=1 HARNESS_PERL_SWITCHES=-MDevel::Cover make test
@@ -12,7 +12,7 @@ cover
 cover -report text > cover_report.txt
 RUN
 
-unless( @ARGV) 
+if( ! $opt{i} && ! @ARGV) 
   { system "cover -delete; $run"; exit; }
 
 if( @ARGV)
@@ -31,7 +31,8 @@ __END__
 
 =head1 OPTIONS
 
-  -r reset (delete) the coverage DB
+  -r reset (delete) the coverage DB ¡DEFAULT!
+  -i incremental: do not delete the coverage db
 
 =head1 EXAMPLES
 
