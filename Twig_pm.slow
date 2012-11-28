@@ -5215,8 +5215,16 @@ sub set_pcdata
 sub _extra_data_in_pcdata      { return $_[0]->{extra_data_in_pcdata}; }
 sub _set_extra_data_in_pcdata  { $_[0]->{extra_data_in_pcdata}= $_[1]; return $_[0]; }
 sub _del_extra_data_in_pcdata  { delete $_[0]->{extra_data_in_pcdata}; return $_[0]; }
-sub _unshift_extra_data_in_pcdata { unshift @{shift()->{extra_data_in_pcdata}}, { text => shift(), offset => shift() }; }
-sub _push_extra_data_in_pcdata    { push @{shift()->{extra_data_in_pcdata}},    { text => shift(), offset => shift() }; }
+sub _unshift_extra_data_in_pcdata 
+    { my $e= shift;
+      $e->{extra_data_in_pcdata}||=[];
+      unshift @{$e->{extra_data_in_pcdata}}, { text => shift(), offset => shift() };
+    }
+sub _push_extra_data_in_pcdata    
+  { my $e= shift; 
+    $e->{extra_data_in_pcdata}||=[]; 
+    push @{$e->{extra_data_in_pcdata}}, { text => shift(), offset => shift() }; 
+  }
 
 sub _extra_data_before_end_tag     { return $_[0]->{extra_data_before_end_tag} || ''; }
 sub _set_extra_data_before_end_tag { $_[0]->{extra_data_before_end_tag}= $_[1]; return $_[0]}
@@ -7705,18 +7713,6 @@ sub merge_text
 
     $e1->set_text( $text1 . $text2);
 
-    my $extra_data= $e1->_extra_data_before_end_tag . $e2->extra_data;
-    if( $extra_data) 
-      { $e1->_del_extra_data_before_end_tag;
-        $e1->_push_extra_data_in_pcdata( $extra_data, length( $text1)); 
-      }
-
-    if( $extra_data= $e2->_extra_data_in_pcdata)
-      { foreach my $data (@$extra_data) { $e1->_push_extra_data_in_pcdata( $data->{text}, $data->{offset} + length( $text1)); } }
-
-    if( my $extra_data_before_end_tag= $e2->_extra_data_before_end_tag) 
-      { $e1->_set_extra_data_before_end_tag( $extra_data_before_end_tag); }
-
     $e2->delete;
 
     return $e1;
@@ -7728,8 +7724,27 @@ sub merge
     if(     $e1->_last_child && $e1->_last_child->is_pcdata
         &&  @e2_children && $e2_children[0]->is_pcdata
       )
-      { $e1->_last_child->{pcdata} .= $e2_children[0]->{pcdata}; shift @e2_children; }
+      { my $t1_length= length( $e1->_last_child->{pcdata});
+        my $child1= $e1->_last_child; 
+        my $child2= shift @e2_children; 
+        $child1->{pcdata} .= $child2->{pcdata}; 
+
+        my $extra_data= $e1->_extra_data_before_end_tag . $e2->extra_data;
+
+        if( $extra_data) 
+          { $e1->_del_extra_data_before_end_tag;
+            $child1->_push_extra_data_in_pcdata( $extra_data, $t1_length); 
+          }
+
+        if( my $extra_data_in_pcdata= $child2->_extra_data_in_pcdata)
+          { foreach my $data (@$extra_data_in_pcdata) { $child1->_push_extra_data_in_pcdata( $data->{text}, $data->{offset} + $t1_length); } }
+
+        if( my $extra_data_before_end_tag= $e2->_extra_data_before_end_tag) 
+          { $e1->_set_extra_data_before_end_tag( $extra_data_before_end_tag); }
+      }
+
     foreach my $e (@e2_children) { $e->move( last_child => $e1); } 
+
     $e2->delete;
     return $e1;
   }
@@ -9091,6 +9106,9 @@ sub replace
         if( $parent->_first_child == $ref) { $parent->set_first_child( $elt); }
         if( $parent->_last_child == $ref)  { $parent->set_last_child( $elt) ; }
       }
+    elsif( $ref->twig && $ref == $ref->twig->root)
+      { $ref->twig->set_root( $elt); }
+
     if( my $prev_sibling= $ref->_prev_sibling)
       { $elt->set_prev_sibling( $prev_sibling);
         $prev_sibling->set_next_sibling( $elt);
@@ -9142,7 +9160,8 @@ sub prefix
       }
     else
       { my $new_elt= $elt->_new_pcdata( $prefix);
-        $new_elt->paste( $elt);
+        my $pos= $elt->is_pcdata ? 'before' : 'first_child';
+        $new_elt->paste( $pos => $elt);
         if( $asis) { $new_elt->set_asis; }
       }
     return $elt;
@@ -9163,7 +9182,8 @@ sub suffix
       { $elt->_last_child->set_pcdata( $elt->_last_child->pcdata . $suffix); }
     else
       { my $new_elt= $elt->_new_pcdata( $suffix);
-        $new_elt->paste( 'last_child', $elt);
+        my $pos= $elt->is_pcdata ? 'after' : 'last_child';
+        $new_elt->paste( $pos => $elt);
         if( $asis) { $new_elt->set_asis; }
       }
     return $elt;

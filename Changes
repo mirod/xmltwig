@@ -3,7 +3,9 @@ CHANGES
 version 3.44
 date
 # minor maintenance release
+fixed: merge had some problems dealing with embedded comments
 improved: more tests
+
 
 version 3.43
 date
