@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use XML::Twig;
-use Test::More tests => 35;
+use Test::More tests => 38;
 
 
 { my $e= XML::Twig::Elt->new( 'foo');
@@ -114,3 +114,12 @@ use Test::More tests => 35;
   is( $r->children_count, 1, 'merged p, one with mixed content');
   is( $t->sprint, '<d><p>foobaz<b>bar</b></p></d>', 'merged p with extra children in the second element');
 }
+
+{ my $t= XML::Twig->parse( '<d/>');
+  my $r= $t->root;
+  $r->insert_new_elt( first_child => '#PCDATA') foreach 0..1;
+  is( $r->children_count, 2, '2 empty texts');
+  $r->first_child->merge(  $r->last_child);
+  is( $r->children_count, 1, 'merged empty texts, number of children');
+  is( $t->sprint, '<d></d>', 'merged empty texts');
+} 

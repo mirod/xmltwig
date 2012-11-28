@@ -7708,10 +7708,12 @@ sub merge_text
     croak "invalid merge: can only merge 2 text elements" 
         unless( $e1->is_text && $e2->is_text && ($e1->gi eq $e2->gi));
 
-    my $text1= $e1->text; if( ! defined $text1) { $text1= ''; }
-    my $text2= $e2->text; if( ! defined $text2) { $text2= ''; }
+    my $t1_length= length( $e1->text);
 
-    $e1->set_text( $text1 . $text2);
+    $e1->set_text( $e1->text . $e2->text);
+
+    if( my $extra_data_in_pcdata= $e2->_extra_data_in_pcdata)
+      { foreach my $data (@$extra_data_in_pcdata) { $e1->_push_extra_data_in_pcdata( $data->{text}, $data->{offset} + $t1_length); } }
 
     $e2->delete;
 
