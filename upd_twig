@@ -58,6 +58,8 @@ fill_updated_time( index_updated => "$MIRROR_DIR/index.html");
 system qq{~/bin/apply_template -v xmltwig/}; # update local version of the web site
 system qq{~/bin/rsync_web};                  # update live web site
 
+warn "now:\ngit push origin master\n";
+
 sub mtime
   { warn "testing time for '$_[0]'\n"; return stat( $_[0])->mtime; }
 

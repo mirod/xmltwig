@@ -1961,24 +1961,24 @@ sub _add_or_discard_stored_spaces
     $t->{twig_right_after_root}=0; #XX
 
     my $current= $t->{twig_current} or return; # ugly hack, with ignore on, twig_current can disappear 
-    if( $t->{twig_stored_spaces} || $t->{twig_preserve_space})
-      { if( $current->is_pcdata)
-          { $current->append_pcdata($t->{twig_stored_spaces}); }
-        else
-          { my $current_gi= $current->gi;
+    return unless length $t->{twig_stored_spaces};
+    if( $current->is_pcdata)
+      { $current->append_pcdata($t->{twig_stored_spaces}); }
+    else
+      { my $current_gi= $current->gi;
 
-            if( ! $t->{twig_discard_all_spaces}) 
-              { if( ! defined( $t->{twig_space_policy}->{$current_gi}))
-                  { $t->{twig_space_policy}->{$current_gi}= _space_policy( $t, $current_gi); }
+        if( ! $t->{twig_discard_all_spaces}) 
+          { if( ! defined( $t->{twig_space_policy}->{$current_gi}))
+              { $t->{twig_space_policy}->{$current_gi}= _space_policy( $t, $current_gi); }
 
-                if(    $t->{twig_space_policy}->{$current_gi} ||  ($t->{twig_stored_spaces}!~ m{\n})
-                    || $t->{twig_preserve_space}
-                  )
-                  { _insert_pcdata( $t, $t->{twig_stored_spaces} ); }
-              }
-            $t->{twig_stored_spaces}='';
-
+            if(    $t->{twig_space_policy}->{$current_gi} 
+                || ($t->{twig_stored_spaces}!~ m{\n})
+                || $t->{twig_preserve_space}
+              )
+              { _insert_pcdata( $t, $t->{twig_stored_spaces} ); }
           }
+        $t->{twig_stored_spaces}='';
+
       }
     return;
   }
@@ -7617,6 +7617,9 @@ sub _repl_match
   
       my $replacement_string;
       my $is_string= _is_string( $replace);
+
+      my @parents;
+
       foreach my $text_elt ($elt->descendants_or_self( $TEXT))
         { 
           if( $is_string)
@@ -7638,28 +7641,19 @@ sub _repl_match
                   my $match_length = length( $match_string);
                   my $post_match   = $match->split_at( $match_length); 
                   $replace_sub->( $match, @var);
-                  # merge previous text with current one
-                  my $next_sibling;
-                  if(    ($next_sibling= $text_elt->_next_sibling)
-                      && ($text_elt->gi eq $next_sibling->gi)
-                    )
-                    { $text_elt->merge_text( $next_sibling); }
-                    
-                  # if the match is at the beginning of the text an empty #PCDATA is left: remove it 
-                  if( !$text_elt->text) { $text_elt->delete; } 
-                  
+
                   # go to next 
                   $text_elt= $post_match;
                   $text= $post_match->text;
 
-                  # if the match is at the end of the text an empty #PCDATA is left: remove it 
-                  if( !$text_elt->text) { $text_elt->delete; } 
-                  
+                  if( $found_hit) { push @parents, $text_elt->parent unless $parents[-1] && $parents[-1]== $text_elt->parent; }
+
                 }
-              if( $found_hit) { $text_elt->normalize; } # in case consecutive #PCDATA have been created 
-              
             }
         }
+
+      foreach my $parent (@parents) { $parent->normalize; }
+
       return $elt;
     }
 
@@ -8741,10 +8735,10 @@ sub normalize
   { my( $elt)= @_;
     my @descendants= $elt->descendants( $PCDATA);
     while( my $desc= shift @descendants)
-      { while( @descendants && $desc->_next_sibling && $desc->_next_sibling== $descendants[0])
+      { if( ! length $desc->{pcdata}) { $desc->delete; next; }
+        while( @descendants && $desc->_next_sibling && $desc->_next_sibling== $descendants[0])
           { my $to_merge= shift @descendants;
-            $desc->{pcdata}.= $to_merge->{pcdata};
-            $to_merge->delete;
+            $desc->merge_text( $to_merge);
           }
       }
     return $elt;

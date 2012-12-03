@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use XML::Twig;
-use Test::More tests => 38;
+use Test::More tests => 52;
 
 
 { my $e= XML::Twig::Elt->new( 'foo');
@@ -123,3 +123,55 @@ use Test::More tests => 38;
   is( $r->children_count, 1, 'merged empty texts, number of children');
   is( $t->sprint, '<d></d>', 'merged empty texts');
 } 
+
+{  my $t= XML::Twig->parse( '<d>a foo a<e/>foo<g>bar</g></d>');
+   my $c=$t->root->copy->subs_text( qr/(foo)/, '&elt( e => "$1")');
+   is( $c->sprint, '<d>a <e>foo</e> a<e/><e>foo</e><g>bar</g></d>', 'subs_text');
+   $c=$t->root->copy->subs_text( qr/(foo)/, 'X &elt( e => "$1") X');
+   is( $c->sprint, '<d>a X <e>foo</e> X a<e/>X <e>foo</e> X<g>bar</g></d>', 'subs_text');
+   $c=$t->root->copy->subs_text( qr/(foo)/, 'X &elt( e => "Y $1 Y") X');
+   is( $c->sprint, '<d>a X <e>Y foo Y</e> X a<e/>X <e>Y foo Y</e> X<g>bar</g></d>', 'subs_text');
+   $c->subs_text( qr/(foo)/, 'X &elt( e => "Y $1 Y") X');
+   is( $c->sprint, '<d>a X <e>Y X <e>Y foo Y</e> X Y</e> X a<e/>X <e>Y X <e>Y foo Y</e> X Y</e> X<g>bar</g></d>', 'subs_text (re-using previous substitution)');
+}
+
+{ my $e= XML::Twig::Elt->new( 'e');
+  is( $e->att_nb, 0, 'att_nb on element with no attributes');
+  ok( $e->has_no_atts, 'has_no_atts on element with no attributes');
+  my $e2= XML::Twig::Elt->new( e => { a => 1 })->del_att( 'a');;
+  is( $e->att_nb, 0, 'att_nb on element with no more attributes');
+  ok( $e->has_no_atts, 'has_no_atts on element with no more attributes');
+  is( $e->split_at( 1), '', 'split_at on a non text element');
+}
+
+SKIP: { 
+        skip 'XML::XPath not available', 1 unless XML::Twig::_use( 'XML::XPath');
+        XML::Twig::_disallow_use( 'XML::XPathEngine');
+        XML::Twig::_use( 'XML::Twig::XPath');
+        my $t= XML::Twig::XPath->parse( '<d><e a="1">e1</e><e a="2">e2</e><e a="3">e3</e></d>');
+        is( $t->findvalue( '//e[@a>=3]|//e[@a<=1]'), 'e1e3', 'xpath search with XML::XPath');
+      }
+
+SKIP: { # various tests on _fix_xml
+  skip 'HTML::TreeBuilder not available', 2 unless XML::Twig::_use( 'HTML::TreeBuilder');
+  my $html= '<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /></head><body><p 1="1">&Amp;</p></body></html>';
+  my $t= HTML::TreeBuilder->new_from_content( $html);
+  local $@='not well-formed (invalid token)';
+  local $HTML::TreeBuilder::VERSION=3.23;
+  XML::Twig::_fix_xml( $t, \$html);
+  unlike( $html, qr{Amp}, '&Amp with old versions of HTML::TreeBuilder');
+  like( $html, qr{<p a1="1"}, 'fix improper naked attributes in old versions of HTML::TreeBuilder');
+      }
+
+SKIP: {
+        skip 'cannot use XML::Twig::XPath', 1, unless  XML::Twig::_use( 'XML::XPathEngine') ||  XML::Twig::_use( 'XML::XPath');
+        my $t= XML::Twig::XPath->parse( '<d xmlns:pr="uri"><pr:e>pre1</pr:e><e>e1</e><pr:e>pre2</pr:e><a>a 1</a></d>');
+        is( $t->findvalue( '/d/*[local-name()="e"]'), 'pre1e1pre2', 'local-name()');
+   
+      }
+
+{ my $doc= qq{<d><e xml:space="preserve">\n<se/></e><e xml:space="default">\n<se/></e></d>};
+  (my $expected= $doc)=~ s{("default">)\n}{$1}; # this space should be discarded
+  my $t=  XML::Twig->parse( $doc);
+  is( $t->sprint, $expected, 'xml:space effect on whitespace discarding');
+}
