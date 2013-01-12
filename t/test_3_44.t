@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use XML::Twig;
-use Test::More tests => 52;
+use Test::More tests => 59;
 
 
 { my $e= XML::Twig::Elt->new( 'foo');
@@ -175,3 +175,36 @@ SKIP: {
   my $t=  XML::Twig->parse( $doc);
   is( $t->sprint, $expected, 'xml:space effect on whitespace discarding');
 }
+
+{ my $d= "<d><e/></d>";
+  my $got=0;
+  my $t= XML::Twig->new( start_tag_handlers => { e => sub { $got=1; } } );
+  $t->parse( $d);
+  is( $got, 1, 'setStartTagHandlers');
+  $t->setStartTagHandlers(  { e => sub { $got=2; } });
+  $t->parse( $d);
+  is( $got, 2, 'setStartTagHandlers changed');
+}
+
+{ my $d= "<d><e><se/></e></d>";
+  my $got=0;
+  my $st;
+  my $t= XML::Twig->new( start_tag_handlers => { se => sub { $got=1; } },
+                         ignore_elts => { e => \$st },
+                       );
+  $t->parse( $d);
+  is( $got, 0, 'check that ignore_elts skips element');
+  is( $st, '<e><se/></e>', 'check that ignore_elts stores the ignored content');
+
+  $st='';
+  $t->setIgnoreEltsHandler( e  => 'discard');
+  is( $got, 0, 'check that ignore_elts still skips element');
+  is( $st, '', 'check that ignore_elts now discards the ignored content');
+  
+}
+
+{ my $content= '<p>here a <a href="/foo?a=1&amp;b=2">dodo</a> bird</p>';
+
+  is( XML::Twig::Elt->new( $content)->sprint, $content, 'XML::Twig::Elt->new with litteral content');
+}
+

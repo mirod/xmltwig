@@ -1962,24 +1962,17 @@ sub _add_or_discard_stored_spaces
 
     my $current= $t->{twig_current} or return; # ugly hack, with ignore on, twig_current can disappear 
     return unless length $t->{twig_stored_spaces};
-    if( $current->is_pcdata)
-      { $current->append_pcdata($t->{twig_stored_spaces}); }
-    else
-      { my $current_gi= $current->gi;
+    my $current_gi= $current->gi;
 
-        if( ! $t->{twig_discard_all_spaces}) 
-          { if( ! defined( $t->{twig_space_policy}->{$current_gi}))
-              { $t->{twig_space_policy}->{$current_gi}= _space_policy( $t, $current_gi); }
-
-            if(    $t->{twig_space_policy}->{$current_gi} 
-                || ($t->{twig_stored_spaces}!~ m{\n})
-                || $t->{twig_preserve_space}
-              )
-              { _insert_pcdata( $t, $t->{twig_stored_spaces} ); }
-          }
-        $t->{twig_stored_spaces}='';
-
+    if( ! $t->{twig_discard_all_spaces}) 
+      { if( ! defined( $t->{twig_space_policy}->{$current_gi}))
+          { $t->{twig_space_policy}->{$current_gi}= _space_policy( $t, $current_gi); }
+        if(    $t->{twig_space_policy}->{$current_gi} || ($t->{twig_stored_spaces}!~ m{\n}) || $t->{twig_preserve_space})
+          { _insert_pcdata( $t, $t->{twig_stored_spaces} ); }
       }
+
+    $t->{twig_stored_spaces}='';
+
     return;
   }
 
@@ -4883,6 +4876,8 @@ sub new
     bless ($elt, $class);
 
     return $elt unless @_;
+
+    if( @_ == 1 && $_[0]=~ m{^\s*<}) { return $class->parse( @_); }
 
     # if a gi is passed then use it
     my $gi= shift;
