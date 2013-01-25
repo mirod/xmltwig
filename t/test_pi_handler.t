@@ -8,6 +8,9 @@ $|=1;
 
 use XML::Twig;
 
+if( $] < 5.008)
+  { warn "skipped, not tested under perl < 5.8\n"; print "1..1\nok 1\n"; exit 0; }
+
 my $nb_tests=4;
 print "1..$nb_tests\n";
 

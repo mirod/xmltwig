@@ -146,6 +146,7 @@ print "1..$TMAX\n";
   is( $e->text, 'foobar', "merge");
 }
 
+if( $] > 5.008)
 { # testing ignore on the current element
   my $calls;
   my $h= sub { $calls.= $_[1]->tag; };
@@ -174,6 +175,7 @@ print "1..$TMAX\n";
                   ;
   is( $calls, 'cfcfha', 'ignore on a grand-parent element');
   is( $t3->sprint, '<a><f></f><f></f><h/></a>', 'tree build with ignore on the grand parent of an element');
+
 
   $calls='';
   # ignore from a regular handler
@@ -211,9 +213,9 @@ print "1..$TMAX\n";
        };
   matches( $@, '^element to be ignored must be ancestor of current element', 'error ignore-ing an element ( descendant)'); 
 }
+else
+  { skip( 12, "not tested under perl < 5.8"); }
 
-
- 
 { my $doc='<l0><l1><l2></l2></l1><l1><l2></l2><l2></l2></l1></l0>';
   (my $indented_doc= $doc)=~ s{(</?l(\d)>)}{"  " x $2 . $1}eg;
   $indented_doc=~ s{>}{>\n}g;
@@ -342,14 +344,17 @@ else
   is( $t->elt_id( "e1")->xml_text( 'no_recurse'), 'tutu &lt;&ent; tata', "xml_text no_recurse wih ent");
 }
 
+if( $] > 5.008)
 { my $r;
   XML::Twig->parse( twig_handlers => { '/a/b//c' => sub { $r++; } },
                     q{<a><b><b><c>foo</c></b></b></a>}
                   );
   ok( $r, "handler condition with // and nested elts (/a//b/c)");
 }
+else
+  { skip( 1, "not tested under perl < 5.8"); }
 
-
+if( $] > 5.008)
 { my @r;
   XML::Twig->parse( twig_handlers => { 's[@#a="1"]'   => sub { push @r, $_->id},
                                        's/e[@x="1"]' => sub { $_->parent->set_att( '#a' => 1); },
@@ -358,8 +363,10 @@ else
                   );
   is( join( ':', @r), 's2:s3', 'inner handler changing parent attribute value');
 }
+else
+  { skip( 1, "not tested under perl < 5.8"); }
 
-
+if( $] > 5.008)
 { my @r;
   XML::Twig->parse( twig_roots => { '/d/s[@a="1"]/e[@a="1"]' =>  => sub { push @r, $_->id}, },
                     q{<d><s><e a="1" id="e1"/><e id="e2"/></s>
@@ -370,5 +377,7 @@ else
                   );
   is( join( ':', @r), 'e3:e8', 'complex condition with twig_roots');
 }
+else
+  { skip( 1, "not tested under perl < 5.8"); }
 
-exit; # or you get a weird error under 5.6.2
+exit 0; # or you get a weird error under 5.6.2

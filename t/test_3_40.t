@@ -76,9 +76,12 @@ sub lf_in_t
   is( $got, 'i1i3', 'bare attribute in handler condition');
 }
 
+if( $] > 5.008)
 { my $doc= q{<!DOCTYPE doc [ <!ELEMENT doc (#PCDATA)><!ENTITY ext SYSTEM "not_there.txt">]><doc>&ext;</doc>};
   ok( XML::Twig->parse( expand_external_ents => -1, $doc), 'failsafe expand_external_ents');
 }
+else
+{ skip( 1, 'not tested under perl < 5.8'); }
   
 { my $t=XML::Twig->parse( q{<doc><e><e1>e11</e1><e2>e21</e2></e><e><e1>e12</e1></e></doc>});
   is( join( ':',  $t->findvalues( [$t->root->children], "./e1")), 'e11:e12', 'findvalues on array');

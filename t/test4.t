@@ -189,22 +189,27 @@ stest( $doc, $s, "&quot; in attribute");
 #$doc= $t->sprint;
 #stest( $doc, $s, "PI");
 
+if( $] > 5.008)
+  { my (@called);
+    my $t= XML::Twig->new( 
+          twig_handlers =>
+            {  a     => sub { push @called, 'a';    1; },
+              'b/a'  => sub { push @called, 'b/a';  1; },
+              '/b/a' => sub { push @called, '/b/a'; 1; },
+              '/a'   => sub { push @called, '/a'; 1; },
+            },
+                      );
 
-my (@called);
-$t= XML::Twig->new( 
-      twig_handlers =>
-        {  a     => sub { push @called, 'a';    1; },
-          'b/a'  => sub { push @called, 'b/a';  1; },
-          '/b/a' => sub { push @called, '/b/a'; 1; },
-          '/a'   => sub { push @called, '/a'; 1; },
-        },
-                  );
+    $t->parse( '<b><a/></b>');
+    my $calls= join( ':', @called);
+    my $expected=  "/b/a:b/a:a";
+    if( $calls eq $expected) { print "ok 19\n"; }
+    else                     { print "not ok 19\n"; warn "\n[$calls] instead of [$expected]\n"; }
 
-$t->parse( '<b><a/></b>');
-my $calls= join( ':', @called);
-my $expected=  "/b/a:b/a:a";
-if( $calls eq $expected) { print "ok 19\n"; }
-else                     { print "not ok 19\n"; warn "\n[$calls] instead of [$expected]\n"; }
+
+  }
+else
+  {  warn "skipped for perl < 5.8\n"; print "ok 19\n"; } 
 
 exit 0;
 

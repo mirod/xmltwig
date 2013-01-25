@@ -27,7 +27,8 @@ foreach my $test (@DATA)
     is( $got, $expected, "navigation: $cond" );
   }
 
-
+if( $] > 5.008)
+{
 foreach my $test (@DATA)
   { my( $cond, $expected)= @$test;
     my $got='';
@@ -46,6 +47,10 @@ foreach my $test (@DATA)
              ->parse( $doc_dot);
     is( $got, $expected, "handlers (css_sel NOT enabled): $cond" );
   } 
+}
+else
+{ skip( 12, 'not tested under perl < 5.8'); }
+
 
 
 
