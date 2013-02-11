@@ -8157,8 +8157,8 @@ BEGIN {
       if( ($empty_tag_style eq $HTML) && !$elt->_first_child && !$elt->_extra_data_before_end_tag && $html_empty_elt{$gi})
         { $elt->{empty}= 1; }
       my $empty= defined $elt->{empty} ? $elt->{empty} 
-               : $elt->_first_child    ? 1
-               :                         0;
+               : $elt->_first_child    ? 0
+               :                         1;
 
       $tag .= (!$elt->{empty} || $elt->_extra_data_before_end_tag)  ? '>'            # element has content
             : (($empty_tag_style eq $HTML) && $html_empty_elt{$gi}) ? ' />'          # html empty element 
@@ -9527,7 +9527,7 @@ See L<XML::Twig 101|/XML::Twig 101> for other ways to use the module, as a
 filter for example.
 
 
-=encoding utf8
+=encoding utf8   # > perl 5.10.0 
 
 =head1 DESCRIPTION
 
@@ -9961,7 +9961,7 @@ confuse XML::Twig ;--(
 
 Note: you can set handlers (twig_handlers) using twig_roots
   Example: my $t= XML::Twig->new( twig_roots => 
-                                   { title    => sub { $_{1]->print;}, 
+                                   { title    => sub { $_[1]->print;}, 
                                      subtitle => \&process_subtitle 
                                    }
                                );
@@ -9981,7 +9981,7 @@ value this will print the document outside of the C<twig_roots> elements.
            sub number_title
              { my( $twig, $title);
                $nb++;
-               $title->prefix( "$nb "; }
+               $title->prefix( "$nb ");
                $title->print;
              }
            }
@@ -10004,7 +10004,7 @@ C<twig_roots> elements will be output to this file handle:
            sub number_title
              { my( $twig, $title);
                $nb++;
-               $title->prefix( "$nb "; }
+               $title->prefix( "$nb ");
                $title->print( $out);    # you have to print to \*OUT here
              }
            }
@@ -10623,14 +10623,14 @@ example:
 
   # using an array ref
   my $t= XML::Twig->new( index => [ 'div', 'table' ])
-                  ->parsefile( "foo.xml');
+                  ->parsefile( "foo.xml");
   my $divs= $t->index( 'div');
   my $first_div= $divs->[0];
   my $last_table= $t->index( table => -1);
 
   # using a hashref to name the indexes
-  my $t= XML::Twig->new( index => { email => 'a[@href=~/^\s*mailto:/]')
-                  ->parsefile( "foo.xml');
+  my $t= XML::Twig->new( index => { email => 'a[@href=~/^ \s*mailto:/]'})
+                  ->parsefile( "foo.xml");
   my $last_emails= $t->index( email => -1);
 
 Note that the index is not maintained after the parsing. If elements are 
@@ -10643,7 +10643,7 @@ creates methods that give direct access to attribute:
 
   my $t= XML::Twig->new( att_accessors => [ 'href', 'src'])
                   ->parsefile( $file);
-  my $first href= $t->first_elt( 'img')->src; # same as ->att( 'src')
+  my $first_href= $t->first_elt( 'img')->src; # same as ->att( 'src')
   $t->first_elt( 'img')->src( 'new_logo.png') # changes the attribute value
 
 =item elt_accessors
@@ -10658,7 +10658,7 @@ or in a hash alias => expression
   my $title_text= $t->root->head->field( 'title');
   # same as $title_text= $t->root->first_child( 'head')->field( 'title');
 
-  my $t=  XML::Twig->new( elt_accessors => { warnings => 'p[@class="warning"]', d2 => 'div[2]', )
+  my $t=  XML::Twig->new( elt_accessors => { warnings => 'p[@class="warning"]', d2 => 'div[2]'}, )
                   ->parsefile( $file);
   my $body= $t->first_elt( 'body');
   my @warnings= $body->warnings; # same as $body->children( 'p[@class="warning"]');
@@ -11768,7 +11768,7 @@ The C<$optional_elt> is the root of a subtree. When the C<next_elt> is out of th
 subtree then the method returns undef. You can then walk a sub-tree with:
 
   my $elt= $subtree_root;
-  while( $elt= $elt->next_elt( $subtree_root)
+  while( $elt= $elt->next_elt( $subtree_root))
     { # insert processing code here
     }
 
@@ -12342,8 +12342,8 @@ of the element.
 B<Bug>: in the C<$regexp>, you can only use C<\1>, C<\2>... if the replacement
 expression does not include elements or attributes. eg
 
-  t->subs_text( qr/((t[aiou])\2)/, '$2');             # ok, replaces toto, tata, titi, tutu by to, ta, ti, tu
-  t->subs_text( qr/((t[aiou])\2)/, '&elt(p => $1)' ); # NOK, does not find toto...
+  $t->subs_text( qr/((t[aiou])\2)/, '$2');             # ok, replaces toto, tata, titi, tutu by to, ta, ti, tu
+  $t->subs_text( qr/((t[aiou])\2)/, '&elt(p => $1)' ); # NOK, does not find toto...
 
 =item add_id ($optional_coderef)
 
@@ -12585,7 +12585,7 @@ table for example.
 Optionally each tag can be followed by a hashref of attributes, that will be 
 set on the wrapping element:
 
-  $elt->wrap_in( p => { class => "advisory" }, div => { class => "intro", id => "div_intro });
+  $elt->wrap_in( p => { class => "advisory" }, div => { class => "intro", id => "div_intro" });
 
 =item insert_new_elt ($opt_position, $tag, $opt_atts_hashref, @opt_content)
 
@@ -13577,9 +13577,24 @@ before the outer sections.
 
 =over 4
 
+=item segfault during parsing
+
+This happens when parsing huge documents, or lots of small ones, with a version
+of Perl before 5.16. 
+
+This is due to a bug in the way weak references are handled in Perl itself.
+
+The fix is either to upgrade to Perl 5.16 or later (C<perlbrew> is a great
+tool to manage several installations of perl on the same machine).
+
+An other, NOT RECOMMENDED, way of fixing the problem, is to switch off weak
+references by writing C<XML::Twig::_set_weakrefs( 0);> at the top of the code. 
+This is totally unsupported, and may lead to other problems though, 
+
 =item entity handling
 
-Due to XML::Parser behaviour, non-base entities in attribute values disappear:
+Due to XML::Parser behaviour, non-base entities in attribute values disappear if
+they are not declared in the document:
 C<att="val&ent;"> will be turned into C<< att => val >>, unless you use the 
 C<keep_encoding> argument to C<< XML::Twig->new >> 
 
@@ -13598,7 +13613,8 @@ DTD.
 
 =item memory leak
 
-If you use a lot of twigs you might find that you leak quite a lot of memory
+If you use a REALLY old Perl (5.005!) and 
+a lot of twigs you might find that you leak quite a lot of memory
 (about 2Ks per twig). You can use the C<L<dispose> > method to free 
 that memory after you are done.
 
