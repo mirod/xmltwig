@@ -30,7 +30,8 @@ while( <>)
     if( my( $op, $v, $mv)= m{#\s*(>|<|>=|<=)\s*perl\s*5\.(\d+)(?:\.(\d+))?\s*})
       { $v= sprintf( "5%03d%03d", $v, $mv || 0);
         my $comp=  "$version $op $v";
-        if( ! eval $comp) { next; }
+        if( ! eval $comp) { print "#$_"; next; }
+        else              { s{#[^#]*\n}{\n} if m{^=encoding}; }
       }
 
   
