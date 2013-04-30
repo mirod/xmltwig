@@ -5,6 +5,11 @@ date
 # minor maintenance release
 added: XML::Twig::Elt new method now acccepts literal content, eg
        my $e= XML::Twig::Elt->new( '<div><p>foo</p><p>bar</p></div>');
+added twig handler triggers now accept the syntax <tag>#<id>
+      use *#<id> if you don't want to specify the tag name (#<id> would not
+      work since this is the syntax for "private" elements, this makes it
+      ugly, but is due to the fact that when I started working on XML::Twig
+      CSS wasn't really around)
 fixed: merge had some problems dealing with embedded comments
 improved: more tests
 
