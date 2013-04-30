@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use XML::Twig;
-use Test::More tests => 59;
+use Test::More tests => 82;
 
 
 { my $e= XML::Twig::Elt->new( 'foo');
@@ -164,7 +164,7 @@ SKIP: { # various tests on _fix_xml
       }
 
 SKIP: {
-        skip 'cannot use XML::Twig::XPath', 1, unless  XML::Twig::_use( 'XML::XPathEngine') ||  XML::Twig::_use( 'XML::XPath');
+        skip 'cannot use XML::Twig::XPath', 1, unless  XML::Twig::_use( 'XML::Twig::XPath') && (XML::Twig::_use( 'XML::XPathEngine') ||  XML::Twig::_use( 'XML::XPath'));
         my $t= XML::Twig::XPath->parse( '<d xmlns:pr="uri"><pr:e>pre1</pr:e><e>e1</e><pr:e>pre2</pr:e><a>a 1</a></d>');
         is( $t->findvalue( '/d/*[local-name()="e"]'), 'pre1e1pre2', 'local-name()');
    
@@ -208,3 +208,63 @@ SKIP: {
   is( XML::Twig::Elt->new( $content)->sprint, $content, 'XML::Twig::Elt->new with litteral content');
 }
 
+{ my $doc= '<d><?pi foo?><e/></d>';
+  my $doc_no_pi= '<d><e/></d>'; 
+  my $t= XML::Twig->parse(  $doc);
+  is( $t->sprint,  $doc, 'pi is keep by default'); 
+  my $tk= XML::Twig->parse( pi => 'keep', $doc);
+  is( $tk->sprint,  $doc, 'pi is keep'); 
+  my $td= XML::Twig->parse( pi => 'drop', $doc);
+  is( $td->sprint,  $doc_no_pi, 'pi is keep'); 
+  my $tp= XML::Twig->parse( pi => 'process', $doc);
+  is( $tp->sprint,  $doc, 'pi is process');
+  foreach my $pi ($t->descendants( '#PI')) { $pi->delete; }
+  is( $t->sprint,  $doc, 'pi cannot be cut when pi => keep (by default)'); 
+  foreach my $pi ($tk->descendants( '#PI')) { $pi->delete; }
+  is( $tk->sprint,  $doc, 'pi cannot be cut when pi => keep'); 
+  foreach my $pi ($tp->descendants( '#PI')) { $pi->delete; }
+  is( $tp->sprint,  $doc_no_pi, 'pi can be cut when pi => process'); 
+}
+
+{ my $doc= '<d><!-- comment --><e/></d>';
+  my $doc_no_comment= '<d><e/></d>'; 
+  my $t= XML::Twig->parse(  $doc);
+  is( $t->sprint,  $doc, 'comments is keep by default'); 
+  my $tk= XML::Twig->parse( comments => 'keep', $doc);
+  is( $tk->sprint,  $doc, 'comments is keep'); 
+  my $td= XML::Twig->parse( comments => 'drop', $doc);
+  is( $td->sprint,  $doc_no_comment, 'comments is keep'); 
+  my $tp= XML::Twig->parse( comments => 'process', $doc);
+  is( $tp->sprint,  $doc, 'comments is process');
+  foreach my $comment ($t->descendants( '#COMMENT')) { $comment->delete; }
+  is( $t->sprint,  $doc, 'comment cannot be cut when comment => keep (by default)'); 
+  foreach my $comment ($tk->descendants( '#COMMENT')) { $comment->delete; }
+  is( $tk->sprint,  $doc, 'comment cannot be cut when comment => keep'); 
+  foreach my $comment ($tp->descendants( '#COMMENT')) { $comment->delete; }
+  is( $tp->sprint,  $doc_no_comment, 'comment can be cut when comment => process'); 
+}
+
+{ my $d='<d><s l="1"><t>t1</t><s l="2"><t>t2</t><p id="t">p</p></s></s></d>';
+  my $t= XML::Twig->parse( $d);
+  my $p= $t->elt_id( 't');
+  is( $p->level, 3, 'level');
+  is( $p->level( 's'), 2, 'level with cond');
+  is( $p->level( 's[@l]'), 2, 'level with cond on attr');
+  is( $p->level( 's[@l="2"]'), 1, 'level with more cond on attr');
+  is( $p->level( 's[@g]'), 0, 'level with unsatisfied more cond on attr');
+}
+
+{ my $d='<d><e id="i">e1</e><e id="i2">e2</e><e id="i3">e3</e><e>e4</e><e id="iii">e5</e><f>f1</f><f id="ff">f1</f><f id="fff">f2</f></d>';
+  my $r;
+  XML::Twig->parse( twig_handlers => { 'e#i' => sub { $r.= $_->text}}, $d);
+  is( $r, 'e1', '# in twig handlers (1 letter id)');
+  $r='';
+  XML::Twig->parse( twig_handlers => { 'e#iii' => sub { $r.= $_->text}}, $d);
+  is( $r, 'e5', '# in twig handlers (3 letter id)');
+  $r='';
+  XML::Twig->parse( twig_handlers => { 'e#i2' => sub { $r.= $_->text}}, $d);
+  is( $r, 'e2', '# in twig handlers (letter + digits)');
+  $r='';
+  XML::Twig->parse( twig_handlers => { '*#ff' => sub { $r.= $_->text}}, $d);
+  is( $r, 'f1', '*# in twig handlers');
+}

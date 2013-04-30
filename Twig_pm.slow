@@ -41,17 +41,24 @@ my $expat_1_95_2=0;
 
 # xml name (leading # allowed)
 # first line is for perl 5.005, second line for modern perl, that accept character classes
-my $REG_NAME       = q{(?:(?:[^\W\d]|[:#_])(?:[\w.-]*:)?[\w.-]*)};     # does not work for leading non-ascii letters
-   $REG_NAME       = q{(?:(?:[[:alpha:]:#_])(?:[\w.-]*:)?[\w.-]*)};    # > perl 5.5
+my $REG_NAME =
+  q{(?:(?:[^\W\d]|[:#_])(?:[\w.-]*:)?[\w.-]*)};     # < perl 5.6 - does not work for leading non-ascii letters
+  q{(?:(?:[[:alpha:]:#_])(?:[\w.-]*:)?[\w.-]*)};    # > perl 5.5
 
 # name or wildcard (* or '') (leading # allowed)
-my $REG_NAME_W     = q{(?:(?:[^\W\d]|[:#_])(?:[\w.-]*:)?[\w.-]*|\*)}; # does not work for leading non-ascii letters
-   $REG_NAME_W     = q{(?:(?:[[:alpha:]:#_])(?:[\w.-]*:)?[\w.-]*|\*)}; # > perl 5.5
+my $REG_NAME_W =
+  q{(?:(?:[^\W\d]|[:#_])(?:[\w.-]*:)?[\w.-]*|\*)};  # < perl 5.6 - does not work for leading non-ascii letters
+  q{(?:(?:[[:alpha:]:#_])(?:[\w.-]*:)?[\w.-]*|\*)}; # > perl 5.5
 
 # name or wildcard (* or '') (leading # allowed) with optional class
-my $REG_NAME_WC    = q{(?(?:(?:[^\W\d]|[:#_])(?:[\w.-]*:)?[\w.-]*|\*)(?:\.[\w-]+)?|(?:\.[\w-]+))}; # does not work for leading non-ascii letters
-   $REG_NAME_WC    = q{(?:(?:(?:[[:alpha:]:#_])(?:[\w.-]*:)?[\w.-]*|\*)(?:\.[\w-]+)?|(?:\.[\w-]+))}; # > perl 5.5
+my $REG_NAME_WC =
+  q{(?(?:(?:[^\W\d]|[:#_])(?:[\w.-]*:)?[\w.-]*|\*)(?:\.[\w-]+)?|(?:\.[\w-]+))};   # < perl 5.6 - does not work for leading non-ascii letters
+  q{(?:(?:(?:[[:alpha:]:#_])(?:[\w.-]*:)?[\w.-]*|\*)(?:\.[\w-]+)?|(?:\.[\w-]+))}; # > perl 5.5
 
+# allow <tag> #<tag> (private elt) * <tag>.<class> *.<class> <tag>#<id> *#<id>
+my $HANDLER_ELT=
+  q{(?:((?:[^\W\d]|[:#_])(?:[\w.-]*:)?[\w.-]*|\*)(?:[#][\w.-:_]+)?)}; # < perl 5.6
+  q{(?:(?:[[:alpha:]:#_](?:[\w.-]*:)?[\w.-]*|\*)(?:[#][\w.-:_]+)?)};  # > perl 5.5
 
 my $REG_REGEXP     = q{(?:/(?:[^\\/]|\\.)*/[eimsox]*)};               # regexp
 my $REG_MATCH      = q{[!=]~};                                        # match (or not)
@@ -1454,7 +1461,7 @@ sub _set_handler
     my $H_PI      = qr{(\?|$PI)\s*(([^\s]*)\s*)};
     my $H_LEVEL   = qr{level \s* \( \s* ([0-9]+) \s* \)}x;
     my $H_REGEXP  = qr{\(\?([\^xism]*)(-[\^xism]*)?:(.*)\)}x;
-    my $H_XPATH   = qr{(/?/?$REG_NAME_WC? \s* ($REG_PREDICATE\s*)?)+}x;
+    my $H_XPATH   = qr{(/?/?$HANDLER_ELT? \s* ($REG_PREDICATE\s*)?)+}x;
 
     my $prev_handler;
 
@@ -1598,7 +1605,7 @@ sub _parse_xpath_handler
 
     while( $xpath=~ s{^\s*
                        ( (//?)                                      # separator
-                        | (?:$REG_NAME_WC\s*(?:$REG_PREDICATE\s*)?) # tag name and optional predicate
+                        | (?:$HANDLER_ELT\s*(?:$REG_PREDICATE\s*)?) # tag name and optional predicate
                         | (?:$REG_PREDICATE)                        # just a predicate
                        )
                      }
@@ -1635,7 +1642,7 @@ sub _parse_xpath_handler
     my $flag= { test_on_text => 0 };
     my $sep='/';  # '/' or '//'
     while( my $xpath_step= pop @xpath_steps)
-      { my( $tag, $predicate)= $xpath_step =~ m{^($REG_NAME_WC)?(?:\[(.*)\])?\s*$};
+      { my( $tag, $predicate)= $xpath_step =~ m{^($HANDLER_ELT)?(?:\[(.*)\])?\s*$};
         $score->{steps}++;
         $tag||='*';
 
@@ -1653,6 +1660,8 @@ sub _parse_xpath_handler
        my $cond= join( " && ", grep { $_ } $tag_cond, $predicate) || 1;
 
        if( $css_sel && $tag=~ m{\.}) { $tag=~s{\.[^.]*$}{}; $tag ||='*'; }
+       $tag=~ s{(.)#.+$}{$1};
+
        $last_tag ||= $tag;
 
        if( $sep eq '/')
@@ -1717,10 +1726,17 @@ sub _join_n { return join( "\n", @_, ''); }
 sub _tag_cond
   { my( $full_tag)= @_;
 
-    my( $tag, $class)= $css_sel ? $full_tag=~ m{^(.*?)(?:\.([^.]*))?$} : ($full_tag, undef);
-    my $tag_cond= $tag && $tag ne '*' ? qq#(\$elt->{'$ST_TAG'} eq "$tag")# : '';
-    my $class_cond= defined $class ? qq#(\$elt->{class}=~ m{(^| )$class( |\$)})# : '';
-    my $full_cond= join( ' && ', grep { $_ } ( $tag_cond, $class_cond));
+    my( $tag, $class, $id);
+    if( $full_tag=~ m{^(.+)#(.+)$})
+      { ($tag, $id)= ($1, $2); }
+    else
+      { ( $tag, $class)= $css_sel ? $full_tag=~ m{^(.*?)(?:\.([^.]*))?$} : ($full_tag, undef); }
+
+    my $tag_cond   = $tag && $tag ne '*' ? qq#(\$elt->{'$ST_TAG'} eq "$tag")# : '';
+    my $id_cond    = defined $id         ? qq#(\$elt->{id} eq "$id")#  : '';
+    my $class_cond = defined $class      ? qq#(\$elt->{class}=~ m{(^| )$class( |\$)})# : '';
+
+    my $full_cond= join( ' && ', grep { $_ } ( $tag_cond, $class_cond, $id_cond));
     
     return $full_cond;
   }
@@ -3831,7 +3847,7 @@ sub dispose
   }
   
 sub DESTROY
-  { my $t= shift;
+  { my $t= shift; 
     if( $t->{twig_root} && isa(  $t->{twig_root}, 'XML::Twig::Elt')) 
       { $t->{twig_root}->delete } 
 
@@ -7808,6 +7824,8 @@ sub delete
       # the id reference needs to be destroyed
       # lots of tests to avoid warnings during the cleanup phase
       $elt->del_id( $t) if( $ID && $t && defined( $elt->{att}) && exists( $elt->{att}->{$ID}));
+      if( $elt->{former}) { foreach (keys %{$elt->{former}}) { delete $elt->{former}->{$_}; } delete $elt->{former}; } 
+      foreach (qw( keys %$elt)) { delete $elt->{$_}; }
       undef $elt;
     }
 }
@@ -9525,7 +9543,6 @@ Huge documents (processed in combined stream/tree mode):
 
 See L<XML::Twig 101|/XML::Twig 101> for other ways to use the module, as a 
 filter for example.
-
 
 =encoding utf8   # > perl 5.10.0 
 
