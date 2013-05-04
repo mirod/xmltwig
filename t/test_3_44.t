@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use XML::Twig;
-use Test::More tests => 82;
+use Test::More tests => 86;
 
 
 { my $e= XML::Twig::Elt->new( 'foo');
@@ -256,15 +256,20 @@ SKIP: {
 
 { my $d='<d><e id="i">e1</e><e id="i2">e2</e><e id="i3">e3</e><e>e4</e><e id="iii">e5</e><f>f1</f><f id="ff">f1</f><f id="fff">f2</f></d>';
   my $r;
-  XML::Twig->parse( twig_handlers => { 'e#i' => sub { $r.= $_->text}}, $d);
+  my $t;
+  $t= XML::Twig->parse( twig_handlers => { 'e#i' => sub { $r.= $_->text}}, $d);
   is( $r, 'e1', '# in twig handlers (1 letter id)');
+  is( $t->findvalue( '//e#i'), 'e1', 'findvalue with # (1 letter id)');
   $r='';
-  XML::Twig->parse( twig_handlers => { 'e#iii' => sub { $r.= $_->text}}, $d);
+  $t= XML::Twig->parse( twig_handlers => { 'e#iii' => sub { $r.= $_->text}}, $d);
   is( $r, 'e5', '# in twig handlers (3 letter id)');
+  is( $t->findvalue( '//e#iii'), 'e5', 'findvalue with # (3 letter id)');
   $r='';
-  XML::Twig->parse( twig_handlers => { 'e#i2' => sub { $r.= $_->text}}, $d);
+  $t= XML::Twig->parse( twig_handlers => { 'e#i2' => sub { $r.= $_->text}}, $d);
   is( $r, 'e2', '# in twig handlers (letter + digits)');
+  is( $t->findvalue( '//e#i2'), 'e2', 'findvalue with # (letter + digits)');
   $r='';
-  XML::Twig->parse( twig_handlers => { '*#ff' => sub { $r.= $_->text}}, $d);
+  $t= XML::Twig->parse( twig_handlers => { '*#ff' => sub { $r.= $_->text}}, $d);
   is( $r, 'f1', '*# in twig handlers');
+  is( $t->findvalue( '//*#ff'), 'f1', 'findvalue with *#');
 }

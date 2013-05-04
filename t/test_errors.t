@@ -114,7 +114,7 @@ my $init_warn= $SIG{__WARN__};
   matches( $@, "wrong sort type 'wrong', should be either 'alpha' or 'numeric'", "sort type");
 }
 {
-  foreach my $wrong_path ( 'wrong path', 'wrong#path', '1', '1tag', '///tag', 'tag/')
+  foreach my $wrong_path ( 'wrong path', 'wrong##path', '1', '1tag', '///tag', 'tag/')
     { eval {XML::Twig->new( twig_handlers => { $wrong_path => sub {}});};
       matches( $@, "unrecognized expression in handler: '$wrong_path'", "wrong handler ($wrong_path)");
     }
@@ -333,8 +333,8 @@ my $init_warn= $SIG{__WARN__};
 }
 
 { my $r=  XML::Twig->parse( '<doc/>')->root;
-  eval { $r->find_nodes( '//foo/following::') };
-  matches( $@, "error in xpath expression", 'error in xpath expression');
+  eval { $r->find_nodes( '//foo/1following::') };
+  matches( $@, "error in xpath expression", 'error in xpath expression //foo/following::');
 }
 
 exit 0;

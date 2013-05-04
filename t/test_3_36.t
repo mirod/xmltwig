@@ -313,8 +313,7 @@ my $NS= 'xmlns="http://www.w3.org/1999/xhtml"';
      );
 }
 
-{ 
-  XML::Twig::_set_debug_handler( 3);
+{ XML::Twig::_set_debug_handler(3);
   XML::Twig->new( twig_handlers => { 'foo[@a="bar"]' => sub { $_->att( 'a')++; } });
   my $expected=<<'EXPECTED';
 

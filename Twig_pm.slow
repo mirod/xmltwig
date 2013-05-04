@@ -39,26 +39,39 @@ use vars qw( $weakrefs);
 # wrt doctype handling. This is global for performance reasons. 
 my $expat_1_95_2=0;
 
-# xml name (leading # allowed)
+# a slight non-xml mod: # is allowed as a first character
+my $REG_TAG_FIRST_LETTER;
+$REG_TAG_FIRST_LETTER= q{(?:[^\W\d]|[:#_])};  # < perl 5.6 - does not work for leading non-ascii letters
+$REG_TAG_FIRST_LETTER= q{(?:[[:alpha:]:#_])}; # >= perl 5.6
+
+my $REG_TAG_LETTER= q{(?:[\w_.-]*)};
+
+# a simple name (no colon)
+my $REG_NAME_TOKEN= qq{(?:$REG_TAG_FIRST_LETTER$REG_TAG_LETTER*)};
+
+# a tag name, possibly including namespace
+my $REG_NAME= qq{(?:(?:$REG_NAME_TOKEN:)?$REG_NAME_TOKEN)};
+
+# tag name (leading # allowed)
 # first line is for perl 5.005, second line for modern perl, that accept character classes
-my $REG_NAME =
-  q{(?:(?:[^\W\d]|[:#_])(?:[\w.-]*:)?[\w.-]*)};     # < perl 5.6 - does not work for leading non-ascii letters
-  q{(?:(?:[[:alpha:]:#_])(?:[\w.-]*:)?[\w.-]*)};    # > perl 5.5
+my $REG_TAG_NAME=$REG_NAME;
 
 # name or wildcard (* or '') (leading # allowed)
-my $REG_NAME_W =
-  q{(?:(?:[^\W\d]|[:#_])(?:[\w.-]*:)?[\w.-]*|\*)};  # < perl 5.6 - does not work for leading non-ascii letters
-  q{(?:(?:[[:alpha:]:#_])(?:[\w.-]*:)?[\w.-]*|\*)}; # > perl 5.5
+my $REG_NAME_W = qq{(?:$REG_NAME|[*])}; 
 
-# name or wildcard (* or '') (leading # allowed) with optional class
-my $REG_NAME_WC =
-  q{(?(?:(?:[^\W\d]|[:#_])(?:[\w.-]*:)?[\w.-]*|\*)(?:\.[\w-]+)?|(?:\.[\w-]+))};   # < perl 5.6 - does not work for leading non-ascii letters
-  q{(?:(?:(?:[[:alpha:]:#_])(?:[\w.-]*:)?[\w.-]*|\*)(?:\.[\w-]+)?|(?:\.[\w-]+))}; # > perl 5.5
+# class and ids are deliberatly permissive
+my $REG_NTOKEN_FIRST_LETTER;
+$REG_NTOKEN_FIRST_LETTER= q{(?:[^\W\d]|[:_])};  # < perl 5.6 - does not work for leading non-ascii letters
+$REG_NTOKEN_FIRST_LETTER= q{(?:[[:alpha:]:_])}; # >= perl 5.6
+
+my $REG_NTOKEN_LETTER= q{(?:[\w_:.-]*)};
+
+my $REG_NTOKEN= qq{(?:$REG_NTOKEN_FIRST_LETTER$REG_NTOKEN_LETTER*)};
+my $REG_CLASS = $REG_NTOKEN;
+my $REG_ID    = $REG_NTOKEN;
 
 # allow <tag> #<tag> (private elt) * <tag>.<class> *.<class> <tag>#<id> *#<id>
-my $HANDLER_ELT=
-  q{(?:((?:[^\W\d]|[:#_])(?:[\w.-]*:)?[\w.-]*|\*)(?:[#][\w.-:_]+)?)}; # < perl 5.6
-  q{(?:(?:[[:alpha:]:#_](?:[\w.-]*:)?[\w.-]*|\*)(?:[#][\w.-:_]+)?)};  # > perl 5.5
+my $REG_TAG_PART= qq{(?:$REG_NAME_W(?:[.]$REG_CLASS|[#]$REG_ID)?|[.]$REG_CLASS)};
 
 my $REG_REGEXP     = q{(?:/(?:[^\\/]|\\.)*/[eimsox]*)};               # regexp
 my $REG_MATCH      = q{[!=]~};                                        # match (or not)
@@ -70,7 +83,7 @@ my $REG_FUNCTION   = q{(?:string|text)\(\s*\)};
 my $REG_STRING_ARG = qq{(?:string|text)\\(\\s*$REG_NAME_W\\s*\\)};
 my $REG_COMP       = q{(?:>=|<=|!=|<|>|=)};
 
-my $REG_TAG_IN_PREDICATE= $REG_NAME . q{(?=\s*(?i:and\b|or\b|\]|$))};
+my $REG_TAG_IN_PREDICATE= $REG_NAME_W . q{(?=\s*(?i:and\b|or\b|\]|$))};
 
 # keys in the context stack, chosen not to interfere with att names, even private (#-prefixed) ones
 my $ST_TAG = '##tag';
@@ -88,7 +101,7 @@ my @supported_axis= ( 'ancestor', 'ancestor-or-self', 'child', 'descendant', 'de
 my $REG_AXIS       = "(?:" . join( '|', @supported_axis) .")";
 
 # only used in the "xpath"engine (for get_xpath/findnodes) for now
-my $REG_PREDICATE_ALT  = qr{\[(?:(?:string\(\s*\)|\@$REG_NAME)\s*$REG_MATCH\s*$REG_REGEXP\s*|[^\]]*)\]};
+my $REG_PREDICATE_ALT  = qr{\[(?:(?:string\(\s*\)|\@$REG_TAG_NAME)\s*$REG_MATCH\s*$REG_REGEXP\s*|[^\]]*)\]};
 
 # used to convert XPath tests on strings to the perl equivalent 
 my %PERL_ALPHA_TEST= ( '=' => ' eq ', '!=' => ' ne ', '>' => ' gt ', '>=' => ' ge ', '<' => ' lt ', '<=' => ' le ');
@@ -1461,7 +1474,7 @@ sub _set_handler
     my $H_PI      = qr{(\?|$PI)\s*(([^\s]*)\s*)};
     my $H_LEVEL   = qr{level \s* \( \s* ([0-9]+) \s* \)}x;
     my $H_REGEXP  = qr{\(\?([\^xism]*)(-[\^xism]*)?:(.*)\)}x;
-    my $H_XPATH   = qr{(/?/?$HANDLER_ELT? \s* ($REG_PREDICATE\s*)?)+}x;
+    my $H_XPATH   = qr{(/?/?$REG_TAG_PART? \s* ($REG_PREDICATE\s*)?)+}x;
 
     my $prev_handler;
 
@@ -1594,7 +1607,7 @@ sub _parse_xpath_handler
     if( $DEBUG_HANDLER >=1) { _warn_debug_handler( "\n\nparsing path '$xpath'\n"); }
 
     my $path_to_check= $xpath;
-    $path_to_check=~ s{/?/?$REG_NAME_WC?\s*(?:$REG_PREDICATE\s*)?}{}g;
+    $path_to_check=~ s{/?/?$REG_TAG_PART?\s*(?:$REG_PREDICATE\s*)?}{}g;
     if( $DEBUG_HANDLER && $path_to_check=~ /\S/) { _warn_debug_handler( "left: $path_to_check\n"); }
     return if( $path_to_check=~ /\S/);
 
@@ -1605,7 +1618,7 @@ sub _parse_xpath_handler
 
     while( $xpath=~ s{^\s*
                        ( (//?)                                      # separator
-                        | (?:$HANDLER_ELT\s*(?:$REG_PREDICATE\s*)?) # tag name and optional predicate
+                        | (?:$REG_TAG_PART\s*(?:$REG_PREDICATE\s*)?) # tag name and optional predicate
                         | (?:$REG_PREDICATE)                        # just a predicate
                        )
                      }
@@ -1613,7 +1626,7 @@ sub _parse_xpath_handler
          )
       { # check that we have alternating separators and steps
         if( $2) # found a separator
-          { if(  $last_token_is_sep) { return 0; } # 2 seps in a row
+          { if(  $last_token_is_sep) { return 0; }                                 # 2 separators in a row
             $last_token_is_sep= 1;
           }
         else
@@ -1642,7 +1655,7 @@ sub _parse_xpath_handler
     my $flag= { test_on_text => 0 };
     my $sep='/';  # '/' or '//'
     while( my $xpath_step= pop @xpath_steps)
-      { my( $tag, $predicate)= $xpath_step =~ m{^($HANDLER_ELT)?(?:\[(.*)\])?\s*$};
+      { my( $tag, $predicate)= $xpath_step =~ m{^($REG_TAG_PART)?(?:\[(.*)\])?\s*$}; 
         $score->{steps}++;
         $tag||='*';
 
@@ -1723,12 +1736,13 @@ sub _parse_xpath_handler
 
 sub _join_n { return join( "\n", @_, ''); }
 
+# the "tag" part can be <tag>, <tag>.<class> or <tag>#<id> (where tag can be *, or start with # for hidden tags) 
 sub _tag_cond
   { my( $full_tag)= @_;
 
     my( $tag, $class, $id);
     if( $full_tag=~ m{^(.+)#(.+)$})
-      { ($tag, $id)= ($1, $2); }
+      { ($tag, $id)= ($1, $2); } # <tag>#<id>
     else
       { ( $tag, $class)= $css_sel ? $full_tag=~ m{^(.*?)(?:\.([^.]*))?$} : ($full_tag, undef); }
 
@@ -1746,20 +1760,20 @@ sub _tag_cond
 #        the score 
 sub _parse_predicate_in_handler
   { my( $flag, $score)= @_[1..2];
-    $_[0]=~ s{(   ($REG_STRING)                        # strings
-                 |\@($REG_NAME)(?=\s*(?:[><=!]|!~|=~)) # @att (followed by a comparison operator)
-                 |\@($REG_NAME)                        # @att (not followed by a comparison operator)
-                 |=~|!~                                # matching operators
-                 |([><]=?|=|!=)(?=\s*[\d+-])           # test before a number
-                 |([><]=?|=|!=)                        # test, other cases
-                 |($REG_FUNCTION)                      # no arg functions
+    $_[0]=~ s{(   ($REG_STRING)                            # strings
+                 |\@($REG_TAG_NAME)(?=\s*(?:[><=!]|!~|=~)) # @att (followed by a comparison operator)
+                 |\@($REG_TAG_NAME)                        # @att (not followed by a comparison operator)
+                 |=~|!~                                    # matching operators
+                 |([><]=?|=|!=)(?=\s*[\d+-])               # test before a number
+                 |([><]=?|=|!=)                            # test, other cases
+                 |($REG_FUNCTION)                          # no arg functions
                  # this bit is a mess, but it is the only solution with this half-baked parser
                  |(string\(\s*$REG_NAME\s*\)\s*$REG_MATCH\s*$REG_REGEXP)  # string( child)=~ /regexp/
                  |(string\(\s*$REG_NAME\s*\)\s*$REG_COMP\s*$REG_STRING)   # string( child) = "value" (or other test)
                  |(string\(\s*$REG_NAME\s*\)\s*$REG_COMP\s*$REG_NUMBER)   # string( child) = nb (or other test)
                  |(and|or)
-                # |($REG_NAME(?=\s*(and|or|$)))         # nested tag name (needs to be after all other unquoted strings)
-                 |($REG_TAG_IN_PREDICATE)              # nested tag name (needs to be after all other unquoted strings)
+                # |($REG_NAME(?=\s*(and|or|$)))            # nested tag name (needs to be after all other unquoted strings)
+                 |($REG_TAG_IN_PREDICATE)                  # nested tag name (needs to be after all other unquoted strings)
                  
               )}
              { my( $token, $str, $att, $bare_att, $num_test, $alpha_test, $func, $str_regexp, $str_test_alpha, $str_test_num, $and_or, $tag) 
@@ -1783,15 +1797,15 @@ sub _parse_predicate_in_handler
                elsif( $alpha_test)    { $PERL_ALPHA_TEST{$alpha_test} }
                elsif( $func && $func=~ m{^string})
                                       { "\$elt->{'$ST_ELT'}->text"; }
-               elsif( $str_regexp     && $str_regexp     =~ m{string\(\s*($REG_NAME)\s*\)\s*($REG_MATCH)\s*($REG_REGEXP)})
+               elsif( $str_regexp     && $str_regexp     =~ m{string\(\s*($REG_TAG_NAME)\s*\)\s*($REG_MATCH)\s*($REG_REGEXP)})
                                       { "defined( _first_n {  \$_->text $2 $3 } 1, \$elt->{'$ST_ELT'}->_children( '$1'))"; }
-               elsif( $str_test_alpha && $str_test_alpha =~ m{string\(\s*($REG_NAME)\s*\)\s*($REG_COMP)\s*($REG_STRING)})
+               elsif( $str_test_alpha && $str_test_alpha =~ m{string\(\s*($REG_TAG_NAME)\s*\)\s*($REG_COMP)\s*($REG_STRING)})
                                       { my( $tag, $op, $str)= ($1, $2, $3);
                                         $str=~ s{(?<=.)'(?=.)}{\\'}g; # escape a quote within the string 
                                         $str=~ s{^"}{'};
                                         $str=~ s{"$}{'};
                                         "defined( _first_n { \$_->text $PERL_ALPHA_TEST{$op} $str } 1, \$elt->{'$ST_ELT'}->children( '$tag'))"; }
-               elsif( $str_test_num   && $str_test_num   =~ m{string\(\s*($REG_NAME)\s*\)\s*($REG_COMP)\s*($REG_NUMBER)})
+               elsif( $str_test_num   && $str_test_num   =~ m{string\(\s*($REG_TAG_NAME)\s*\)\s*($REG_COMP)\s*($REG_NUMBER)})
                                       { my $test= ($2 eq '=') ? '==' : $2;
                                         "defined( _first_n { \$_->text $test $3 } 1, \$elt->{'$ST_ELT'}->children( '$1'))"; 
                                       }
@@ -2233,7 +2247,7 @@ sub _parse_start_tag
 
     # get the gi (between < and the first space, / or > character)
     #if( $string=~ s{^<\s*([^\s>/]*)[\s>/]*}{}s)
-    if( $string=~ s{^<\s*($REG_NAME)\s*[\s>/]}{}s)
+    if( $string=~ s{^<\s*($REG_TAG_NAME)\s*[\s>/]}{}s)
       { $gi= $1; }
     else
       { croak "error parsing tag '$string'"; }
@@ -3169,7 +3183,7 @@ sub doctype
             # awfull hack, but at least it works a little better that what was there before
             if( $internal)
               { # remove entity declarations (they will be re-generated from the updated entity list)
-                $internal=~ s{<! \s* ENTITY \s+ $REG_NAME \s+ ( ("[^"]*"|'[^']*') \s* | SYSTEM [^>]*) >\s*}{}xg;
+                $internal=~ s{<! \s* ENTITY \s+ $REG_TAG_NAME \s+ ( ("[^"]*"|'[^']*') \s* | SYSTEM [^>]*) >\s*}{}xg;
                 $internal=~ s{^\n}{};
               }
             $internal .= $t->entity_list->text ||'' if( $t->entity_list);
@@ -5551,13 +5565,13 @@ sub reset_cond_cache { %cond_cache=(); }
                 { push @tests, qq{\$_[0]->is_elt}; }
               elsif( $cond=~ s{$TEXT$SEP}{}) 
                 { push @tests, qq{\$_[0]->is_text}; }
-              elsif( $cond=~ s{^\s*($REG_NAME_WC)$SEP}{})                  
+              elsif( $cond=~ s{^\s*($REG_TAG_PART)$SEP}{})                  
                 { push @tests, _gi_test( $1); } 
               elsif( $cond=~ s{^\s*($REG_REGEXP)$SEP}{})
                 { # /regexp/
                   push @tests, qq{ \$_[0]->gi=~ $1 }; 
                 }
-              elsif( $cond=~ s{^\s*($REG_NAME_WC)?\s*  # $1
+              elsif( $cond=~ s{^\s*($REG_TAG_PART)?\s*  # $1
                                \[\s*(-?)\s*(\d+)\s*\]  #   [$2]
                                $SEP}{}xo
                    )
@@ -5569,7 +5583,7 @@ sub reset_cond_cache { %cond_cache=(); }
                   else
                     { push @tests, qq{(scalar( $siblings) + 1 == $index)}; }
                 }
-              elsif( $cond=~ s{^\s*($REG_NAME_WC?)\s*($REG_PREDICATE)$SEP}{})
+              elsif( $cond=~ s{^\s*($REG_TAG_PART?)\s*($REG_PREDICATE)$SEP}{})
                 { my( $gi, $predicate)= ( $1, $2);
                   push @tests, _and( _gi_test( $gi), _parse_predicate_in_step( $predicate));
                 }
@@ -5598,7 +5612,7 @@ sub reset_cond_cache { %cond_cache=(); }
       my $index= $XML::Twig::gi2index{$full_gi};
       if( $index) { return qq{\$_[0]->{gi} == $index}; }
 
-      my( $gi, $class)= $full_gi=~ m{^(.*?)(?:\.([^.]*))?$};
+      my( $gi, $class, $id)= $full_gi=~ m{^(.*?)(?:[.]([^.]*)|[#](.*))?$};
 
       my $gi_test='';
       if( $gi && $gi ne '*' )
@@ -5622,8 +5636,15 @@ sub reset_cond_cache { %cond_cache=(); }
       #warn "class: '$class'";
       if( $class)
         { $class_test = qq{ defined( \$_[0]->{att}->{class}) && \$_[0]->{att}->{class}=~ m{\\b$class\\b} }; }
+
+      my $id_test='';
+      #warn "id: '$id'";
+      if( $id)
+        { $id_test = qq{ defined( \$_[0]->{att}->{$ID}) && \$_[0]->{att}->{$ID} eq '$id' }; }
+
+
       #warn "gi_test: '$gi_test' - class_test: '$class_test' returning ",  _and( $gi_test, $class_test);
-      return _and( $gi_test, $class_test);
+      return _and( $gi_test, $class_test, $id_test);
   }
 
 
@@ -5634,17 +5655,17 @@ sub reset_cond_cache { %cond_cache=(); }
 
       $cond=~ s{^\s*\[\s*}{};
       $cond=~ s{\s*\]\s*$}{};
-      $cond=~ s{(   ($REG_STRING|$REG_REGEXP)            # strings or regexps
-                   |\@($REG_NAME)(?=\s*(?:[><=!]|!~|=~)) # @att (followed by a comparison operator)
-                   |\@($REG_NAME)                        # @att (not followed by a comparison operator)
-                   |=~|!~                                # matching operators
-                   |([><]=?|=|!=)(?=\s*[\d+-])           # test before a number
-                   |([><]=?|=|!=)                        # test, other cases
-                   |($REG_FUNCTION)                      # no arg functions
+      $cond=~ s{(   ($REG_STRING|$REG_REGEXP)                # strings or regexps
+                   |\@($REG_TAG_NAME)(?=\s*(?:[><=!]|!~|=~)) # @att (followed by a comparison operator)
+                   |\@($REG_TAG_NAME)                        # @att (not followed by a comparison operator)
+                   |=~|!~                                    # matching operators
+                   |([><]=?|=|!=)(?=\s*[\d+-])               # test before a number
+                   |([><]=?|=|!=)                            # test, other cases
+                   |($REG_FUNCTION)                          # no arg functions
                    # this bit is a mess, but it is the only solution with this half-baked parser
-                   |((?:string|text)\(\s*$REG_NAME\s*\)\s*$REG_MATCH\s*$REG_REGEXP) # string( child) =~ /regexp/
-                   |((?:string|text)\(\s*$REG_NAME\s*\)\s*!?=\s*$REG_VALUE)         # string( child) = "value" (or !=)
-                   |((?:string|text)\(\s*$REG_NAME\s*\)\s*[<>]=?\s*$REG_VALUE)      # string( child) > "value"
+                   |((?:string|text)\(\s*$REG_TAG_NAME\s*\)\s*$REG_MATCH\s*$REG_REGEXP) # string( child) =~ /regexp/
+                   |((?:string|text)\(\s*$REG_TAG_NAME\s*\)\s*!?=\s*$REG_VALUE)         # string( child) = "value" (or !=)
+                   |((?:string|text)\(\s*$REG_TAG_NAME\s*\)\s*[<>]=?\s*$REG_VALUE)      # string( child) > "value"
                    |(and|or)
                 )}
                { my( $token, $string, $att, $bare_att, $num_test, $alpha_test, $func, $string_regexp, $string_eq, $string_test, $and_or)
@@ -5657,11 +5678,11 @@ sub reset_cond_cache { %cond_cache=(); }
                  elsif( $alpha_test)    { $PERL_ALPHA_TEST{$alpha_test} }
                  elsif( $func && $func=~ m{^(?:string|text)})
                                         { "\$_[0]->text"; }
-                 elsif( $string_regexp && $string_regexp =~ m{(?:string|text)\(\s*($REG_NAME)\s*\)\s*($REG_MATCH)\s*($REG_REGEXP)})
+                 elsif( $string_regexp && $string_regexp =~ m{(?:string|text)\(\s*($REG_TAG_NAME)\s*\)\s*($REG_MATCH)\s*($REG_REGEXP)})
                                         { "(XML::Twig::_first_n { (\$_->gi eq '$1') && (\$_->text $2 $3) } 1, \$_[0]->_children)"; }
-                 elsif( $string_eq     && $string_eq     =~ m{(?:string|text)\(\s*($REG_NAME)\s*\)\s*(!?=)\s*($REG_VALUE)})
+                 elsif( $string_eq     && $string_eq     =~ m{(?:string|text)\(\s*($REG_TAG_NAME)\s*\)\s*(!?=)\s*($REG_VALUE)})
                                         {"(XML::Twig::_first_n { (\$_->gi eq '$1') && (\$_->text $PERL_ALPHA_TEST{$2} $3) } 1, \$_[0]->_children)"; }
-                 elsif( $string_test   && $string_test   =~ m{(?:string|text)\(\s*($REG_NAME)\s*\)\s*([<>]=?)\s*($REG_VALUE)})
+                 elsif( $string_test   && $string_test   =~ m{(?:string|text)\(\s*($REG_TAG_NAME)\s*\)\s*([<>]=?)\s*($REG_VALUE)})
                                         { "(XML::Twig::_first_n { (\$_->gi eq '$1') && (\$_->text $2 $3) } 1, \$_[0]->_children)"; }
                  elsif( $and_or)        { $and_or eq 'and' ? '&&' : '||' ; }
                  else                   { $token; }
@@ -5728,7 +5749,7 @@ sub set_field
     if( $child)
       { $child->set_content( @_); }
     else
-      { if( $cond=~ m{^\s*($REG_NAME)})
+      { if( $cond=~ m{^\s*($REG_TAG_NAME)})
           { my $gi= $1;
             $child= $record->insert_new_elt( last_child => $gi, @_); 
           }
@@ -6699,12 +6720,14 @@ sub next_siblings
       while( $xpath_exp &&
              $xpath_exp=~s{^\s*(/?)                            
                             # the xxx=~/regexp/ is a pain as it includes /  
-                            (\s*(?:(?:($REG_AXIS)::)?(\*|$REG_NAME|\.\.|\.)\s*)?($REG_PREDICATE_ALT*)
+                            (\s*(?:(?:($REG_AXIS)::)?(\*|$REG_TAG_PART|\.\.|\.)\s*)?($REG_PREDICATE_ALT*)
                             )
                             (/|$)}{}xo)
   
         { my( $wildcard, $sub_exp, $axis, $gi, $predicates)= ($1, $2, $3, $4, $5);
-          
+           if( $axis && ! $gi)
+                { _croak_and_doublecheck_xpath( $original_exp, "error in xpath expression $original_exp"); }
+
           # grab a parent
           if( $sub_exp eq '..')
             { _croak_and_doublecheck_xpath( $original_exp, "error in xpath expression $original_exp") if( $wildcard);
@@ -6713,9 +6736,9 @@ sub next_siblings
           # test the element itself
           elsif( $sub_exp=~ m{^\.(.*)$}s)
             { $sub .= "\@results= grep { \$_->matches( q{$1}) } \@results;" }
-              # grab children
+          # grab children
           else       
-            { 
+            {
               if( !$axis)             
                 { $axis= $wildcard ? 'descendant' : 'child'; }
               if( !$gi or $gi eq '*') { $gi=''; }
@@ -6781,17 +6804,17 @@ sub next_siblings
                                 }
                               elsif( $pred =~ s{^string\(\s*\)\s*}{}o)  # string() pred
                                 { $test .= "\$_->text"; }
-                             elsif( $pred=~ s{^@($REG_NAME)\s*($REG_OP)\s*($REG_STRING|$REG_NUMBER)}{}o)  # @att="val" pred
+                             elsif( $pred=~ s{^@($REG_TAG_NAME)\s*($REG_OP)\s*($REG_STRING|$REG_NUMBER)}{}o)  # @att="val" pred
                                 { my( $att, $oper, $val)= ($1, _op( $2), $3);
                                   $test .= qq{((defined \$_->att("$att"))  && (\$_->att( "$att") $oper $val))};
                                 }
-                             elsif( $pred =~ s{^@($REG_NAME)\s*($REG_MATCH)\s*($REG_REGEXP)\s*}{}o)  # @att=~/regex/ pred XXX
+                             elsif( $pred =~ s{^@($REG_TAG_NAME)\s*($REG_MATCH)\s*($REG_REGEXP)\s*}{}o)  # @att=~/regex/ pred XXX
                                 { my( $att, $match, $regexp)= ($1, $2, $3);
                                   $test .= qq{((defined \$_->att("$att"))  && (\$_->att("$att") $match $regexp))};; 
                                 }
-                             elsif( $pred=~ s{^@($REG_NAME)\s*}{}o)                      # @att pred
+                             elsif( $pred=~ s{^@($REG_TAG_NAME)\s*}{}o)                      # @att pred
                                 { $test .= qq{(defined \$_->att("$1"))}; }
-                             elsif( $pred=~ s{^\s*(?:not|!)\s*@($REG_NAME)\s*}{}o)       # not @att pred
+                             elsif( $pred=~ s{^\s*(?:not|!)\s*@($REG_TAG_NAME)\s*}{}o)       # not @att pred
                                 { $test .= qq{((\$_->is_elt) && (not defined \$_->att("$1")))}; }
                               elsif( $pred=~ s{^\s*([()])}{})                            # ( or ) (just add to the test)
                                 { $test .= qq{$1};           }
