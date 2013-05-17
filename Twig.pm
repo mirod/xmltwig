@@ -960,7 +960,7 @@ sub _html2xml
                   }xe;
 
         # then check that the declaration looks OK (so it parses), if not remove it,
-        # better to parse without the declaration than to die stupidely
+        # better to parse without the declaration than to die stupidly
         if(    $decl =~ m{<!DOCTYPE \s+ (?i:HTML) (\s+ PUBLIC \s+ "[^"]*" \s+ (SYSTEM \s+)? "[^"]*")? \s*>}x # PUBLIC then SYSTEM
             || $decl =~ m{<!DOCTYPE \s+ (?i:HTML) \s+ SYSTEM \s+ "[^"]*" \s*>}x                             # just SYSTEM
           )
@@ -1989,7 +1989,7 @@ sub _twig_start
     my $t=$p->{twig};
 
     # empty the stored pcdata (space stored in case they are really part of 
-    # a pcdata element) or stored it if the space policy dictades so
+    # a pcdata element) or stored it if the space policy dictates so
     # create a pcdata element with the spaces if need be
     _add_or_discard_stored_spaces( $t);
     my $parent= $t->{twig_current};
@@ -2579,7 +2579,7 @@ sub _twig_pi_comment
     if( $t->{twig_input_filter})
           { foreach my $arg (@parser_args) { $arg= $t->{twig_input_filter}->( $arg); } }
           
-    # if pi/comments are to be kept then we piggiback them to the current element
+    # if pi/comments are to be kept then we piggyback them to the current element
     if( $keep)
       { # first add spaces
         if( $t->{twig_stored_spaces})
@@ -3134,7 +3134,7 @@ sub doctype
     if( $update_dtd)
       { if( $doctype)  
           { my $internal=$doctype->{internal};
-            # awfull hack, but at least it works a little better that what was there before
+            # awful hack, but at least it works a little better that what was there before
             if( $internal)
               { # remove entity declarations (they will be re-generated from the updated entity list)
                 $internal=~ s{<! \s* ENTITY \s+ $REG_NAME \s+ ( ("[^"]*"|'[^']*') \s* | SYSTEM [^>]*) >\s*}{}xg;
@@ -3153,7 +3153,7 @@ sub doctype
     elsif( $doctype)
       { if( my $internal= $doctype->{internal}) 
           { # add opening and closing brackets if not already there
-            # plus some spaces and newlines for a nice formating
+            # plus some spaces and newlines for a nice formatting
             # I test it here because I can't remember which version of
             # XML::Parser need it or not, nor guess which one will in the
             # future, so this about the best I can do
@@ -7492,7 +7492,7 @@ sub mark
       my $gi= $XML::Twig::index2gi[$elt->{'gi'}];
   
       # 2 uses: if split matches then the first substring reuses $elt
-      #         once a split has occured then the last match needs to be put in
+      #         once a split has occurred then the last match needs to be put in
       #         a new element      
       my $previous_match= 0;
 
@@ -8930,7 +8930,7 @@ sub set_content
                 $pcdata->{pcdata}= (delete $pcdata->{empty} || 1) &&  $pcdata->{pcdata} . $child 
               }
             else
-              { # previous child is not a string: creat a new pcdata element
+              { # previous child is not a string: create a new pcdata element
                 $pcdata= $elt->_new_pcdata( $child);
                 $pcdata->paste( 'last_child', $elt);  
               }
@@ -9749,7 +9749,7 @@ You might want to look the C<L<elt_class>> option if you want to subclass C<XML:
 
 Attributes are just attached to their parent element, they are not objects per se. (Please
 use the provided methods C<L<att>> and C<L<set_att>> to access them, if you access them
-as a hash, then your code becomes implementaion dependent and might break in the future).
+as a hash, then your code becomes implementation dependent and might break in the future).
 
 Other classes that are seldom used are C<L<XML::Twig::Entity_list>> and C<L<XML::Twig::Entity>>.
 
@@ -9839,7 +9839,7 @@ they are not valid XML) are checked against the current twig.
 Handlers are triggered in fixed order, sorted by their type (xpath expressions
 first, then regexps, then level), then by whether they specify a full path 
 (starting at the root element) or
-not, then by by number of steps in the expression , then number of
+not, then by a number of steps in the expression, then number of
 predicates, then number of tests in predicates. Handlers where the last
 step does not specify a step (C<foo/bar/*>) are triggered after other XPath 
 handlers. Finally C<_all_> handlers are triggered last. 
@@ -9989,8 +9989,8 @@ C<$t> (the twig), C<$tag> (the tag of the element) and C<%att> (a hash of the
 attributes of the element). 
 
 If the C<twig_print_outside_roots> argument is also used, if the last handler
-called returns  a C<true> value, then the the start tag will be output as it
-appeared in the original document, if the handler returns a a C<false> value
+called returns a C<true> value, then the start tag will be output as it
+appeared in the original document, if the handler returns a C<false> value
 then the start tag will B<not> be printed (so you can print a modified string 
 yourself for example).
 
@@ -10149,7 +10149,7 @@ more
 
 =item safe_hex
 
-same as C<safe> except that the character entities are in hexa (C<&#xnnn;>)
+same as C<safe> except that the character entities are in hex (C<&#xnnn;>)
 
 =item encode_convert ($encoding)
 
@@ -10737,7 +10737,7 @@ HTML::TreeBuilder, which needs to be available).
 
 This works nicely, but some information gets lost in the process:
 newlines are removed, and (at least on the version I use), comments
-get get an extra CDATA section inside ( <!-- foo --> becomes
+get an extra CDATA section inside ( <!-- foo --> becomes
 <!-- <![CDATA[ foo ]]> -->
 
 =item parsefile_html ($file)
@@ -11300,7 +11300,7 @@ the root element start tag.
 
 Returns the string from the document that was recognized in order
 to call the current handler. For instance, when called from a start
-handler, it will give us the the start-tag string. The string is
+handler, it will give us the start-tag string. The string is
 encoded in UTF-8.  This method doesn't return a meaningful string
 inside declaration handlers.
 
@@ -11731,7 +11731,7 @@ Return the list of following elements (as per the XPath following axis)
 
 =item preceding_elts
 
-Return the pst of preceding elements (as per the XPath preceding axis)
+Return the list of preceding elements (as per the XPath preceding axis)
 
 =item children     ($optional_condition)
 
@@ -11745,7 +11745,7 @@ C<$optional_condition>)
 
 =item children_text ($optional_condition)
 
-In array context, reeturns an array containing the text of children of the
+In array context, returns an array containing the text of children of the
 element (optionally which matches C<$optional_condition>)
 
 In scalar context, returns the concatenation of the text of children of
@@ -12036,7 +12036,7 @@ DATA::dumper or YAML to dump the data structure)
 B<Note>: there is no magic here, if you write 
 C<< $twig->parsefile( $file )->simplify(); >> then it will load the entire 
 document in memory. I am afraid you will have to put some work into it to 
-get just the bits you want and discard the rest. Look at the synopsys or
+get just the bits you want and discard the rest. Look at the synopsis or
 the XML::Twig 101 section at the top of the docs for more information.
 
 =over 4
@@ -13529,7 +13529,7 @@ several slightly incompatible versions of XML::Parser and of libexpat.
 Basically you can read the DTD, output it back properly, and update entities,
 but not much more.
 
-So use XML::Twig with standalone documents, or with documents refering to an
+So use XML::Twig with standalone documents, or with documents referring to an
 external DTD, but don't expect it to properly parse and even output back the
 DTD.
 
@@ -13758,7 +13758,7 @@ comments and non-significant whitespaces out of the way but preserving them in
 the output for example. As it does not stick to the DOM, is also usually leads 
 to shorter code than in XML::LibXML.
 
-Beyond the pure features of the 2 modules, XML::LibXML seems to be prefered by
+Beyond the pure features of the 2 modules, XML::LibXML seems to be preferred by
 "XML-purists", while XML::Twig seems to be more used by Perl Hackers who have 
 to deal with XML. As you have noted, XML::Twig also comes with quite a lot of 
 docs, but I am sure if you ask for help about XML::LibXML here or on Perlmonks
@@ -13770,7 +13770,7 @@ to (or I improve it ;--), while I have a very basic knowledge of XML::LibXML.
 So feature-wise, I'd rather use XML::Twig ;--). On the other hand, I am 
 painfully aware of some of the deficiencies, potential bugs and plain ugly code
 that lurk in XML::Twig, even though you are unlikely to be affected by them 
-(unless for example you need to change the DTD of a document programatically),
+(unless for example you need to change the DTD of a document programmatically),
 while I haven't looked much into XML::LibXML so it still looks shinny and clean
 to me.
 
