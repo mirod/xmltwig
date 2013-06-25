@@ -4,8 +4,8 @@ use strict;
 use XML::Twig;
 
 my $XPATH;        # XPath engine (XML::XPath or XML::XPathEngine);
-my $XPATH_NUMBER; # <$XPATH>::Number, the XPath number class  
-BEGIN 
+my $XPATH_NUMBER; # <$XPATH>::Number, the XPath number class
+BEGIN
   { foreach my $xpath_engine ( qw( XML::XPathEngine XML::XPath) )
       { if(  XML::Twig::_use( $xpath_engine) ) { $XPATH= $xpath_engine; last; } }
     unless( $XPATH) { die "cannot use XML::Twig::XPath: neither XML::XPathEngine 0.09+ nor XML::XPath are available"; }
@@ -18,18 +18,18 @@ $VERSION="0.02";
 
 BEGIN
 { package XML::XPath::NodeSet;
-  no warnings; # to avoid the "Subroutine sort redefined" message 
+  no warnings; # to avoid the "Subroutine sort redefined" message
   # replace the native sort routine by a Twig'd one
-  sub sort 
+  sub sort
     { my $self = CORE::shift;
       @$self = CORE::sort { $a->node_cmp( $b) } @$self;
       return $self;
     }
 
   package XML::XPathEngine::NodeSet;
-  no warnings; # to avoid the "Subroutine sort redefined" message 
+  no warnings; # to avoid the "Subroutine sort redefined" message
   # replace the native sort routine by a Twig'd one
-  sub sort 
+  sub sort
     { my $self = CORE::shift;
       @$self = CORE::sort { $a->node_cmp( $b) } @$self;
       return $self;
@@ -73,6 +73,30 @@ sub exists              { my( $t, $path)= @_; return $t->{twig_xp}->exists(     
 sub find                { my( $t, $path)= @_; return $t->{twig_xp}->find(                $path, $t); }
 sub matches             { my( $t, $path, $node)= @_; $node ||= $t; return $t->{twig_xp}->matches( $node, $path, $t) || 0; }
 
+#TODO: it would be nice to be able to pass in any object in this
+#distribution and cast it to the proper $XPATH class to use as a
+#variable (via 'nodes' argument or something)
+sub set_var {
+  my ($t, $name, %args) = @_;
+  my $value;
+  if(exists $args{selector}){
+    $value = $t->find($args{selector});
+  }elsif(exists $args{literal}){
+    my $literal_class = "${XPATH}::Literal";
+    $value = $literal_class->new($args{literal});
+  }else{
+    die "can't use anything besides selectors and literals yet";
+  }
+  $t->{twig_xp}->{path_parser}->set_var($name, $value);
+}
+
+# TODO: I have no idea about a getter;
+# would need to bless into proper packages?
+# sub get_var {
+#   my ($t, $name) = @_;
+
+# }
+
 1;
 
 # adds the appropriate methods to XML::Twig::Elt so XML::XPath can be used as the XPath engine
@@ -90,11 +114,11 @@ sub getAttributes
   { my $elt= shift;
     my $atts= $elt->atts;
     # alternate, faster but less clean, way
-    my @atts= map { bless( { name => $_, value => $atts->{$_}, elt => $elt }, 
-                           'XML::Twig::XPath::Attribute') 
+    my @atts= map { bless( { name => $_, value => $atts->{$_}, elt => $elt },
+                           'XML::Twig::XPath::Attribute')
                   }
-                   sort keys %$atts; 
-    # my @atts= map { XML::Twig::XPath::Attribute->new( $elt, $_) } sort keys %$atts; 
+                   sort keys %$atts;
+    # my @atts= map { XML::Twig::XPath::Attribute->new( $elt, $_) } sort keys %$atts;
     return wantarray ? @atts : \@atts;
   }
 
@@ -107,9 +131,9 @@ sub getNamespace
       { return XML::Twig::XPath::Namespace->new( $prefix, ''); }
   }
 
-sub node_cmp($$) 
+sub node_cmp($$)
   { my( $a, $b)= @_;
-    if( UNIVERSAL::isa( $b, 'XML::Twig::XPath::Elt')) 
+    if( UNIVERSAL::isa( $b, 'XML::Twig::XPath::Elt'))
       { # 2 elts, compare them
         return $a->cmp( $b);
       }
@@ -121,16 +145,16 @@ sub node_cmp($$)
     elsif( UNIVERSAL::isa( $b, 'XML::Twig::XPath'))
       { # elt <=> document, elt is after document
         return 1;
-      } 
+      }
     else
       { die "unknown node type ", ref( $b); }
   }
 
 sub getParentNode
-  { return $_[0]->_parent 
+  { return $_[0]->_parent
         || $_[0]->twig;
   }
-  
+
 sub findnodes           { my( $elt, $path)= @_; return $elt->twig->{twig_xp}->findnodes(           $path, $elt); }
 sub findnodes_as_string { my( $elt, $path)= @_; return $elt->twig->{twig_xp}->findnodes_as_string( $path, $elt); }
 sub findvalue           { my( $elt, $path)= @_; return $elt->twig->{twig_xp}->findvalue(           $path, $elt); }
@@ -177,10 +201,10 @@ sub getNamespace
       { return XML::Twig::XPath::Namespace->new( $prefix, $expanded); }
   }
 
-sub node_cmp($$) 
+sub node_cmp($$)
   { my( $a, $b)= @_;
-    if( UNIVERSAL::isa( $b, 'XML::Twig::XPath::Attribute')) 
-      { # 2 attributes, compare their elements, then their name 
+    if( UNIVERSAL::isa( $b, 'XML::Twig::XPath::Attribute'))
+      { # 2 attributes, compare their elements, then their name
         return ($a->{elt}->cmp( $b->{elt}) ) || ($a->{name} cmp $b->{name});
       }
     elsif( UNIVERSAL::isa( $b, 'XML::Twig::XPath::Elt'))
@@ -189,7 +213,7 @@ sub node_cmp($$)
         return ($a->{elt}->cmp( $b) ) || 1 ;
       }
     elsif( UNIVERSAL::isa( $b, 'XML::Twig::XPath'))
-      { # att <=> document, att is after document 
+      { # att <=> document, att is after document
         return 1;
       }
     else
@@ -197,7 +221,7 @@ sub node_cmp($$)
   }
 
 *cmp=*node_cmp;
-  
+
 1;
 
 package XML::Twig::XPath::Namespace;
