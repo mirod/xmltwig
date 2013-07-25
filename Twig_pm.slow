@@ -1167,15 +1167,7 @@ sub _as_XML {
 
 sub _xml_escape 
   { my( $html)= @_;
-    $html =~ s{&(?!                     # An ampersand that isn't followed by...
-                  (  \#[0-9]+;       |  #   A hash mark, digits and semicolon, or
-                    \#x[0-9a-fA-F]+; |  #   A hash mark, "x", hex digits and semicolon, or
-                    [\w]+               #   A valid unicode entity name and semicolon
-                  )
-                )
-              }
-              {&amp;}gx;    # Needs to be escaped to amp
-
+    $html =~ s/&/&amp;/g;
     # in old versions of HTML::TreeBuilder &amp; can come out as &Amp;
     if( $HTML::TreeBuilder::VERSION <= 3.23) { $html=~ s{&Amp;}{&amp;}g; }
 
@@ -8583,7 +8575,7 @@ sub print_to_file
           if( ! $elt->_extra_data_in_pcdata)
             { 
               $string=~ s/([$replaced_ents])/$XML::Twig::base_ent{$1}/g unless( !$replaced_ents || $keep_encoding || $elt->{asis});  
-              $string=~ s{\Q]]>}{]]&gt;}g;
+              $string=~ s{\Q]]>}{]]&gt;}g unless $elt->{asis};
             }
           else
             { _gen_mark( $string); # used by _(un)?protect_extra_data
