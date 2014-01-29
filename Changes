@@ -1,1350 +1,1417 @@
 CHANGES
 
-version 3.44
-date
-# minor maintenance release
-added: XML::Twig::Elt new method now acccepts literal content, eg
-       my $e= XML::Twig::Elt->new( '<div><p>foo</p><p>bar</p></div>');
-added twig handler triggers now accept the syntax <tag>#<id>
-      use *#<id> if you don't want to specify the tag name (#<id> would not
-      work since this is the syntax for "private" elements, this makes it
-      ugly, but is due to the fact that when I started working on XML::Twig
-      CSS wasn't really around)
-fixed: merge had some problems dealing with embedded comments
-improved: more tests
+3.44 - 2013-05-13 - minor maintenance release
+
+- added: XML::Twig::Elt new method now acccepts literal content, eg
+  my $e= XML::Twig::Elt->new( '<div><p>foo</p><p>bar</p></div>');
+
+- added: twig handler triggers now accept the syntax <tag>#<id>
+  use *#<id> if you don't want to specify the tag name (#<id> would not
+  work since this is the syntax for "private" elements, this makes it
+  ugly, but is due to the fact that when I started working on XML::Twig
+  CSS wasn't really around)
+
+- fixed: merge had some problems dealing with embedded comments
+
+- improved: more tests
+
+- improved: make Changes conform to the CPAN::Changes spec
 
 
-version 3.43
-date
-# minor maintenance release
-improved: docs for parse, see RT #78877
-       https://rt.cpan.org/Ticket/Display.html?id=78877
-fixed: xml_pp -i now preserves the permissions of the
-       original file, see RT #81165
-       https://rt.cpan.org/Ticket/Display.html?id=81165 
-       reported by Alberto Simoes
-fixed: RT #80503 Newlines in attribute values
-       https://rt.cpan.org/Ticket/Display.html?id=80503
-       reported (and explained) by Ambrus Zsban: \r, \n
-       and \n explicitely set in attribute values should
-       be escaped (with &#x<nb>;) when output 
+3.43 - 2013-02-31 - minor maintenance release
 
-version 3.42
-date: 2012-11-06
-# minor maintenance release
-fixed: bug, elements created with XML::Twig::Elt->parse were 
-       garbage collected too early, 
-       see http://stackoverflow.com/questions/13263193/xmltwig-changes-erased
-added: some tests
+- improved: docs for parse, see RT #78877
+  https://rt.cpan.org/Ticket/Display.html?id=78877
 
-version 3.41
-date 2012-08-08
-# minor maintenance release
-fixed: META.json generation
+- fixed: xml_pp -i now preserves the permissions of the
+  original file, see RT #81165
+  https://rt.cpan.org/Ticket/Display.html?id=81165 
+  reported by Alberto Simoes
 
-version 3.40
-date: 2012-05-10
-# minor maintenance release
-added: support for alternations ('|') at the top level of handler
-       triggers and navigation
-       you can now have twig_handlers => { 't1|t2' => \&handler }
-       and $elt->children( 't1|t2')
-added: the discard_all_spaces option that discards more aggressively
-       non-significant white spaces
-       see RT #71164 https://rt.cpan.org/Ticket/Display.html?id=71164 
-fixed: used $[ instead of $] in 3 tests,
-       see RT#72765 https://rt.cpan.org/Ticket/Display.html?id=72765
-       reported by Kevin Ryde
-fixed: did not use Text::Wrap with indented_c
-       see RT #71375 https://rt.cpan.org/Ticket/Display.html?id=71375
-       reported and patch provided by Martin Strömberg 
-fixed: doc change for XML::Twig::Elt flush, see RT #72279
-       https://rt.cpan.org/Ticket/Display.html?id=72279
-fixed: replaced HTML::TreeBuilder::as_XML with am XML::Twig specific
-       version, to avoid bugs in the original version and improve
-       stability of the output
-       
-
-version 3.39
-date: 2011-09-22
-# minor maintenance release
-fixed: xml_pp -i would blank all files after the first one 
-       thanks to dvercande for spotting this 
-added: findvalues method (XML::Twig and XML::Twig::Elt)
-       same as findvalue except that it returns an array of value
-added: the output_html_doctype option to XML::Twig::new, that
-       outputs the DOCTYPE declaration for HTML docs converted
-       by HTML::TreeBuilder (fixing it if necessary)
-       see RT #71009: https://rt.cpan.org/Ticket/Display.html?id=71009
-fixed: t/test_autoencoding_conversion.t failed with $PERL_UNICODE
-       set to SA* (which prevents autoconversion)
-       reported by Martin J Evans, RT #71084
-       https://rt.cpan.org/Ticket/Display.html?id=71084 
-
-version 3.38
-date: 2011-02-27
-# minor maintenance release
-fixed: RT 65865: _ should be allowed at the start on an XML name
-       https://rt.cpan.org/Ticket/Display.html?id=65865
-       reported by Steve Prokopowich
-
-version 3.37
-date: 2010-10-08
-# minor maintenance release
-fixed: more tests fixed for HTML::TreeBuilder, hopefully 
-       will pass now
-removed: making att and class lvalues created problems: in certain
-       context they made regular calls to the method create empty 
-       attributes. I could find no satisfactory fix,they were either
-       incompletes, or to complex for often used methods. So att and
-       class are back to being regular, non l-value methods. 
-       latt and lclass are the l-value versions.
-added: documented the -html option for xml_grep, that allows processing
-       HTML input
-added: the -Tidy option to xml_grep, that uses HTML::Tidy to convert
-       HTML to XML
-
-version 3.36
-date: 2010-10-07
-# minor maintenance release
-added: the use_tidy option to XML::Twig->new, which uses
-       HTML::Tidy to convert HTML to well-formed XHTML, as an
-       alternative to the default conversion which uses
-       HTML::TreeBuilder
-added: XML::Twig::Elt method siblings which returns the
-       siblings of the element
-added: methods att_accessors, elt_accessors and field_accessor
-       as well as the similarly named options when creating an 
-       XML::Twig
-added: set_outer_xml XML::Twig::Elt method
-added: print_to_file on an XML::Twig::Elt
-added: can use the tag[nested] form in twig handlers that
-       triggers on elements 'tag' that include a child 'nested'
-added: aliased the add_to_class XML::Twig::Elt method to add_class,
-       which seems more natural
-added: the remove_class method
-added: made att and class lvalues (in perl 5.6 and up)
-fixed: copy did not copy the empty status of an element
-       RT#31664 spotted by Roland Minner
-       https://rt.cpan.org/Ticket/Display.html?id=31664
-fixed: cut_children would always set the empty status of an element,
-       even if it had children left
-fixed: tests did not pass with HTML::TreeBuilder 3.23_1 due to a
-       change in an error message
+- fixed: RT #80503 Newlines in attribute values
+  https://rt.cpan.org/Ticket/Display.html?id=80503
+  reported (and explained) by Ambrus Zsban: \r, \n
+  and \n explicitely set in attribute values should
+  be escaped (with &#x<nb>;) when output 
 
 
-version: 3.35
-date: 2010-05-15
-# minor maintenance release
-added: the by_file option to xml_grep that limits
-       the number of hits per file
-added: allowed the text of ignored elements to be buffered
-       in a string
-fixed: comments need to be escaped (you can't have 2 '-' in a
-       row), RT#57389 spotted by Konstantin Tchernov
-       https://rt.cpan.org/Ticket/Display.html?id=57389
-fixed: after $elt->cut_children, $elt->empty is false RT#54570
-       spotted and patched by Andrew Pimlott
-       https://rt.cpan.org/Ticket/Display.html?id=54570
+3.42 - 2012-11-06 - minor maintenance release
 
-fixed: documented the fact that latin1 is ISO-8859-15, see RT#37431
-       https://rt.cpan.org/Ticket/Display.html?id=37431
+- fixed: bug, elements created with XML::Twig::Elt->parse were 
+  garbage collected too early, 
+  see http://stackoverflow.com/questions/13263193/xmltwig-changes-erased
+
+- added: some tests
 
 
-version: 3.34
-date: 2010-01-18
-# minor maintenance release, test suite fixes
-fixed: tests failed when XML::XPath was used as the XPath engine
+3.41 - 2012-08-08 - minor maintenance release
 
-version: 3.33
-date: 2010-01-15
-# minor maintenance release, bug fixes
-added: XML::Twig::Elt method att_exists which returns true if the attribute
-       exists in the XML
-added: XML::Twig::Elt method lc_attnames which lower cases the names
-      of all the attribute of the element
-added: better error message if find_nodes or get_xpath are called instead
-      of findnodes when using XML::Twig::XPath (suggested by Zed Pobre)
-added: indented_close_tag pretty_print option (suggested by H.Merijn Brand)
-added: RT #49692 xml_split test on win 32 systems. Patch sent through RT 
-       http://rt.cpan.org/Ticket/Display.html?id=49692
-added: using position selector (eg foo[2]) in handler triggers now raises 
-      an error, spotted by Selvakumar
-added: you can use css like selectors for class in navigation: 'p.title' will
-      select p elements with a class that contains title. 
-      In order to preserve backward compatibility and to allow the use of
-      elements with a dot in their name, if there are already parsed elements
-      with a tag name of 'p.title' then they will be selected instead
-added: you can also use css class selectors in trigger handlers. 
-fix:  avoids expat (and XML::Parser) "Ran out of memory for input buffer"
-      error, and instead reports an "empty file" error (and does not attempt
-      to parse the file).
-fix:  RT #51432 attributes containing quote character don't escape properly
-      found, and patch provided by Jeremy Kahn
-      https://rt.cpan.org/Ticket/Display.html?id=51432
-fix:  RT #48616 handler condition of foo/* crashed the module
-      reported by Osfameron
-      http://rt.cpan.org/Public/Bug/Display.html?id=48616
-fix:  xml_grep bug: warning when --count is used and no match is found
-      https://rt.cpan.org/Ticket/Display.html?id=33269 
-      found by Hermann Peifer
-fix:  xml_split bug when using an XML declaration and a utf8 encoding. Spotted
-      by Chris Price.
-fix:  xml_pp bug, pod2text command to display help was not properly quoted.
-      Spotted by Chris Price. 
-fix:  failing tests when LWP::UserAgent is not available
-fix:  RT #41147: use of uninitialized value in eval when attribute isn't found
-      reported by Zed Pobre
-      http://rt.cpan.org/Ticket/Display.html?id=41147
-fix:  memory leak when the XML included id's
-fix:  XML::Twig::Elt->set_content fails when argument is 'XML::Twig::Elt'
-      (or the name of a subclass of XML::Twig::Elt)
-      http://rt.cpan.org/Ticket/Display.html?id=40399
-fix:  bug RT #39849, set_output_encoding( 'utf-8') did not work quite right
-      on filehandles that were already open in >:utf-8 mode
-      spotted by Zed Pobre
-      http://rt.cpan.org/Ticket/Display.html?id=39849
-fix:  xml_pp now accepts all formating options available in XML::Twig
-fix:  RT #31664, element attributes are not preserving their order when
-      using elt->copy spotted, and fix provided by jbubbabrown
-fix:  RT #31832, wrapped link to xmltwig.com in L< > tag in the doc
-      spotted by Slaven Srezic
-      http://rt.cpan.org/Ticket/Display.html?id=31832
-fix:  RT #31833 doc fix, spotted by Slaven Srezic
-fix:  Makefile.PL doesn't nag the poor tester anymore when running with
-      $AUTOMATED_TESTING set
-fix:  bug calling set_text when using XML::Twig::XPath, spotted by Ted Sung
-fix:  improved speed when parsing big elements, RT#35672, reported by Seth 
-      Viebrock (fi is to explicitely return null from the character handler,
-      instead of the text already parsed... a few hundred thousand times)
-      http://rt.cpan.org/Ticket/Display.html?id=35672
-fix:  RT #47257, minor doc bug, spotted by David Steinbrunner
-      http://rt.cpan.org/Ticket/Display.html?id=47257
-fix:  bug in navigation conditions of the form elt[text()=~ /text with 'or' or 'and'/] 
-improved: speed, somewhat
-      put the project on github: http://github.com/mirod/xmltwig
-
-version: 3.32
-date: 
-# minor maintenance release with a bug fix
-fix:  change to the regexp that parses XPath-like conditions so
-      it can accept leading non-ascii letters ([^\W\d] does not 
-      work), not used in perl 5.005
-fix:  set use utf8 (except in 5.005), which gets rid of the dreaded
-      "SWASHNEW" error in 5.6.*, fixed things that then broke in 5.6.
-      
-
-version: 3.31
-# minor maintenance release, fixing some tests
-tests: fixes to stop tests from failing in various configurations
-    
-
-Changes in 3.30
+- fixed: META.json generation
 
 
-      fixed a couple of bugs in namespace handling, spotted by
-      Shlomo Yonas (see https://rt.cpan.org/Ticket/Display.html?id=27617
-      and http://www.perlmonks.org/?node_id=624830)
+3.40 - 2012-05-10 - minor maintenance release
 
-      added the XML::Twig::Elt fields method which returns a list of
-      fields 
+- added: support for alternations ('|') at the top level of handler
+  triggers and navigation
+  you can now have twig_handlers => { 't1|t2' => \&handler }
+  and $elt->children( 't1|t2')
 
-      added the normalize method in XML::Twig and XML::Twig::Elt,
-      which merge together consecutive pcdata elements. As much as 
-      possible (so far after a cut, delete or erase), the twig is 
-      kept normalized, eg there are no consecutive #PCDATA elements
-      in it. Suggestion of someone whose name (and emails) I can't
-      find at the moment.
+- added: the discard_all_spaces option that discards more aggressively
+  non-significant white spaces
+  see RT #71164 https://rt.cpan.org/Ticket/Display.html?id=71164 
 
-      added the indented_a / cvs format for pretty_print, that makes the
-      output friendly to line-oriented version control tools, as described
-      in http://tinyurl.com/2kwscq (RT #24954). Thanks to Sjur Moshagen
-      for a patch that I adapted to the current version.
+- fixed: used $[ instead of $] in 3 tests,
+  see RT#72765 https://rt.cpan.org/Ticket/Display.html?id=72765
+  reported by Kevin Ryde
 
-      fixed bug RT #25113: system entities were not properly resolved
-      if the XML file was not in the current directory. Thanks to
-      Dave Charness for the patch.
+- fixed: did not use Text::Wrap with indented_c
+  see RT #71375 https://rt.cpan.org/Ticket/Display.html?id=71375
+  reported and patch provided by Martin Str?mberg 
 
-      Added the XML::Twig method finish_now that terminates parsing
-      immediately, without checking the rest of the XML. This feature was
-      half suggested by Nick Clayton
+- fixed: doc change for XML::Twig::Elt flush, see RT #72279
+  https://rt.cpan.org/Ticket/Display.html?id=72279
 
-      added the -s option to xml_split, which splits when the given 
-      size is reached for a file, suggested by Radek Saturka.
+- fixed: replaced HTML::TreeBuilder::as_XML with am XML::Twig specific
+  version, to avoid bugs in the original version and improve
+  stability of the output
+  
 
-      added the -g option to xml_split, which groups elements to be
-      split, suggested and tested by Dhirendra Singh Kholia.
+3.39 - 2011-09-22 - minor maintenance release
 
-      added the safe_parsefile_html and safe_parseurl_html methods,
-      and a --html option to xml_grep. Suggested by Bill Ricker.
+- fixed: xml_pp -i would blank all files after the first one 
+  thanks to dvercande for spotting this 
 
-      by default xml_grep now skips non well-formed files, the 
-      --strict option makes it die when it finds one
-      
-      fixed a bunch of bugs in xml_grep
-     
-      fixed a warning when using optional modules with a version
-      number that includes an _, spotted and fix suggested by 
-      Bill Ricker.
+- added: findvalues method (XML::Twig and XML::Twig::Elt)
+  same as findvalue except that it returns an array of value
 
-      Fixed test failure on cygwin, thanks to Erik Rantapaa for the
-      patch.
+- added: the output_html_doctype option to XML::Twig::new, that
+  outputs the DOCTYPE declaration for HTML docs converted
+  by HTML::TreeBuilder (fixing it if necessary)
+  see RT #71009: https://rt.cpan.org/Ticket/Display.html?id=71009
 
-      Fixed a bunch of typos in docs, RT #25836, spotted and fixed by David
-      Steinbrunner 
+- fixed: t/test_autoencoding_conversion.t failed with $PERL_UNICODE
+  set to SA* (which prevents autoconversion)
+  reported by Martin J Evans, RT #71084
+  https://rt.cpan.org/Ticket/Display.html?id=71084 
 
-      Improved re-use of XML::Twig objects for repetitive parsing. It 
-      looks like it should be OK now , but I am sure I haven't tested
-      all cases yet (especially when DTDs and entities are involved).
 
-      HTML parsing improved: XML::Twig now tries to find the proper
-      encoding for the document (that's not done by HTML::TreeBuilder
-      at the moment).
+3.38 - 2011-02-27 - minor maintenance release
 
-      XML::Twig::Elt purge and flush methods now only purge/flush up to
-      the element, not up to the current element in the twig (duh!)
+- fixed: RT 65865: _ should be allowed at the start on an XML name
+  https://rt.cpan.org/Ticket/Display.html?id=65865
+  reported by Steve Prokopowich
 
-      Fixed bug in handlers of the form elt[string(subelt)="foo"] and
-      elt[string(subelt)=1] which did not work at all
 
-      fixed bug in parameter entity output, spotted by BenHopkins on
-      perlmonks (see http://www.perlmonks.org/?node_id=618360)
+3.37 - 2010-10-08 - minor maintenance release
 
-      fixed bug in xml_string: options were not used
+- fixed: more tests fixed for HTML::TreeBuilder, hopefully 
+  will pass now
+
+- changed: making att and class lvalues created problems: in certain
+  context they made regular calls to the method create empty 
+  attributes. I could find no satisfactory fix,they were either
+  incompletes, or to complex for often used methods. So att and
+  class are back to being regular, non l-value methods. 
+  latt and lclass are the l-value versions.
+
+- added: documented the -html option for xml_grep, that allows processing
+  HTML input
+
+- added: the -Tidy option to xml_grep, that uses HTML::Tidy to convert
+  HTML to XML
+
+
+3.36 - 2010-10-07 - minor maintenance release
+
+- added: the use_tidy option to XML::Twig->new, which uses
+  HTML::Tidy to convert HTML to well-formed XHTML, as an
+  alternative to the default conversion which uses
+  HTML::TreeBuilder
+
+- added: XML::Twig::Elt method siblings which returns the
+  siblings of the element
+
+- added: methods att_accessors, elt_accessors and field_accessor
+  as well as the similarly named options when creating an 
+  XML::Twig
+
+- added: set_outer_xml XML::Twig::Elt method
+
+- added: print_to_file on an XML::Twig::Elt
+
+- added: can use the tag[nested] form in twig handlers that
+  triggers on elements 'tag' that include a child 'nested'
+
+- added: aliased the add_to_class XML::Twig::Elt method to add_class,
+  which seems more natural
+
+- added: the remove_class method
+
+- added: made att and class lvalues (in perl 5.6 and up)
+
+- fixed: copy did not copy the empty status of an element
+  RT#31664 spotted by Roland Minner
+  https://rt.cpan.org/Ticket/Display.html?id=31664
+
+- fixed: cut_children would always set the empty status of an element,
+  even if it had children left
+
+- fixed: tests did not pass with HTML::TreeBuilder 3.23_1 due to a
+  change in an error message
+
+
+3.35 - 2010-05-15 - minor maintenance release
+
+- added: the by_file option to xml_grep that limits
+  the number of hits per file
+
+- added: allowed the text of ignored elements to be buffered
+  in a string
+
+- fixed: comments need to be escaped (you can't have 2 '-' in a
+  row), RT#57389 spotted by Konstantin Tchernov
+  https://rt.cpan.org/Ticket/Display.html?id=57389
+
+- fixed: after $elt->cut_children, $elt->empty is false RT#54570
+  spotted and patched by Andrew Pimlott
+  https://rt.cpan.org/Ticket/Display.html?id=54570
+
+- fixed: documented the fact that latin1 is ISO-8859-15, see RT#37431
+  https://rt.cpan.org/Ticket/Display.html?id=37431
+
+
+3.34 - 2010-01-18 - minor maintenance release, test suite fixes
+
+- fixed: tests failed when XML::XPath was used as the XPath engine
+
+
+3.33 - 2010-01-15 - minor maintenance release, bug fixes
+
+- added: XML::Twig::Elt method att_exists which returns true if the attribute
+  exists in the XML
+
+- added: XML::Twig::Elt method lc_attnames which lower cases the names
+  of all the attribute of the element
+
+- added: better error message if find_nodes or get_xpath are called instead
+  of findnodes when using XML::Twig::XPath (suggested by Zed Pobre)
+
+- added: indented_close_tag pretty_print option (suggested by H.Merijn Brand)
+
+- added: RT #49692 xml_split test on win 32 systems. Patch sent through RT 
+  http://rt.cpan.org/Ticket/Display.html?id=49692
+
+- added: using position selector (eg foo[2]) in handler triggers now raises 
+  an error, spotted by Selvakumar
+
+- added: you can use css like selectors for class in navigation: 'p.title' will
+  select p elements with a class that contains title. 
+  In order to preserve backward compatibility and to allow the use of
+  elements with a dot in their name, if there are already parsed elements
+  with a tag name of 'p.title' then they will be selected instead
+
+- added: you can also use css class selectors in trigger handlers. 
+
+- fixed:  avoids expat (and XML::Parser) "Ran out of memory for input buffer"
+  error, and instead reports an "empty file" error (and does not attempt
+  to parse the file).
+
+- fixed:  RT #51432 attributes containing quote character don't escape properly
+  found, and patch provided by Jeremy Kahn
+  https://rt.cpan.org/Ticket/Display.html?id=51432
+
+- fixed:  RT #48616 handler condition of foo/* crashed the module
+  reported by Osfameron
+  http://rt.cpan.org/Public/Bug/Display.html?id=48616
+
+- fixed:  xml_grep bug: warning when --count is used and no match is found
+  https://rt.cpan.org/Ticket/Display.html?id=33269 
+  found by Hermann Peifer
+
+- fixed:  xml_split bug when using an XML declaration and a utf8 encoding. Spotted
+  by Chris Price.
+
+- fixed:  xml_pp bug, pod2text command to display help was not properly quoted.
+  Spotted by Chris Price. 
+
+- fixed:  failing tests when LWP::UserAgent is not available
+
+- fixed:  RT #41147: use of uninitialized value in eval when attribute isn't found
+  reported by Zed Pobre
+  http://rt.cpan.org/Ticket/Display.html?id=41147
+
+- fixed:  memory leak when the XML included id's
+
+- fixed:  XML::Twig::Elt->set_content fails when argument is 'XML::Twig::Elt'
+  (or the name of a subclass of XML::Twig::Elt)
+  http://rt.cpan.org/Ticket/Display.html?id=40399
+
+- fixed:  bug RT #39849, set_output_encoding( 'utf-8') did not work quite right
+  on filehandles that were already open in >:utf-8 mode
+  spotted by Zed Pobre
+  http://rt.cpan.org/Ticket/Display.html?id=39849
+
+- fixed:  xml_pp now accepts all formating options available in XML::Twig
+
+- fixed:  RT #31664, element attributes are not preserving their order when
+  using elt->copy spotted, and fix provided by jbubbabrown
+
+- fixed:  RT #31832, wrapped link to xmltwig.com in L< > tag in the doc
+  spotted by Slaven Srezic
+  http://rt.cpan.org/Ticket/Display.html?id=31832
+
+- fixed:  RT #31833 doc fix, spotted by Slaven Srezic
+
+- fixed:  Makefile.PL doesn't nag the poor tester anymore when running with
+  $AUTOMATED_TESTING set
+
+- fixed:  bug calling set_text when using XML::Twig::XPath, spotted by Ted Sung
+
+- fixed:  improved speed when parsing big elements, RT#35672, reported by Seth 
+  Viebrock (fi is to explicitely return null from the character handler,
+  instead of the text already parsed... a few hundred thousand times)
+  http://rt.cpan.org/Ticket/Display.html?id=35672
+
+- fixed:  RT #47257, minor doc bug, spotted by David Steinbrunner
+  http://rt.cpan.org/Ticket/Display.html?id=47257
+
+- fixed:  bug in navigation conditions of the form elt[text()=~ /text with 'or' or 'and'/] 
+
+- improved: speed, somewhat
+
+-improved: put the project on github: http://github.com/mirod/xmltwig
+
+
+3.32 - 2007-11-13 - minor maintenance release with a bug fix
+
+- fixed:  change to the regexp that parses XPath-like conditions so
+  it can accept leading non-ascii letters ([^\W\d] does not 
+  work), not used in perl 5.005
+
+- fixed:  set use utf8 (except in 5.005), which gets rid of the dreaded
+  "SWASHNEW" error in 5.6.*, fixed things that then broke in 5.6.
+  
+
+3.31 - 2007-11-07 - minor maintenance release, fixing some tests
+
+- fixed: fixes to stop tests from failing in various configurations
+  
+
+3.30 - 2007-11-06 
+
+- fixed: a couple of bugs in namespace handling, spotted by
+  Shlomo Yonas (see https://rt.cpan.org/Ticket/Display.html?id=27617
+  and http://www.perlmonks.org/?node_id=624830)
+
+- added: the XML::Twig::Elt fields method which returns a list of
+  fields 
+
+- added: the normalize method in XML::Twig and XML::Twig::Elt,
+  which merge together consecutive pcdata elements. As much as 
+  possible (so far after a cut, delete or erase), the twig is 
+  kept normalized, eg there are no consecutive #PCDATA elements
+  in it. Suggestion of someone whose name (and emails) I can't
+  find at the moment.
+
+- added: the indented_a / cvs format for pretty_print, that makes the
+  output friendly to line-oriented version control tools, as described
+  in http://tinyurl.com/2kwscq (RT #24954). Thanks to Sjur Moshagen
+  for a patch that I adapted to the current version.
+
+- fixed: bug RT #25113: system entities were not properly resolved
+  if the XML file was not in the current directory. Thanks to
+  Dave Charness for the patch.
+
+- added: the XML::Twig method finish_now that terminates parsing
+  immediately, without checking the rest of the XML. This feature was
+  half suggested by Nick Clayton
+
+- added: the -s option to xml_split, which splits when the given 
+  size is reached for a file, suggested by Radek Saturka.
+
+- added: the -g option to xml_split, which groups elements to be
+  split, suggested and tested by Dhirendra Singh Kholia.
+
+- added: the safe_parsefile_html and safe_parseurl_html methods,
+  and a --html option to xml_grep. Suggested by Bill Ricker.
+
+- improved: by default xml_grep now skips non well-formed files, the 
+  --strict option makes it die when it finds one
+  
+- fixed: a bunch of bugs in xml_grep
+   
+- fixed: a warning when using optional modules with a version
+  number that includes an _, spotted and fix suggested by 
+  Bill Ricker.
+
+- fixed: test failure on cygwin, thanks to Erik Rantapaa for the
+  patch.
+
+- fixed: a bunch of typos in docs, RT #25836, spotted and fixed by David
+  Steinbrunner 
+
+- improved: re-use of XML::Twig objects for repetitive parsing. It 
+  looks like it should be OK now , but I am sure I haven't tested
+  all cases yet (especially when DTDs and entities are involved).
+
+- improved: HTML parsing; XML::Twig now tries to find the proper
+  encoding for the document (that's not done by HTML::TreeBuilder
+  at the moment).
+
+-fixed: XML::Twig::Elt purge and flush methods now only purge/flush up to
+  the element, not up to the current element in the twig (duh!)
+
+- fixed: bug in handlers of the form elt[string(subelt)="foo"] and
+  elt[string(subelt)=1] which did not work at all
+
+- fixed: bug in parameter entity output, spotted by BenHopkins on
+  perlmonks (see http://www.perlmonks.org/?node_id=618360)
+
+- fixed: bug in xml_string: options were not used
  
-      improved error reporting for missing SYSTEM entities, including
-      the option to set twig_expand_external_ents to -1, which makes
-      missing SYSTEM entities not fatal, but reports them in 
-      $t->{twig_missing_system_entities} Thanks to Frank Wegmann for 
-      his suggestions and for testing the various versions of the feature
+- improved error reporting for missing SYSTEM entities, including
+  the option to set twig_expand_external_ents to -1, which makes
+  missing SYSTEM entities not fatal, but reports them in 
+  $t->{twig_missing_system_entities} Thanks to Frank Wegmann for 
+  his suggestions and for testing the various versions of the feature
 
-      fixed internals so new versions of Pod::Coverage won't barf
-      
-Changes in 3.29
+ - fixed: internals so new versions of Pod::Coverage won't barf
+  
+3.29 - 2007-01-22 
 
-      fixed a bug in the handling of handlers after an ignore (RT #24392, 
-      reported by Robert Eden).
+ - fixed: a bug in the handling of handlers after an ignore (RT #24392, 
+  reported by Robert Eden).
 
-Changes in 3.28
+3.28 - 2007-01-05 
 
-      now builds on Windows and OS2
+ - now builds on Windows and OS2
 
-      refactored the code that triggers handlers, 
-      more complex expressions can now be handled,
-      such as '/doc/section[@def="1"]/title'
+ - improved: refactored the code that triggers handlers, 
+  more complex expressions can now be handled,
+  such as '/doc/section[@def="1"]/title'
 
-      COMPATIBILITY WARNING
+- COMPATIBILITY WARNING
+  Up to version 3.26, you could change the attribute
+  of a parent of a node on which you had a handler,
+  and be able to trigger a handler on that parent node
+  based on the new attribute value:
 
-      Up to version 3.26, you could change the attribute
-      of a parent of a node on which you had a handler,
-      and be able to trigger a handler on that parent node
-      based on the new attribute value:
       XML::Twig->new( twig_handlers =>
         { 'sect/title'          => sub { $_->parent->set_att( has_title => 1)},
           'sect[@has_title="1"]'=> sub { ... }, # called for any sect that has
         }                                       # a title
                     );
-      This won't work now. The trigger expression ('sect[@has_title="1"]')
-      is evaluated strictly against the input XML. This is more logical and
-      consistent (if you changed the element name, the new name was never
-      used in the evaluation of the trigger).
-      The only exception to that rule is if you use "private attributes": 
-      attributes which name starts with a '#'. By definition this in an invalid
-      XML name, so it can't be in the input, and has to have been created . In 
-      that case the code that evaluates the trigger looks at the attribute in 
-      the element in the tree in memory (if it exists). 
-      So in the example above, if you replace 'has_title' by '#has_title', 
-      everything will work fine. Note that private attributes are not output 
-      when using the print/sprint/xml_string... methods.    
-     
-      fixed xml_pp so it does not leave a tempfile
-      and a broken original file all when the original
-      file is not well-formed.
-      
-      added the nparse_pp method that does an nparse
-      with pretty_print set to 'indented', nparse_e
-      that sets error_context, and nparse_ppe that 
-      does both
-    
-      added XML::Twig::Elt tag_to_span and tag_to_div
-      methods (turn an element into a span/div and 
-      set its class to the old tag name)
 
-      added the quote option for XML::Twig new, which 
-      sets the output quote character for attributes
-      ('single' or 'double')
+  This won't work now. The trigger expression ('sect[@has_title="1"]')
+  is evaluated strictly against the input XML. This is more logical and
+  consistent (if you changed the element name, the new name was never
+  used in the evaluation of the trigger).
 
-      added the text_only and xml_text_only methods
-      that return the text of the element, but not of 
-      the sub-elements. 
+  The only exception to that rule is if you use "private attributes": 
+  attributes which name starts with a '#'. By definition this in an invalid
+  XML name, so it can't be in the input, and has to have been created . In 
+  that case the code that evaluates the trigger looks at the attribute in 
+  the element in the tree in memory (if it exists). 
 
-      added outer_xml method (synonym for sprint)
+  So in the example above, if you replace 'has_title' by '#has_title', 
+  everything will work fine. Note that private attributes are not output 
+  when using the print/sprint/xml_string... methods.    
+   
+- fixed: xml_pp so it does not leave a tempfile
+  and a broken original file all when the original
+  file is not well-formed.
+  
+- added: the nparse_pp method that does an nparse
+  with pretty_print set to 'indented', nparse_e
+  that sets error_context, and nparse_ppe that 
+  does both
+  
+- added: XML::Twig::Elt tag_to_span and tag_to_div
+  methods (turn an element into a span/div and 
+  set its class to the old tag name)
 
-      fixed bug where entity names were not matched
-      properly (RT #22854, spotted by Bob Faist)
+- added: the quote option for XML::Twig new, which 
+  sets the output quote character for attributes
+  ('single' or 'double')
 
-      fixed bug  on some DOCTYPE config with 
-      twig_print_outside_roots
+- added: the text_only and xml_text_only methods
+  that return the text of the element, but not of 
+  the sub-elements. 
+
+- added: outer_xml method (synonym for sprint)
+
+- fixed: bug where entity names were not matched
+  properly (RT #22854, spotted by Bob Faist)
+
+- fixed: bug  on some DOCTYPE config with 
+  twig_print_outside_roots
  
-      fixed bug in set_keep_encoding (the method, 
-      not the option).
+- fixed: bug in set_keep_encoding (the method, 
+  not the option).
 
-      fixed bug in simplify: the code attempted to
-      replace variables in attribute values even if no
-      option required it, spotted by Klaus Rush
+- fixed: bug in simplify: the code attempted to
+  replace variables in attribute values even if no
+  option required it, spotted by Klaus Rush
 
-      clean-up and fixed bugs in ignore: the method
-      can now be called from a regular handler (it
-      always could but the docs did not say so, 
-      thanks to kudra for noticing this). It can
-      also be called to ignore a parent of the current 
-      element. There were bugs there, and the tree 
-      was not built properly
+- improved: clean-up and fixed bugs in ignore: the method
+  can now be called from a regular handler (it
+  always could but the docs did not say so, 
+  thanks to kudra for noticing this). It can
+  also be called to ignore a parent of the current 
+  element. There were bugs there, and the tree 
+  was not built properly
 
-      added error message when an XPath query with
-      a leading / is used on a node that does not
-      belong to a whole twig (because it's been cut
-      or because the twig itself went out of scope)
-
-      when parsing HTML with error_context set, the
-      HTML is indented, in order to give better error
-      report
-
-Changes in 3.26
-
-      added argument to -i in the Makefile to prevent
-      problem in win32
-
-      added XML::Twig::Elt former_next_sibling, 
-      former_prev_sibling and former_parent methods
-
-      squashed a memory leak when parsing html
-      (forgot to call delete on the HTML::Tree object)
-
-      fixed bug that caused XML::Twig to hang if
-      there was a syntax error in a predicate
-      (RT#19499, reported by Dan Dascalescu)
-
-      made start_tag and end_tag more consistent: they
-      now both return the empty string for comments,
-      PIs... (reported by Dan Dascalescu)
-
-      added parsefile_inplace and parsefile_html_inplace
-      methods (thanks to GrandFather on perlmonks)
-
-      added support to add css stylesheet in the
-      add_stylesheet method (thanks to Georgi Sotirov)
-
-      patched tests to work on Win32
-
-      added set_inner_xml inner_xml and set_inner_html
-      methods
-
-Changes in 3.25
-
-      patched to work with perl 5.005!
-      fixed a bug in xml_pp when pretty printing a 
-      file in place in a different file system
-
-Changes in 3.24
-
-      added loading the text of entities stored in 
-      separate files (using SYSTEM) when the (awfully
-      named!) expand_external_ents option is used.
-      Thanks to jhx for spotting this.
-
-      changed set_cdata, set_pi and set_comment so that
-      if you call them on an element of the wrong kind,
-      everything works as expected, instead of swallowing
-      silently the data. Bug spotted by cmccutcheon
-
-      fixed a whole bunch of things to make the module 
-      run and the tests pass on VMS, thanks to Peter 
-      (Stig) Edwards who reported bug RT #18655 and 
-      provided a patch.
-
-      fixed bug on get_xpath( '/root[1]') expressions,
-      RT #18789 spotted by memfrob.
-
-      added the add_stylesheet method, that... adds a 
-      stylesheet (xsl type is supported, let me know if
-      other types are needed) to a document.
-
-      allowed pasting PI/Comment elements before or after
-      the root of a document (see discussion at 
-      http://perlmonks.org/index.pl?node_id=538550). 
-      Thanks to rogue90 for noticing the problem, and to
-      Tanktalus for finding the best way to solve it.
-
-      aliased unwrap to erase (eg added the unwrap method
-      to XML::Twig::Elt, identical to the existing erase)
-      suggested by Chris Burbridge.
-
-      fixed bug RT #17522: flushing twice at the end of 
-      the the parse would output the last fragment twice. 
-      Spotted by Harco de Hilster.
-
-      dealt with bug RT #17500: parsing a pipe when using
-      the UTF8 perlIO layer (through PERL_UNICODE or -C)
-      now raises an error, found by Nikolaus Rath.
-
-      made the tests pass when the UTF8 perlIO layer is
-      used. At this point potential problems when parsing 
-      non-UTF8 XML in this configuration are not trapped.
-      
-
-Changes in 3.23
-
-      added autoflush: there is no more need for the
-      last $twig->flush after the parsing, it is done
-      automatically at the end of the parsing, with the
-      same arguments as the first flush on the twig.
-      This can be turned of by setting $twig->{twig_autoflush}
-      to 0.
-      WARNING: if you finished the output with a direct
-      print instead of a flush, then this change will 
-      cause a bug. Hopefully this should not be the case
-      and is easily fixable. 
-
-      fixed bug RT #17145 where get_xpath('//root/elt[1]/child')
-      would produce a fatal error if there were no elt 
-      element under root. Spotted by Dan Dascalescu.
-
-      fixed bug RT #17064 (comments and PIs after the
-      root element were not properly processed), spotted
-      by Dan Dascalescu.
-      
-      fixed bug RT #17044: the SYSTEM value was not
-      output in UpdateDTD mode, thanks to Michal
-      Lewandowski for pointing this out.
+- added: error message when an XPath query with
+  a leading / is used on a node that does not
+  belong to a whole twig (because it's been cut
+  or because the twig itself went out of scope)
 
-      changed the way empty tags are expanded with the
-      'html' style: only tags that are allowed to be 
-      empty in XHTML are output as '<tag />', thanks
-      to Tom Rathborne for proding me to look into this.
+- improved: when parsing HTML with error_context set, the
+  HTML is indented, in order to give better error
+  report
 
-      added a 'wrapped' pretty_print option, that is
-      a bit dodgy I think but that might please some.
+3.26 - 2006-07-01 
 
-      fixed bug RT #16540 (tags with specific names 
-      (like 'level'), tripped XML::Twig, spotted by
-      Graham
-    
-      added comparison with XML::LibXML in the SEE ALSO
-      section (and in the FAQ), following a question
-      from surf on c.l.p.m
-      
-      XML::Twig now rejects string/regexp condition
-      in twig_roots
-      
-      added better error checking in xml_grep
-      
-      fix for string/regexp condition in xml_grep 
+- added: argument to -i in the Makefile to prevent
+  problem in win32
 
-      added support for ! @att (or not @att) in get_xpath
-      added support for several predicates in get_xpath
-      (not nested predicates though).
+- added: XML::Twig::Elt former_next_sibling, 
+  former_prev_sibling and former_parent methods
+
+- squashed a memory leak when parsing html
+  (forgot to call delete on the HTML::Tree object)
+
+ - fixed: bug that caused XML::Twig to hang if
+  there was a syntax error in a predicate
+  (RT#19499, reported by Dan Dascalescu)
+
+ -improved: made start_tag and end_tag more consistent: they
+  now both return the empty string for comments,
+  PIs... (reported by Dan Dascalescu)
+
+- added: parsefile_inplace and parsefile_html_inplace
+  methods (thanks to GrandFather on perlmonks)
+
+- added: support to add css stylesheet in the
+  add_stylesheet method (thanks to Georgi Sotirov)
+
+- patched tests to work on Win32
+
+ - added: set_inner_xml inner_xml and set_inner_html
+  methods
+
+3.25 - 2006-05-10 
+
+ - patched to work with perl 5.005!
+
+- fixed: a bug in xml_pp when pretty printing a 
+  file in place in a different file system
+
+3.24 - 2006-05-09 
+
+- added: loading the text of entities stored in 
+  separate files (using SYSTEM) when the (awfully
+  named!) expand_external_ents option is used.
+  Thanks to jhx for spotting this.
+
+- changed: set_cdata, set_pi and set_comment so that
+  if you call them on an element of the wrong kind,
+  everything works as expected, instead of swallowing
+  silently the data. Bug spotted by cmccutcheon
+
+- fixed: a whole bunch of things to make the module 
+  run and the tests pass on VMS, thanks to Peter 
+  (Stig) Edwards who reported bug RT #18655 and 
+  provided a patch.
+
+- fixed: bug on get_xpath( '/root[1]') expressions,
+  RT #18789 spotted by memfrob.
+
+- added: the add_stylesheet method, that... adds a 
+  stylesheet (xsl type is supported, let me know if
+  other types are needed) to a document.
+
+- improved: allowed pasting PI/Comment elements before or after
+  the root of a document (see discussion at 
+  http://perlmonks.org/index.pl?node_id=538550). 
+  Thanks to rogue90 for noticing the problem, and to
+  Tanktalus for finding the best way to solve it.
+
+- added: aliased unwrap to erase (ie added the unwrap method
+  to XML::Twig::Elt, identical to the existing erase)
+  suggested by Chris Burbridge.
+
+- fixed: bug RT #17522: flushing twice at the end of 
+  the the parse would output the last fragment twice. 
+  Spotted by Harco de Hilster.
+
+- fixed: bug RT #17500: parsing a pipe when using
+  the UTF8 perlIO layer (through PERL_UNICODE or -C)
+  now raises an error, found by Nikolaus Rath.
+
+cwimproved: made the tests pass when the UTF8 perlIO layer is
+  used. At this point potential problems when parsing 
+  non-UTF8 XML in this configuration are not trapped.
+  
+
+3.23 - 2006-01-23 
+
+- added: autoflush: there is no more need for the
+  last $twig->flush after the parsing, it is done
+  automatically at the end of the parsing, with the
+  same arguments as the first flush on the twig.
+  This can be turned of by setting $twig->{twig_autoflush}
+  to 0.
+  WARNING: if you finished the output with a direct
+  print instead of a flush, then this change will 
+  cause a bug. Hopefully this should not be the case
+  and is easily fixable. 
+
+- fixed: bug RT #17145 where get_xpath('//root/elt[1]/child')
+  would produce a fatal error if there were no elt 
+  element under root. Spotted by Dan Dascalescu.
 
-      fixed bug RT #15671 (wrong condition interpretation
-      for attribute value 0)
+- fixed: bug RT #17064 (comments and PIs after the
+  root element were not properly processed), spotted
+  by Dan Dascalescu.
+  
+- fixed: bug RT #17044: the SYSTEM value was not
+  output in UpdateDTD mode, thanks to Michal
+  Lewandowski for pointing this out.
 
-      added XML::Twig print_to_file method
+- changed: the way empty tags are expanded with the
+  'html' style: only tags that are allowed to be 
+  empty in XHTML are output as '<tag />', thanks
+  to Tom Rathborne for proding me to look into this.
 
-      added XML::Twig::Elt methods: following_elt,
-      following_elts, preceding_elt, preceding_elts
-      (needed to support the corresponding axis in
-      get_xpath)
+- added: a 'wrapped' pretty_print option, that is
+  a bit dodgy I think but that might please some.
 
-Changes in 3.22
+- fixed: bug RT #16540 (tags with specific names 
+  (like 'level'), tripped XML::Twig, spotted by
+  Graham
+  
+- added: comparison with XML::LibXML in the SEE ALSO
+  section (and in the FAQ), following a question
+  from surf on c.l.p.m
+  
+- added: XML::Twig now rejects string/regexp condition
+  in twig_roots
+  
+- added: better error checking in xml_grep
+  
+- fixed: string/regexp condition in xml_grep 
 
-      added the XML::Twig xparse method, which parses
-      whatever is thrown at it (filehandle, string, 
-      HTML file, HTML URL, URL or file).
+- added: support for ! @att (or not @att) in get_xpath
 
-      added the XML::Twig nparse method, which creates
-      a twig and then calls xparse on the last parameter.
+- added: support for several predicates in get_xpath
+  (not nested predicates though).
 
-      added the parse_html and parsefile_html methods,
-      which parse HTML strings (or fh) and files 
-      respectively, whith the help of HTML::TreeBuilder.
-      the implementation may still change. Note that
-      at the moment there seems to be encoding problems
-      with it (if the input is not UTF8).
+- fixed: bug RT #15671 (wrong condition interpretation
+  for attribute value 0)
 
-      added info to t/zz_dump_config.t
+- added: XML::Twig print_to_file method
 
-      fixed a bug that caused subs_text to leave empty
-      #PCDATA elements if the regexp matched at the begining
-      or at the end of the text of an element.
+- added: XML::Twig::Elt methods: following_elt,
+  following_elts, preceding_elt, preceding_elts
+  (needed to support the corresponding axis in
+  get_xpath)
 
-      fixed RT #15014: in a few methods objects were 
-      created as XML::Twig::Elt, instead of in the classû!F
-      of the calling object.
+3.22 - 2005-10-14 
 
-      fixed RT #14959: problem with wrap_children when
-      an attribute of one of the child element includes
-      a '>'
+- added: the XML::Twig xparse method, which parses
+  whatever is thrown at it (filehandle, string, 
+  HTML file, HTML URL, URL or file).
 
-      improved the docs for wrap_children
+- added: the XML::Twig nparse method, which creates
+  a twig and then calls xparse on the last parameter.
 
-      added a better error message when re-using an
-      existing twig during the parse
+- added: the parse_html and parsefile_html methods,
+  which parse HTML strings (or fh) and files 
+  respectively, whith the help of HTML::TreeBuilder.
+  the implementation may still change. Note that
+  at the moment there seems to be encoding problems
+  with it (if the input is not UTF8).
 
-      partially fixed a bug with windows line-endings in
-      CDATA sections with keep_encoding set (RT #14815)
+- added: info to t/zz_dump_config.t
 
-      added Test::Pod::Coverage test to please the kwalitee 
-      police ;--)
+- fixed: a bug that caused subs_text to leave empty
+  #PCDATA elements if the regexp matched at the begining
+  or at the end of the text of an element.
 
-Changes in 3.21
+- fixed: RT #15014: in a few methods objects were 
+  created as XML::Twig::Elt, instead of in the class?!F
+  of the calling object.
 
-      fixed a test that failed if Tie::IxHash was not
-      available
+- fixed: RT #14959: problem with wrap_children when
+  an attribute of one of the child element includes
+  a '>'
 
-      added link to Atom feed for the CPAN testers 
-      results at http://xmltwig.com/rss/twig_testers.rss
+- improved: the docs for wrap_children
 
-Changes in 3.20
+- added: a better error message when re-using an
+  existing twig during the parse
 
-      fixed the pod (which caused the tests to fail)   
+- fixed: (partially) a bug with windows line-endings in
+  CDATA sections with keep_encoding set (RT #14815)
 
-Changes in 3.19
+- added: Test::Pod::Coverage test to please the kwalitee 
+  police ;--)
 
-      redid the fix to RT # 14008, this one should be ok
-û!F
-      restructured tests
+3.21 - 2005-08-12 
 
-      added the _dump method (probably not finished)
+- fixed: a test that failed if Tie::IxHash was not
+  available
 
-Changes in 3.18
+- added: link to Atom feed for the CPAN testers 
+  results at http://xmltwig.com/rss/twig_testers.rss
 
-      added a fix to deal with a bug in XML::Parser in the
-      original_string method when used in CDATA sections
-      longer than 1024 chars (RT # 14008) thanks to Dan 
-      Dascalescu for spotting the bug and providing a test 
-      case.
+3.20 - 2005-08-11 
 
-      added better error diagnostics when the wrong arguments
-      are used in paste
+- fixed: the pod (which caused the tests to fail)   
 
-      fixed a bug in subs_text when the text of an element
-      included \n (RT #13665) spotted by Dan Dascalescu
+3.19 - 2005-08-10 
 
-      cleaned up the behaviour of erase when the element
-      being erased has extra_data (comments or pis) attached
+- fixed: the fix to RT # 14008, this one should be ok
+  restructured tests
 
-      fixed a bug in subs_text that sometimes messed up text
-      after the matching text
+- added: the _dump method (probably not finished)
 
-      fixed the erase/group_tags option of simplify to make
-      it exactly similar to XML::Simple's
+3.18 - 2005-08-08 
 
-      fixed a bug that caused XML::Twig to crash when ignore
-      was used with twig_roots (RT #13382) spotted by Larry 
-      Siden
+- added: a fix to deal with a bug in XML::Parser in the
+  original_string method when used in CDATA sections
+  longer than 1024 chars (RT # 14008) thanks to Dan 
+  Dascalescu for spotting the bug and providing a test 
+  case.
 
-      fixed bug in xml_split with default entities (they
-      ended up being doubly escaped)
+- added: better error diagnostics when the wrong arguments
+  are used in paste
 
-      fixed various bugs when dealing with ids (changing
-      existing ids, setting the attribute directly...)
+- fixed: a bug in subs_text when the text of an element
+  included \n (RT #13665) spotted by Dan Dascalescu
 
-      mark and split now accepts several tags/ as arguments, 
-      so you can write for example:
-        $elt->mark( qr/^(\w+): (.*)$/, 'dt', 'dd');
-      
+- improved: cleaned up the behaviour of erase when the element
+  being erased has extra_data (comments or pis) attached
 
-      added XML::Twig::Elt children_trimmed_text method,
-      patch sent by ambrus (RT #12510)
+- fixed: a bug in subs_text that sometimes messed up text
+  after the matching text
 
-      changed children_text and children_trimmed_text to
-      have them return the entire text in scalar context
+- fixed: the erase/group_tags option of simplify to make
+  it exactly similar to XML::Simple's
 
-      fixed bug that caused XML::Twig not to play nice with
-      XML::Xerces (due to improper import of UNIVERSAL::isa)
-      spotted and patched by Colin Robertson.
+- fixed: a bug that caused XML::Twig to crash when ignore
+  was used with twig_roots (RT #13382) spotted by Larry 
+  Siden
 
-      removed most references to 'gi' in the docs, replaced 
-      them by tag. I guess Robin Berjon's relentless teasing
-      is to be credited with this one.
+- fixed: bug in xml_split with default entities (they
+  ended up being doubly escaped)
 
-      added tag_regexp condition on handlers (a regexp instead
-      of a regular condition will trigger the handler if the
-      tag matches), suggested by Franck Porcher, implementation
-      helped by a few Perl Monks 
-      (http://perlmonks.org/index.pl?node_id=445677).
+- fixed: various bugs when dealing with ids (changing
+  existing ids, setting the attribute directly...)
 
-      fixed typos in xml_split (RT #11911 and #11911),
-      reported by Alexey Tourbin
+- improved mark and split, both methods  now accepts several
+  tags/ as arguments, so you can write for example:
+   $elt->mark( qr/^(\w+): (.*)$/, 'dt', 'dd');
+  
+ - added: XML::Twig::Elt children_trimmed_text method,
+  patch sent by ambrus (RT #12510)
 
-      added tests for xml_split and xml_merge and fixed
-      a few bugs in the process
+ - changed: children_text and children_trimmed_text to
+  have them return the entire text in scalar context
 
-      added the -i option to xml_split and xml_merge,
-      that use XInclude instead of PIs (preliminary
-      support, the XInclude namespace is not declared
-      for example).
+ - fixed: bug that caused XML::Twig not to play nice with
+  XML::Xerces (due to improper import of UNIVERSAL::isa)
+  spotted and patched by Colin Robertson.
 
-			Added the XML::Twig and XML::Twig::Elt trim method
-			that trims an element in-place
+- changed: most references to 'gi' in the docs, replaced 
+  them by tag. I guess Robin Berjon's relentless teasing
+  is to be credited with this one.
 
-			Added the XML::Twig last_elt method and the XML::Twig::Elt
-			last_descendant method
+- added: tag_regexp condition on handlers (a regexp instead
+  of a regular condition will trigger the handler if the
+  tag matches), suggested by Franck Porcher, implementation
+  helped by a few Perl Monks 
+  (http://perlmonks.org/index.pl?node_id=445677).
 
-      Added more tests
+- fixed: typos in xml_split (RT #11911 and #11911),
+  reported by Alexey Tourbin
 
-Changes in 3.17
+- added: tests for xml_split and xml_merge and fixed
+  a few bugs in the process
 
-      documentation changes, mostly to point better to 
-			the resources at http://www.xmltwig.com
+- added: the -i option to xml_split and xml_merge,
+  that use XInclude instead of PIs (preliminary
+  support, the XInclude namespace is not declared
+  for example).
+
+- added the XML::Twig and XML::Twig::Elt trim method
+  that trims an element in-place
+
+-added the XML::Twig last_elt method and the XML::Twig::Elt
+  last_descendant method
+
+- added: more tests
+
+3.17 - 2005-03-16 
+
+- improved: documentation, mostly to point better to 
+  the resources at http://www.xmltwig.com
 			
+-fixed: a few tests that would fail under perl 5.6.*
+  and Solaris (t/test_safe_encode.t and t/test_bug_3.15.t),
+  see RT bug # 11844, thanks to Sven Neuhaus
 
-      fix a few tests that would fail under perl 5.6.*
-      and Solaris (t/test_safe_encode.t and t/test_bug_3.15.t),
-      see RT bug # 11844, thanks to Sven Neuhaus
+- changed: the licensing terms in the README to match the
+  ones in the main module (same as Perl), see RT bug #11725
 
-      made the licensing terms in the README match the
-      ones in the main module (same as Perl), see RT
-      bug #11725
+- added: a test on XML::SAX::Writer version number to 
+  avoid failing tests with old versions (<0.39)
 
-      added a test on XML::SAX::Writer version number to 
-      avoid failing tests with old versions (<0.39)
+- improved: xml_split
 
-      improved xml_split
+3.16 - 2005-02-11 
 
-Changes in 3.16
+- added: the xml_split/xml_merge tools
 
-      added the xml_split/xml_merge tools
+- fixed: PI handler behaviour when used in twig_roots mode
 
-      fixed PI handler behaviour when used in twig_roots
-      mode
+- fixed: bug  that prevented the DTD to be output
+  when update_DTD mode is on, no DTD is present but
+  entities have been created
 
-      fix a bug  that prevented the DTD to be output
-      when update_DTD mode is on, no DTD is present but
-      entities have been created
+- added: level(<n>) trigger for handlers
 
-      added level(<n>) trigger for handlers
+- fixed: bug that prevented the output_filter to be
+  called when printing an element. Spotted thanks to
+  Louis Strous.
+  
+- fixed: bug in the nsgmls pretty printer that output
+  invalid XML (an extra \n was added in the end tag)
+  found by Lee Goddard
 
-      fixed bug that prevented the output_filter to be
-      called when printing an element. Spotted thanks to
-      Louis Strous.
-      
-      fixed bug in the nsgmls pretty printer that output
-      invalid XML (an extra \n was added in the end tag)
-      found by Lee Goddard
+- fixed: test 284 in test_additional to make it pass 
+  in RedHat's version of perl 5.8.0, thanks to
+  rdhayes for debugging and fixing that test.
 
-      fixed test 284 in test_additional to make it pass 
-      in RedHat's version of perl 5.8.0, thanks to
-      rdhayes for debugging and fixing that test.
+- improved: first shot at getting Pis and comments back in the
+  proper place, even in 'keep' mode. At the moment
+  using set_pcdata  (or set_cdata) removes all
+  embedded comments/pis
 
-      first shot at getting Pis and comments back in the
-      proper place, even in 'keep' mode. At the moment
-      using set_pcdata  (or set_cdata) removes all
-      embedded comments/pis
+- fixed: a bug with pi's in keep mode (pi's would not
+  be copied if they were within an element) found by
+  Pascal Sternis
 
-      fixed a bug with pi's in keep mode (pi's would not
-      be copied if they were within an element) found by
-      Pascal Sternis
+- added: a fix to get rid of spurious warnings, sent
+  by Anthony Persaud 
 
-      added a fix to get rid of spurious warnings, sent
-      by Anthony Persaud 
+- added: the remove_cdata option to the XML::Twig new
+  method, that will output CDATA sections as regular
+  (escaped) PCDATA
 
-      added the remove_cdata option to the XML::Twig new
-      method, that will output CDATA sections as regular
-      (escaped) PCDATA
+- added: the index option to the XML::Twig new method,
+  and the associated XML::Twig index method, which 
+  generates a list of element matching a condition 
+  during parsing
 
-      added the index option to the XML::Twig new method,
-      and the associated XML::Twig index method, which 
-      generates a list of element matching a condition 
-      during parsing
+- added: the XML::Twig::Elt first_descendant method
 
-      added the XML::Twig::Elt first_descendant method
+- fixed: bug with the keep_encoding option where
+  attributes were not parsed when the element name was
+  followed by more than one space (spotted by Gerald
+  Sedrati-Dinet), 
+  see https://rt.cpan.org/Ticket/Display.html?id=8137
 
-      fixed a bug with the keep_encoding option where
-      attributes were not parsed when the element name was
-      followed by more than one space (spotted by Gerald
-      Sedrati-Dinet), 
-      see https://rt.cpan.org/Ticket/Display.html?id=8137
+- fixed: a bug where whitespace at the begining of an
+  element could be dropped (if followed by an element
+  before any other character). Now whitespace is
+  dropped only if it includes a \n
 
-      fixed a bug where whitespace at the begining of an
-      element could be dropped (if followed by an element
-      before any other character). Now whitespace is
-      dropped only if it includes a \n
+- added: feature: when load_DTD is used, default
+  attributes are now filled
 
-      added feature: when load_DTD is used, default
-      attributes are now filled
+- fixed: bug on xmlns in path expression trigger 
+  (would not replace prefixes in path expressions),
+  spotted by amonroy on perlmonks, see
+  http://perlmonks.org/index.pl?node_id=386764
 
-      fixed bug on xmlns in path expression trigger 
-      (would not replace prefixes in path expressions),
-      spotted by amonroy on perlmonks, see
-      http://perlmonks.org/index.pl?node_id=386764
+- optimized: XML::Twig text, thanks to Nick Lassonde
+  for the patch
 
-      optimized XML::Twig text, thanks to Nick Lassonde
-      for the patch
+- fixed: bug that generated an empty line before some
+  comments (pointed out by Tanya Huang)
 
-      fixed bug that generated an empty line before some
-      comments (pointed out by Tanya Huang)
+- fixed: tests to check XML::Filter::BufferText version
+  (1.00 has a bug in the CDATA handling that makes XML::Twig
+  tests fail).
 
-      fixed tests to check XML::Filter::BufferText version
-      (1.00 has a bug in the CDATA handling that makes XML::Twig
-      tests fail).
+- added: new options --nowrap and --exclude (-v) to xml_grep
 
-      Added new options --nowrap and --exclude (-v) to xml_grep
+- fixed: warning in tests under 5.8.0 (spotted by Ed Avis)
 
-      fixed warning in tests under 5.8.0 (spotted by Ed Avis)
+- improved: skipped HTML::Entities tests in 5.8.0 (make test for this
+  module seem to fail on my system, it might be the same 
+  elsewhere)
 
-      skipped HTML::Entities tests in 5.8.0 (make test for this
-      module seem to fail on my system, it might be the same 
-      elsewhere)
+- fixed: bug RT #6067 (problems with non-standard versions of
+  Scalar::Utils which do not include weaken)
 
-      Fixed bug RT #6067 (problems with non-standard versions of
-      Scalar::Utils which do not include weaken)
-      Fixed bug RT #6092 (error when using safe output filter)
-      Fixed bug when using map_xmlns, tags in default namespace 
-      were not output
+- fixed: bug RT #6092 (error when using safe output filter)
 
-Changes in 3.15
+- fixed: bug when using map_xmlns, tags in default namespace 
+  were not output
 
-      Fixes that allow the tests to pass on more systems (thanks to Ed
-      Avis for his testing)
 
-      Added normalize_space option for simplify (suggestion of Lambert Lum) 
+3.15 - 2004-04-05 
 
-      Removed usage of $&
+- fixed: tests now pass on more systems (thanks to Ed Avis for his testing)
 
-      Expanded the doc for paste, as it was a bit short (suggestion of
-      Richard Jolly)
+- added: normalize_space option for simplify (suggestion of Lambert Lum) 
 
-Changes in 3.14
+- improved: removed usage of $&
 
-      Namespace processing has been enhanced and should work fine now,
-      as long as twig_roots is not used.
+- improved: the doc for paste, as it was a bit short (suggestion of Richard Jolly)
 
-      COMPATIBILITY WARNING:
-      Potentially uncompatible change: the behaviour of simplify has
-      been changed to mimic as exactly as possible XML::Simple's XMLin
 
-      Completed the pod to cover the entire API
+3.14 - 2004-03-17 
+
+- improved: namespace processing , it should work fine now,
+  as long as twig_roots is not used.
+
+- COMPATIBILITY WARNING:
+  Potentially uncompatible change: the behaviour of simplify has
+  been changed to mimic as exactly as possible XML::Simple's XMLin
+
+- improved: the pod to cover the entire API
  
-      Tests now pass with perl 5.005_04-RC1 (fail with 5.005 reported
-      by David Claughton), added more tests and a config summary at the
-      end of the tests
+- improved: tests, now pass with perl 5.005_04-RC1 (fail with 5.005 reported
+  by David Claughton), added more tests and a config summary at the
+  end of the tests
 
-      Added methods on the class attribute, convenient for dealing with
-      XHTML or preparing display with CSS:
-      class set_class add_to_class att_to_class add_att_to_class 
-      move_att_to_class tag_to_class add_tag_to_class set_tag_class in_class
-      navigation functions can use '.<class>' expressions
+- added: methods on the class attribute, convenient for dealing with
+  XHTML or preparing display with CSS:
+  class set_class add_to_class att_to_class add_att_to_class 
+  move_att_to_class tag_to_class add_tag_to_class set_tag_class in_class
+  navigation functions can use '.<class>' expressions
 
-      fixed (yet another!) bug in the way DTDs were output
-      fixed bug for pi => 'drop' option
+- fixed: (yet another!) bug in the way DTDs were output
 
-      changed the names of lots on internal (undocumented) methods, prefixed
-      them with _
+- fixed: bug for pi => 'drop' option
 
-Changes in 3.13
+- changed: the names of lots on internal (undocumented) methods, prefixed
+  them with _
 
-      Maintenance release to get the tests to pass on various platforms
 
-      updated the README
-      fixed a problem with encoding conversions (using safe_encode and
-      safe_encode_hex) under perl 5.8.0, see RT ticket #5111
-      fixed tests to pass when trying to use an unsupported iconv filter    
+3.13 - 2004-03-16  # maintenance release to get the tests to pass on various platforms
 
-Changes in 3.12
+- improved: the README file
 
-      New features and greatly increased test coverage
+- fixed: problem with encoding conversions (using safe_encode and
+  safe_encode_hex) under perl 5.8.0, see RT ticket #5111
 
-      added lots of tests (>900), thanks to David Rigaudiere, Forrest 
-      Cahoon, Sebastien Aperghis-Tramoni, Henrik Tougaard and Sam Tregar
-      for testing this release on various OSs, Perl, XML::Parser and 
-      expat versions.
+- fixed: tests to pass when trying to use an unsupported iconv filter    
 
-      added XML::Twig::XPath that uses XML::XPath as the XPath engine
-      for findnodes, findnodes_as_string, findvalue, exists, find and
-      matches. Just use XML::Twig::XPath instead of use XML::Twig;
-      (see the tests in t/xmlxpath_*).
+3.12 - 2004-01-29 # new features and greatly increased test coverage
 
-      Added special case to output some HTML tags ('script' to start with)
-      as not empty.
-      XML::Twig::Elt->new now properly flags empty elements (spotted by
-      Dave Roe)
-      added XML::Twig::Elt contains_a_single method
-      added #ENT twig_handlers (not necessarily complete, so not yet
-      documented, needs more tests)
-      added doc for XML::Twig and XML::Twig::Elt subs_text methods
-      tags starting with # are now "invisible" (they are not output),
-      useful for example for pretty_printing
-      added new options --wrap '' and --date to xml_grep
-      improved XPath support (added [nb] support)
-      added xpath method, which generates a unique XPath for an element
-      added has_child and has_children as synonyms of first_child
-      added XML::Twig::set_id_seed to control how generated id's are
-      created
+- added: lots of tests (>900), thanks to David Rigaudiere, Forrest 
+  Cahoon, Sebastien Aperghis-Tramoni, Henrik Tougaard and Sam Tregar
+  for testing this release on various OSs, Perl, XML::Parser and 
+  expat versions.
 
-      when using ignore on an element, end_tag_handlers are now tested
-      at the end of the element (so you can for exemple get the byte 
-      offset in the document), suggestion of Philippe Verdret
+- added: XML::Twig::XPath that uses XML::XPath as the XPath engine
+  for findnodes, findnodes_as_string, findvalue, exists, find and
+  matches. Just use XML::Twig::XPath instead of use XML::Twig;
+  (see the tests in t/xmlxpath_*).
 
-      added XML::Twig::Elt change_att_name 
-      XML::Twig::Elt new now properly works when called as an object
-      (and not a class) method
+- added: special case to output some HTML tags ('script' to start with)
+  as not empty.
 
-      fixed namespace processing somewhat
-      fixed SAX output methods
-      fixed bug when keep_atts_order on and using set_att on an element
-      with no existing attribute (spotted by scharloi) 
+- fixed: XML::Twig::Elt->new now properly flags empty elements (spotted by
+  Dave Roe)
 
-      COMPATIBILITY WARNING:
-      WARNING - potentially incompatible changes -
-      when using finish_print, the document used to be flushed. This is no
-      longer the case, you will have to do it before calling finish_print. 
-      This way you have the choice of doing it or not.
+- added: XML::Twig::Elt contains_a_single method
 
-      Removed XML::Twig::Elt::unescape function (was no longer used)
+- added: #ENT twig_handlers (not necessarily complete, so not yet 
+  documented, needs more tests)
 
-Changes in 3.11
+- added: doc for XML::Twig and XML::Twig::Elt subs_text methods
+  tags starting with # are now "invisible" (they are not output),
+  useful for example for pretty_printing
 
-      added --text_only option to xml_grep (outputs the text of the
-      result, without tags)
+- added: new options --wrap '' and --date to xml_grep
+  improved XPath support (added [nb] support)
 
-      fixed bug where "Comments [was] always dropped after a twig 
-      object set 'comments' to 'drop'" (RT#3711), bug report and first
-      patch by Simon Flack
+- added: xpath method, which generates a unique XPath for an element
 
-      by popular demand, added option "keep_atts_order" that keeps the
-      original attribute order in the output. This option needs the
-      Tie::IxHash module to work.
+- added: has_child and has_children as synonyms of first_child
 
-Changes in 3.10
+- added: XML::Twig::set_id_seed to control how generated id's are
+  created
 
-      added xml_pp xml_grep and xml_spellcheck to the distribution
+- improved: when using ignore on an element, end_tag_handlers are now tested
+  at the end of the element (so you can for exemple get the byte 
+  offset in the document), suggestion of Philippe Verdret
 
-      the print method now calls 'print $elt->sprint' instead of printing
-      content as it converts them to text, in order to reduce the number
-      of calls to Perl's print (which should increase performance)
+- added: XML::Twig::Elt change_att_name 
 
-      changed XML::Twig::Elt erase to allow erasing the root element 
-      if it has only 1 child
+- fixed: XML::Twig::Elt new now properly works when called as an object
+  (and not a class) method
 
-      added findvalue method to XML::Twig and XML::Twig::Elt
+- fixed: namespace processing somewhat
 
-      aliased findnodes to get_xpath in XML::Twig and XML::Twig::Elt
+- fixed: SAX output methods
 
-      added the elt_class option to XML::Twig::new
+- fixed: bug when keep_atts_order on and using set_att on an element
+  with no existing attribute (spotted by scharloi) 
 
-      added the do_not_chain_handlers option to XML::Twig::new
+- COMPATIBILITY WARNING:
+  WARNING - potentially incompatible changes -
+  when using finish_print, the document used to be flushed. This is no
+  longer the case, you will have to do it before calling finish_print. 
+  This way you have the choice of doing it or not.
 
-      added the XML::Twig::Elt is_first_child and is_last_child methods
+- improved: removed XML::Twig::Elt::unescape function (was no longer used)
 
-      set_gi,set_text, prefix, suffix, set_att, set_atts, del_atts, del_att
-      now return the element for easier chains
 
-      Fixed a bug in pretty printing comments before elements (RT #2315)
+3.11 - 2003-08-28 
 
-      Added the XML::Twig::Elt children_copy method which returns a list
-      of elements that are copies of the children of the element
+- added: --text_only option to xml_grep (outputs the text of the
+  result, without tags)
 
-      Fixed a bug in wrap_in when the element wrapped is not attached to a tree
+- fixed: bug where "Comments [was] always dropped after a twig 
+  object set 'comments' to 'drop'" (RT#3711), bug report and first
+  patch by Simon Flack
 
-      Fixed a bug with get_xpath: regexp modifiers were not taken into account
-      spotted by Eric Safern (RT #2284)
+- added: option "keep_atts_order" that keeps the
+  original attribute order in the output. This option needs the
+  Tie::IxHash module to work.
 
-      Fixed a bug in methods inherited from XML::Parser::Expat (arguments
-      were not properly passed)
 
-      Installed local empty SIG handlers to trap error messages triggered
-      by require for optional modules, so that user signal handlers would
-      not have to deal with them (suggestion from Philippe Verdret)
+3.10 - 2003-06-09 
 
-      Fixed a bug in the navigation XPath engine: text() was used instead of 
-      string(). Both are now allowed.
+- added: xml_pp xml_grep and xml_spellcheck to the distribution
 
-      Added XML::Twig::Elt sort_children, sort_children_on_value, 
-      sort_children_on_att and sort_children_on_field methods that sort the
-      children of an element in place
+- improved: the print method now calls 'print $elt->sprint' instead of printing
+  content as it converts them to text, in order to reduce the number
+  of calls to Perl's print (which should increase performance)
 
-      Added XML::Twig::Elt field_to_att and att_to_field methods
+- changed: XML::Twig::Elt erase to allow erasing the root element 
+  if it has only 1 child
 
-      Fixed a memory leak due to ids not being weak references
+- added: findvalue method to XML::Twig and XML::Twig::Elt
 
-      Added the XML::Twig::Elt wrap_children method that wraps children
-      of an element that satisfy a regexp in a new element
+- added: aliased findnodes to get_xpath in XML::Twig and XML::Twig::Elt
 
-      Added the XML::Twig::Elt add_id method that adds an id to an element
-      
-      Added the XML::Twig::Elt strip_add method that deletes an attribute
-      from an element and its descendants
+- added: the elt_class option to XML::Twig::new
 
-      COMPATIBILITY WARNING
-      Fixed a quasi-bug in set_att where the hash passed in reference was
-      used directly, which makes it a problem when the same reference is
-      passed several times: all the elements share the same attributes.
-      This is a potentially incompatible change for code that relied on 
-      this feature. Please report problems to the author.
+- added: the do_not_chain_handlers option to XML::Twig::new
 
-      fixed a bug in set_id
+- added: the XML::Twig::Elt is_first_child and is_last_child methods
 
-      fixed a bug spotted by Bill Gunter: allowed _ as the initial character 
-      for XML names. Also now allow ':' as the first element
+- improved: set_gi,set_text, prefix, suffix, set_att, set_atts, del_atts, del_att
+  now return the element for easier chains
 
-      added the simplify methods, which load a twig into an XML::Simple like 
-      data structure
+- fixed: bug in pretty printing comments before elements (RT #2315)
 
-      fixed a bug in get_type and is_elt, spotted and fixed by Paul Stodghill
+- added: the XML::Twig::Elt children_copy method which returns a list
+  of elements that are copies of the children of the element
 
-      added the XML::Twig::Elt ancestors_or_self method
+- fixed: a bug in wrap_in when the element wrapped is not attached to a tree
 
-      fixed bug when doc root is also a twig_root (twig was not built)
+- fixed: bug with get_xpath: regexp modifiers were not taken into account
+  spotted by Eric Safern (RT #2284)
 
-      updated the README (fleshed out examples, added OS X to the list of 
-      tested platforms)
+- fixed: bug in methods inherited from XML::Parser::Expat (arguments
+  were not properly passed)
 
-      fixed a bug when using the no_dtd_output option
+- improved: installed local empty SIG handlers to trap error messages triggered
+  by require for optional modules, so that user signal handlers would
+  not have to deal with them (suggestion from Philippe Verdret)
 
-      added doc for the XML::Twig::Elt children_count method
+- fixed: bug in the navigation XPath engine: text() was used instead of 
+  string(). Both are now allowed.
 
-      added the XML::Twig::Elt children_text method
+- added: XML::Twig::Elt sort_children, sort_children_on_value, 
+  sort_children_on_att and sort_children_on_field methods that sort the
+  children of an element in place
 
-      updated the doc so it can be properly formated by my custom pod2html,
-      the generated doc (with a bigger ToC and better links) is available
-      from the XML::Twig page at http://xmltwig.com/xmltwig/
-      
-Changes in 3.09
+- added:XML::Twig::Elt field_to_att and att_to_field methods
 
-      added XML::Twig::Elt xml_text method
+- fixed:a memory leak due to ids not being weak references
 
-      fixed several bugs in the split method under 5.8.0 when matching a utf8
-      character (thanks to Dominic Mitchell who spotted them)
+- added: the XML::Twig::Elt wrap_children method that wraps children
+  of an element that satisfy a regexp in a new element
 
-      cleaned-up the pod (still in progress)
+- added: the XML::Twig::Elt add_id method that adds an id to an element
+  
+- added: the XML::Twig::Elt strip_add method that deletes an attribute
+  from an element and its descendants
 
-      added the XML::Twig::Elt pos method that gives the position of
-      an element in its parent's child list
+- COMPATIBILITY WARNING
+  fixed:a quasi-bug in set_att where the hash passed in reference was
+  used directly, which makes it a problem when the same reference is
+  passed several times: all the elements share the same attributes.
+  This is a potentially incompatible change for code that relied on 
+  this feature. Please report problems to the author.
 
-      re-introduced parseurl (thanks to Denis Kolokol for spotting its 
-      absence in this version)
+- fixed: bug in set_id
 
-      Fixed a bug: ent_tag_handlers were not called on the root (thanks
-      to Philippe Verdret
+- fixed: bug spotted by Bill Gunter: allowed _ as the initial character 
+  for XML names. Also now allow ':' as the first element
 
-      Improved #PI (also declared as '?') and #COMMENT handler support 
+- added: the simplify methods, which load a twig into an XML::Simple like 
+  data structure
 
-      added check on reference type (must be XML::Twig::Elt) in 
-      XML::Twig::Elt::paste (patch by Forrest Cahoon)
+- fixed: bug in get_type and is_elt, spotted and fixed by Paul Stodghill
 
-Changes in 3.08
+- added: the XML::Twig::Elt ancestors_or_self method
 
-      The previous fix wasn't enough :--( 
+- fixed: bug when doc root is also a twig_root (twig was not built)
 
-Changes in 3.07
+- improved: the README (fleshed out examples, added OS X to the list of 
+  tested platforms)
 
-      Fixed the way weaken is imported from Scalar::Util
+- fixed: bug when using the no_dtd_output option
 
-Changes in 3.06
+- added: doc for the XML::Twig::Elt children_count method
 
-      Added XML::Twig::Elt trimmed_text and related methods (trimmed_field,
-      first_child_trimmed_text, last_child_trimmed_text...)
+- added: the XML::Twig::Elt children_text method
 
-      Added XML::Twig::Elt replace_with method
+- improved: updated the doc so it can be properly formated by my custom pod2html,
+  the generated doc (with a bigger ToC and better links) is available
+  from the XML::Twig page at http://xmltwig.com/xmltwig/
+  
+  
+3.09 - 2002-11-10 
 
-      Added XML::Twig::Elt cut_children method
+- added: XML::Twig::Elt xml_text method
 
-      Added XML::Twig contains_only method
+- fixed: several bugs in the split method under 5.8.0 when matching a utf8
+  character (thanks to Dominic Mitchell who spotted them)
 
-      Added *[att=~ /regexp/] condition type (suggested by Nikola Janceski)
+- improved: cleaned-up the pod (still in progress)
 
-      Fixed a bug in the way handlers for gi, path and subpath were chained
-      (Thanks to Tommy Wareing)
+- added: the XML::Twig::Elt pos method that gives the position of
+  an element in its parent's child list
 
-      Fixed a bug where entities caused an error on other handlers (Thanks
-      to Tommy Wareing)
+- fixed: re-introduced parseurl (thanks to Denis Kolokol for spotting its 
+  absence in this version)
 
-      Fixed a bug with string(sub_elt)=~ /regexp/ (thanks to Tommy Wareing)
+- fixed: ent_tag_handlers were not called on the root (thanks
+  to Philippe Verdret
 
-      Fixed a bug with output_filter used with expand_external_entities
-      (thanks to Tommy Wareing)
+- improved: #PI (also declared as '?') and #COMMENT handler support 
 
-      Fixed (yet another!) bug with whitespace handling (whitespace, then an
-      entity made the whitespace move after the entity) (spotted by the usual
-      Tommy Wareing)
+- added: check on reference type (must be XML::Twig::Elt) in 
+  XML::Twig::Elt::paste (patch by Forrest Cahoon)
 
-      Added an error message when pasting on an undef reference (suggestion
-      of Tommy Wareing)
 
-      Fixed a bug in in_context (found by Tommy Wareing)
+3.08 - 2002-09-17 
 
-      Fixed a bug when loading the DTD (local undef $/ did not stay local,
-      bug found and patch sent by Steve Pomeroy and Henry Cipolla)
+- fixed: the previous fix wasn't enough :--( 
 
-      Fixed a bug in setting output filter
+3.07 - 2002-09-17 
 
-      Fixed a bug in using a filehandle with twig_print_outside_roots
+- fixed:the way weaken is imported from Scalar::Util
 
-      Added safe_encode_hex filter
+3.06 - 2002-09-17 
 
-      fixed bug in set_indent, $INDENT not set properly (thanks
-      to Eric Jain)
+- added: XML::Twig::Elt trimmed_text and related methods (trimmed_field,
+  first_child_trimmed_text, last_child_trimmed_text...)
 
-      fixed dependencies (no check with 5.8.0, added Scalar::Util
-      as a possible source for weaken)
+- added: XML::Twig::Elt replace_with method
 
-      Added no_prolog option to XML:Twig::new
+- added: XML::Twig::Elt cut_children method
 
-      Tested build on Windows (thanks to Cory Trese and Josh Hawkins)
+- added: XML::Twig contains_only method
 
+- added: *[att=~ /regexp/] condition type (suggested by Nikola Janceski)
 
-    Changed in 3.05
+- fixed: bug in the way handlers for gi, path and subpath were chained
+  (Thanks to Tommy Wareing)
 
-      Added _ALPHA_ SAX export methods: 
-        XML::Twig toSAX1, toSAX2, flush_toSAX1, flush_toSAX2
-	XML::Twig::Elt toSAX1, toSAX2
+- fixed: bug where entities caused an error on other handlers (Thanks
+  to Tommy Wareing)
 
-      The following gotchas apply:
+- fixed: bug with string(sub_elt)=~ /regexp/ (thanks to Tommy Wareing)
 
-        - these methods work only for documents that are completely
-          loaded by XML::Twig (ie if you use twig_roots the data
-          outside of the roots will not be output as SAX). 
-        - SAX1 support is a bit dodgy: the encoding is not preserved
-	  (it is always set to 'UTF-8'),
-	- locator is not supported (and probably will not, what's the 
-	  location of a newly created element?)
+- fixed: bug with output_filter used with expand_external_entities
+  (thanks to Tommy Wareing)
 
-      Also when exporting SAX you should consider setting Twig to a 
-      mode where all aspects of the XML are treated as nodes by XML::Twig,
-      by setting the following options when you create the twig:
-      comments => 'process', pi => 'process', keep_spaces => 1
-       
-     
-      twig_print_outside_roots now supports a file handle ref as argument:
-      the untouched part of the tree will be output to the filehandle:
+- fixed: (yet another!) bug with whitespace handling (whitespace, then an
+  entity made the whitespace move after the entity) (spotted by the usual
+  Tommy Wareing)
 
-      Added the 'indented_c' style that gives a slightly more compact pretty
-      print than 'indented': the end tags are on the same line as the 
-      preceeding text (suggestion of Hugh Myers)
-     
-      Added option in get_xpath (aka find_nodes) to apply the query to
-      a list of elements 
+- added: an error message when pasting on an undef reference (suggestion
+  of Tommy Wareing)
 
-      Added processing of conditions on the current node in get_xpath:
-      my @result= get_xpath( q{.[@att="val"]});
-      This is of course mostly useful with the previous option.
-      The idea stemmed from a post from Liam Quin to the perl-xml list
+- fixed: bug in in_context (found by Tommy Wareing)
 
-      Added XML::Twig xml_version, set_xml_version, standalone, set_standalone
-      methods on the XML declaration
+- fixed: bug when loading the DTD (local undef $/ did not stay local,
+  bug found and patch sent by Steve Pomeroy and Henry Cipolla)
 
-      Fixed a bug in change_gi (which simply did not work at all), found
-      by Ron Hayden.
+- fixed: bug in setting output filter
 
-      Fixed bug in space handling with CDATA (spaces before the CDATA section
-      were moved to within the section), comments and PI's
+- fixed: bug in using a filehandle with twig_print_outside_roots
 
-      Fixed bug in parse_url (exit was not called at the end of the child),
-      found by David Kulp
+- added: safe_encode_hex filter
 
-      Cleanup a bit the code that parses xpath expressions (still some work 
-      to be done on this though), fixed a bug with last, found by Roel de Cock
+- fixed: bug in set_indent, $INDENT not set properly (thanks
+  to Eric Jain)
 
-      Fixed the SYNOPSIS (parsefile is used to parse files, spotted by 
-      e.sammer)
+- fixed: dependencies (no check with 5.8.0, added Scalar::Util
+  as a possible source for weaken)
 
-      Fixed a bug in pretty printing (reported by Zhu Zhou)
+- added: no_prolog option to XML:Twig::new
 
-      Fixed a bugin the install: the Makefile now uses the same perl used 
-      to perl Makefile.PL to run speedup and check_optional_modules 
-      (reported by Ralf Santos)
+- improved: tested build on Windows (thanks to Cory Trese and Josh Hawkins)
 
-      Fixed bugs in pretty printing when using flush, trying to figure out
-      as well as possible if an element contains other elements or text 
-      (there is still a gotcha, see the BUGS section in the docs) 
 
-      Fixed a bug that caused the XML declaration and the DTD not to be reset
-      between parses
+- changed:in 3.05
 
-      Improved the conversion functions (errors are now reported when the
-      function is created and not when it is first used)
+- added: _ALPHA_ SAX export methods: 
+   XML::Twig toSAX1, toSAX2, flush_toSAX1, flush_toSAX2 XML::Twig::Elt toSAX1, toSAX2
+   The following gotchas apply:
+   + these methods work only for documents that are completely
+     loaded by XML::Twig (ie if you use twig_roots the data
+     outside of the roots will not be output as SAX). 
+   + SAX1 support is a bit dodgy: the encoding is not preserved
+     (it is always set to 'UTF-8'),
+   + locator is not supported (and probably will not, what's the 
+     location of a newly created element?)
+  Also when exporting SAX you should consider setting Twig to a 
+  mode where all aspects of the XML are treated as nodes by XML::Twig,
+  by setting the following options when you create the twig:
+  comments => 'process', pi => 'process', keep_spaces => 1
+  
+- improved: twig_print_outside_roots now supports a file handle ref as argument:
+  the untouched part of the tree will be output to the filehandle:
 
-      Added the output_encoding option to XML::Twig->new, which allows 
-      specifying an encoding for the output: the conversion filter is
-      created using Encode (perl 5.8.0) Text::Iconv or Unicode::* The
-      XML declaration is also updated
+- added: the 'indented_c' style that gives a slightly more compact pretty
+  print than 'indented': the end tags are on the same line as the 
+  preceeding text (suggestion of Hugh Myers)
+   
+- added: option in get_xpath (aka find_nodes) to apply the query to
+  a list of elements 
 
-      #CDATA and #ENT can now be used in handler expressions
+- added: processing of conditions on the current node in get_xpath:
+  my @result= get_xpath( q{.[@att="val"]});
+  This is of course mostly useful with the previous option.
+  The idea stemmed from a post from Liam Quin to the perl-xml list
 
-      added XML::Twig::Elt remove_cdata method, which turns CDATA sections
-      into regular PCDATA elements
+- added: XML::Twig xml_version, set_xml_version, standalone, set_standalone
+  methods on the XML declaration
 
-      set_asis can now be used to output CDATA sections un-escaped (and without
-      the CDATA section markers) 
+- fixed: bug in change_gi (which simply did not work at all), found
+  by Ron Hayden.
 
-    Changed in 3.04
+- fixed: bug in space handling with CDATA (spaces before the CDATA section
+  were moved to within the section), comments and PI's
 
-      Fixed handlers for XML::Parser 2.27 so the module can pass the tests
+- fixed: bug in parse_url (exit was not called at the end of the child),
+  found by David Kulp
 
-    Changed in 3.03
+- improved: cleanup a bit the code that parses xpath expressions (still some work 
+  to be done on this though), fixed a bug with last, found by Roel de Cock
 
-      fixed bugs in entity handling in twig_roots mode
+- fixed: the SYNOPSIS (parsefile is used to parse files, spotted by e.sammer)
 
-      added the ignore_elts option, to skip completely elements
+- fixed: bug in pretty printing (reported by Zhu Zhou)
 
-      enhanced the XPath-like syntax in navigation and get_xpath
-      methods: added operators (>, < ...)
+- fixed: bugin the install: the Makefile now uses the same perl used 
+  to perl Makefile.PL to run speedup and check_optional_modules 
+  (reported by Ralf Santos)
 
-      fixed [RT 168]: setTwigHandler failed when no handler was already set
-      (thanks to Jerry)
-      
-      turned %valid_option into a package global so AnyData can access it
-      
-      fixed a bug in sprint that prevented it from working with filters
+- fixed: bugs in pretty printing when using flush, trying to figure out
+  as well as possible if an element contains other elements or text 
+  (there is still a gotcha, see the BUGS section in the docs) 
 
-      fixed a bug in erase when erasing an empty element that was the
-      last child of its parent ([RT390], thanks to Julian Arnold)
-      
-      copy now correctly copies the asis status of elements
+- fixed: bug that caused the XML declaration and the DTD not to be reset
+  between parses
 
-      fixed typos on the docs (thanks to Shlomo Yona)
+- improved: the conversion functions (errors are now reported when the
+  function is created and not when it is first used)
 
-      added tests (for erase and entities in twig_roots mode)
+- added: the output_encoding option to XML::Twig->new, which allows 
+  specifying an encoding for the output: the conversion filter is
+  created using Encode (perl 5.8.0) Text::Iconv or Unicode::* The
+  XML declaration is also updated
 
-    Changed in 3.02
+- added: #CDATA and #ENT can now be used in handler expressions
 
-      Tweaked speedup to replace constructs that did not work in
-      perl 5.005003
+- added: XML::Twig::Elt remove_cdata method, which turns CDATA sections
+  into regular PCDATA elements
 
-    Changed in 3.01
-    
-      Fixed the directory name in the tar file 
+- improved: set_asis can now be used to output CDATA sections un-escaped (and without
+  the CDATA section markers) 
 
-    Changed in 3.00
+3.04 - 2002-04-01
 
-      COMPATIBILITY WARNING
-      WARNING: THIS CHANGE IS NOT BACKWARD COMPATIBLE
+- fixed: handlers for XML::Parser 2.27 so the module can pass the tests
 
-      But it is The Right Thing To Do
+3.03 - 2002-03-26
 
-      In normal mode (when KeepEncoding is not used) the XML data is
-      now stored as parsed by XML::Parser, ie the base entities are
-      expanded. The "print" methods (print, sprint and flush, plus the
-      new xml_string, pcdata_xml_string and att_xml_string) return the
-      data in XML-escaped form: & and < are escaped in PCDATA and
-      &, < and the quote (" by default) are turned to &amp; &lt; and
-      &quot; (or &apos; if the quote is '). The "text" methods (text,
-      att and pcdata) return the stored text as is.
-      So if you want to output XML you should use the "print" methods
-      and if you want to output text you should use the "text" methods.
+- fixed: bugs in entity handling in twig_roots mode
 
-      Note that this breaks the trick consisting in adding tags to the
-      content of an element: $elt->prefix( "<b>") no longer adds a <b>
-      tag before an element. $elt->print will now output "&lt;b>...".
-      (but you can still use it by marking those elements as 'asis').
-      It also fixes the annoying &apos; thingie that used to replace '
-      in the data. 
+- added: the ignore_elts option, to skip completely elements
 
-      When the KeepEncoding option is used this is not true, the data
-      is stored asis, base entities are kept un-escaped.
+- improved: enhanced the XPath-like syntax in navigation and get_xpath
+  methods: added operators (>, < ...)
 
-      Note that KeepEncoding is a global setting, if you use several twigs,
-      some with KeepEncoding and some without then you will have to manually
-      set the option using the set_keep_encoding method, otherwise the last
-      XML::Twig::new call will have set it
+- fixed: [RT 168]: setTwigHandler failed when no handler was already set
+  (thanks to Jerry)
+  
+- improved: turned %valid_option into a package global so AnyData can access it
+  
+- fixed: bug in sprint that prevented it from working with filters
 
-      In addition when the KeepEncoding option is used the start tag is
-      parsed using a custom function parse_start_tag, which works only
-      for 1-byte encodings (it is regexp-based). This method can be 
-      overridden using the ParseStartTag (or parse_start_tag) option
-      when creating the twig. This function takes the original string as
-      input and returns the gi and the attributes (in a hash).
-      If you write a function that works for multi-byte encodings I would
-      very much appreciate if you could send it back to me so I can add it
-      to the module, so other users can benefit from it.
+- fixed: bug in erase when erasing an empty element that was the
+  last child of its parent ([RT390], thanks to Julian Arnold)
+  
+- fixed: copy now correctly copies the asis status of elements
 
-     An additional option ExpansExternalEnts will expand external entity
-     references to their text (in the output, the text stored is &ent;).
+- fixed:typos on the docs (thanks to Shlomo Yona)
 
-    Added
+- added: tests (for erase and entities in twig_roots mode)
 
-      When handlers (twig_handlers or start_tag_handlers) are called
-      $_ is set to the element node, so quick hacks look better:
-      
+3.02 - 2002-01-16
+
+- fixed: tweaked speedup to replace constructs that did not work in
+  perl 5.005003
+
+3.01 - 2002-01-09
+  
+- fixed: the directory name in the tar file 
+
+3.00 - 2002-01-09
+
+- COMPATIBILITY 
+  WARNING: THIS CHANGE IS NOT BACKWARD COMPATIBLE
+
+  But it is The Right Thing To Do
+
+  In normal mode (when KeepEncoding is not used) the XML data is
+  now stored as parsed by XML::Parser, ie the base entities are
+  expanded. The "print" methods (print, sprint and flush, plus the
+  new xml_string, pcdata_xml_string and att_xml_string) return the
+  data in XML-escaped form: & and < are escaped in PCDATA and
+  &, < and the quote (" by default) are turned to &amp; &lt; and
+  &quot; (or &apos; if the quote is '). The "text" methods (text,
+  att and pcdata) return the stored text as is.
+  So if you want to output XML you should use the "print" methods
+  and if you want to output text you should use the "text" methods.
+
+  Note that this breaks the trick consisting in adding tags to the
+  content of an element: $elt->prefix( "<b>") no longer adds a <b>
+  tag before an element. $elt->print will now output "&lt;b>...".
+  (but you can still use it by marking those elements as 'asis').
+  It also fixes the annoying &apos; thingie that used to replace '
+  in the data. 
+
+  When the KeepEncoding option is used this is not true, the data
+  is stored asis, base entities are kept un-escaped.
+
+  Note that KeepEncoding is a global setting, if you use several twigs,
+  some with KeepEncoding and some without then you will have to manually
+  set the option using the set_keep_encoding method, otherwise the last
+  XML::Twig::new call will have set it
+
+  In addition when the KeepEncoding option is used the start tag is
+  parsed using a custom function parse_start_tag, which works only
+  for 1-byte encodings (it is regexp-based). This method can be 
+  overridden using the ParseStartTag (or parse_start_tag) option
+  when creating the twig. This function takes the original string as
+  input and returns the gi and the attributes (in a hash).
+  If you write a function that works for multi-byte encodings I would
+  very much appreciate if you could send it back to me so I can add it
+  to the module, so other users can benefit from it.
+
+  An additional option ExpansExternalEnts will expand external entity
+  references to their text (in the output, the text stored is &ent;).
+
+- added: when handlers (twig_handlers or start_tag_handlers) are called
+  $_ is set to the element node, so quick hacks look better:
+  
       my $t= new XML::Twig( twig_handlers => 
-               { elt => sub { print $_->att( 'id'), ": ", $_->text, "\n"; } }
-	                  );
+            { elt => sub { print $_->att( 'id'), ": ", $_->text, "\n"; } }
+	                    );
 
-      XML::Twig dispose method which properly reclaims all the memory
-        used by the object (useful if you don't have WeakRef installed)
+- added: XML::Twig dispose method which properly reclaims all the memory
+  used by the object (useful if you don't have WeakRef installed)
 
-      XML::Twig and XML::Twig::Elt ignore methods, which can be called
-        from a start_tag_handlers handler and cause the element (or the
-        current element if called on a twig) to be ignored by the 
-        parsing
+- added: XML::Twig and XML::Twig::Elt ignore methods, which can be called
+  from a start_tag_handlers handler and cause the element (or the
+  current element if called on a twig) to be ignored by the 
+  parsing
 
-      XML::Twig parse_start_tag option that overrides the default function
-        used to parse start tags when KeepEncoding is used
+- added: XML::Twig parse_start_tag option that overrides the default function
+  used to parse start tags when KeepEncoding is used
 
-      XML::Twig::Elt xml_string, pcdata_xml_string and att_xml_string
-        all return an XML-escaped string for an element (including 
-	sub-elements and their tags but not the enclosing tags for the 
-	element), a #PCDATA element and an attribute
+- added: XML::Twig::Elt xml_string, pcdata_xml_string and att_xml_string
+  all return an XML-escaped string for an element (including 
+  sub-elements and their tags but not the enclosing tags for the 
+  element), a #PCDATA element and an attribute
 
-      XML::Twig::Elt methods tag and set_tag, equivalent respectively
-        to gi and set_gi
-      
-      XML::Twig and XML::Twig::Elt set_keep_encoding methods can be used
-        to set the keep_encoding value if you use several twigs with 
-        different keep_encoding options
+- added: XML::Twig::Elt methods tag and set_tag, equivalent respectively
+  to gi and set_gi
+  
+- added: XML::Twig and XML::Twig::Elt set_keep_encoding methods can be used
+  to set the keep_encoding value if you use several twigs with 
+  different keep_encoding options
 
-      Option names for XML::Twig::new are now checked (a warning is output
-        if the option is not a valid one);
+- improved: option names for XML::Twig::new are now checked (a warning is output
+  if the option is not a valid one);
 
-      when using pretty_print nice or indented keep_spaces_in is now checked
-        so the elements within an element listed in keep_spaces_in are not
-        indented
+- improved: when using pretty_print nice or indented keep_spaces_in is now checked
+  so the elements within an element listed in keep_spaces_in are not
+  indented
 
-      XML::Twig::Elt insert_new_elt method that does a new and a paste
+- added: XML::Twig::Elt insert_new_elt method that does a new and a paste
 
-      XML::Twig::Elt split_at method splits a #PCDATA element in 2
+- added: XML::Twig::Elt split_at method splits a #PCDATA element in 2
 
-      XML::Twig::Elt split method splits all the text descendants of an 
-        element, on a regep, wrapping text captured in brackets in the
-        regexp in a specified element, all elements are returned 
+- added: XML::Twig::Elt split method splits all the text descendants of an 
+   element, on a regep, wrapping text captured in brackets in the
+   regexp in a specified element, all elements are returned 
 
-      XML::Twig::Elt mark method is similar to the split method, except
-        that only newly created elements (matched by the regexp) are
-        returned
+- added: XML::Twig::Elt mark method is similar to the split method, except
+  that only newly created elements (matched by the regexp) are
+  returned
 
-      XML::Twig::Elt get_type method returns #ELT for elements and the gi
-        (#PCDATA, #CDATA...) otherwise
+- added: XML::Twig::Elt get_type method returns #ELT for elements and the gi
+  (#PCDATA, #CDATA...) otherwise
 
-      XML::Twig::Elt is_elt returns the gi if the element is a real element
-         and 0 if it is #PCDATA, #CDATA...
-      
-      XML::Twig::Elt contains_only_text returns 1 if the element contains no
-         "real" element (is_field is another name for it)
+- added: XML::Twig::Elt is_elt returns the gi if the element is a real element
+  and 0 if it is #PCDATA, #CDATA...
+  
+- added: XML::Twig::Elt contains_only_text returns 1 if the element contains no
+  "real" element (is_field is another name for it)
 
-      First implementation of the output_filter option which filters the
-      text before it is output by the print, sprint, flush and text methods
-      (only works for print at the moment, and still under test with various
-      versions of XML::Parser). Standard filters are also available
+- added: First implementation of the output_filter option which filters the
+  text before it is output by the print, sprint, flush and text methods
+  (only works for print at the moment, and still under test with various
+  versions of XML::Parser). Standard filters are also available
 
-      Example:
-        
-        #!/bin/perl -w
-        use strict;
-        use XML::Twig;
+  Example:
+   
+      #!/bin/perl -w
+      use strict;
+      use XML::Twig;
 
-        my $t = new XML::Twig(output_filter => 'latin1');
-        $t->parse( \*DATA);
-        $t->print;
+      my $t = new XML::Twig(output_filter => 'latin1');
+      $t->parse( \*DATA);
+      $t->print;
  
-        __DATA__
-        <?xml version="1.0" encoding="ISO-8859-1"?>
-        <docé té="valué">Un homme soupçonné d'être impliqué dans la mort 
-             d'un motard de la police, renversé</docé>
+      __DATA__
+      <?xml version="1.0" encoding="ISO-8859-1"?>
+         <docù atté="valuè">Un homme soupçonné d'être impliqué dans 
+           la mort d'un motard de la police, renversé
+         </docù>
 
-      The 'latin1', 'html' and 'safe' filters are predefined, you can also
-      build additional filters using Iconv (requires text::Iconv) and 
-      Unicode::String (requires Unicode::String and Unicode::Map8):
+  The 'latin1', 'html' and 'safe' filters are predefined, you can also
+  build additional filters using Iconv (requires text::Iconv) and 
+  Unicode::String (requires Unicode::String and Unicode::Map8):
 
       my $conv = XML::Twig::iconv_convert( 'latin1');
       my $t = new XML::Twig(output_filter => $conv);
@@ -1352,117 +1419,120 @@ Changes in 3.06
       my $conv = XML::Twig::unicode_convert( 'latin1');
       my $t = new XML::Twig(output_filter => $conv);
 
-      warning: conversions work fine with XML::Parser 2.27 but sometimes fail
-      with XML::Parser 2.30 (on Perl 5.6.1, Linux 2.4 on a PC) when using 
-      'latin1' without Text::Iconv or Unicode::String and Unicode::Map8
-      installed.
+  warning: conversions work fine with XML::Parser 2.27 but sometimes fail
+  with XML::Parser 2.30 (on Perl 5.6.1, Linux 2.4 on a PC) when using 
+  'latin1' without Text::Iconv or Unicode::String and Unicode::Map8
+  installed.
 
-      The input_filter option works the same way, except the text is 
-      converted before it is stored in the twig (so you can use regexp in 
-      your native encoding for example) 
+  The input_filter option works the same way, except the text is 
+  converted before it is stored in the twig (so you can use regexp in 
+  your native encoding for example) 
 
-      the XML::Twig::Elt set_asis method sets a property of an element that
-      causes it to be output asis (without XML-escaping < " and &) so you
-      can still create tagged text
+- added: the XML::Twig::Elt set_asis method sets a property of an element that
+  causes it to be output asis (without XML-escaping < " and &) so you
+  can still create tagged text
 
-      the XML::Twig::Elt prefix and suffix methods accept an optional
-      'asis' argument that causes the prefix or suffix to get the asis
-      property (so you can do $elt->prefix( '<b>foo</b>', 'asis') for
-      example)
+- added: the XML::Twig::Elt prefix and suffix methods accept an optional
+  'asis' argument that causes the prefix or suffix to get the asis
+  property (so you can do $elt->prefix( '<b>foo</b>', 'asis') for
+  example)
 
-      the XML::Twig and XML::Twig::Elt find_nodes methods are aliases
-      to the get_xpath method (this is the name used in XML::XPath)
+- added: the XML::Twig and XML::Twig::Elt find_nodes methods are aliases
+  to the get_xpath method (this is the name used in XML::XPath)
 
-      the XML::Twig parseurl and safe_parseurl methods parse a document
-      whose url is given
+- added: the XML::Twig parseurl and safe_parseurl methods parse a document
+  whose url is given
 
-      XML::Twig::Elt extra_data, set_extra_data and append_extra_data to
-      access the... extra data (PI's and comments) attached to an element
+- added: XML::Twig::Elt extra_data, set_extra_data and append_extra_data to
+  access the... extra data (PI's and comments) attached to an element
 
-      XML::Twig method parser returns the XML::Parser::Expat object used
-      by the twig 
+- added: XML::Twig method parser returns the XML::Parser::Expat object used
+  by the twig 
 
-      Most XML::Parser::Expat methods are now inherited by XML::Twig
-      objects
+- improved: Most XML::Parser::Expat methods are now inherited by XML::Twig
+  objects
 
-      XML::Twig::Elt descendant_or_self method that returns the element
-      and its descendants
+- added: XML::Twig::Elt descendant_or_self method that returns the element
+  and its descendants
 
-    Fixed
-      element (and attribute) names can now include '.'
-      get_xpath now works for root based XPath expressions ('/doc/elt') 
-      get_xpath now works for regexps (including regexps on attribute values)
-      you can now properly restore pretty_print and empty_tag_style values
-      speedup (at install) now checks the Perl version and uses qr or ""
-        so XML::Twig works in 5.004 
-      XML::Twig::Elt wrap_in now allows wrapping the root element
+- fixed: element (and attribute) names can now include '.'
 
-      various bugs in the DOCTYPE and DTD output with XML::Parser 2.30
-      
-      the tests to fix a bug when working with XML::Parser 2.27  
-      the tests to fix a bug preventing test2 to pass under windows
+- fixed: get_xpath now works for root based XPath expressions ('/doc/elt') 
 
-      _default_  handlers now work (thanks Zoogie)
+- fixed: get_xpath now works for regexps (including regexps on attribute values)
 
-      the text method now returns the XML base entities (<>&'") un-escaped
-      (thanks to Hakan Kallberg's persistence to ask for it ;--)
+- fixed: you can now properly restore pretty_print and empty_tag_style values
 
-      pretty_print works better for elements without content
+- fixed: speedup (at install) now checks the Perl version and uses qr or ""
+   so XML::Twig works in 5.004 
 
-      end_tag_handlers now work properly (thanks to Phil Glanville for the
-      patch).
+- fixed: XML::Twig::Elt wrap_in now allows wrapping the root element
 
-    Enhanced
+- fixed: various bugs in the DOCTYPE and DTD output with XML::Parser 2.30
+  
+- fixed: the tests to fix a bug when working with XML::Parser 2.27  
 
-      Attributes which name starts with # are not output by the print
-      methods, and thus can be used to store private data on elements
+- fixed: the tests to fix a bug preventing test2 to pass under windows
 
-      WeakRef is used if installed, so no more memory leaks
+- fixed: _default_  handlers now work (thanks Zoogie)
+
+- fixed: the text method now returns the XML base entities (<>&'") un-escaped
+  (thanks to Hakan Kallberg's persistence to ask for it ;--)
+
+- fixed: pretty_print works better for elements without content
+
+- fixed: end_tag_handlers now work properly (thanks to Phil Glanville for the
+  patch).
+
+- improved: attributes which name starts with # are not output by the print
+  methods, and thus can be used to store private data on elements
+
+- improved: WeakRef is used if installed, so no more memory leaks
  
-      Sped-up print and flush by creating the _print and _flush methods 
-      which do not check for file handle and pretty print options
+- improved: sped-up print and flush by creating the _print and _flush methods 
+  which do not check for file handle and pretty print options
 
-      The doc has been enhanced and somewhat restructured. All options are
-      now written as this_is_an_option although the legacy form thisIsAnOption
-      can still be used. Links now display properly in the text form (thanks to
-      Dominic Mitchell for spotting this and sending a patch)
+- improved: the doc has been enhanced and somewhat restructured. All options are
+  now written as this_is_an_option although the legacy form thisIsAnOption
+  can still be used. Links now display properly in the text form (thanks to
+  Dominic Mitchell for spotting this and sending a patch)
 
-      Navigation functions (including descendants) now allow not only a gi
-      to be used as filter, but also the '#ELT' token, to filter only "real"
-      elements (as opposed to #PCDATA, #CDATA, #PI, #COMMENT, #ENT), the 
-      '#TEXT' token, to filter only text (PCDATA and CDATA elements), 
-      regular expressions (built with qr//) applied on the elements gi's,
-      code references, the code is passed the element as argument, and a
-      subset of XPath.
-      Functions that can use this token are: children, first_child, last_child,
-      prev_sibling, last_sibling, next_elt, last_elt, descendants, get_xpath,
-      child, sibling, sibling_text, prev_siblings, next_siblings field, 
-      first_child_text
+- improved: navigation functions (including descendants) now allow not only a gi
+  to be used as filter, but also the '#ELT' token, to filter only "real"
+  elements (as opposed to #PCDATA, #CDATA, #PI, #COMMENT, #ENT), the 
+  '#TEXT' token, to filter only text (PCDATA and CDATA elements), 
+  regular expressions (built with qr//) applied on the elements gi's,
+  code references, the code is passed the element as argument, and a
+  subset of XPath.
+  Functions that can use this token are: children, first_child, last_child,
+  prev_sibling, last_sibling, next_elt, last_elt, descendants, get_xpath,
+  child, sibling, sibling_text, prev_siblings, next_siblings field, 
+  first_child_text
 
-      The paste method now accepts a 'within' position, which inserts the
-      element at the $offset argument (a 3rd, required, argument) in the
-      reference element or in its first text child 
+- improved: the paste method now accepts a 'within' position, which inserts the
+  element at the $offset argument (a 3rd, required, argument) in the
+  reference element or in its first text child 
 
-      The XML::Twig::Elt insert method now accepts attributes (hashrefs)
-      applied to the element(s) being inserted:
-      $elt->insert( e1 => { a => 'v'}, e2 => e3 => { a1 =>'v1', a2 => 'v2'}); 
+- improved: the XML::Twig::Elt insert method now accepts attributes (hashrefs)
+  applied to the element(s) being inserted:
+  $elt->insert( e1 => { a => 'v'}, e2 => e3 => { a1 =>'v1', a2 => 'v2'}); 
 
-      The XML::Twig::erase method now outputs a meaningful error message if
-      applied to the root (or a cut element)
+- improved: the XML::Twig::erase method now outputs a meaningful error message if
+  applied to the root (or a cut element)
 
-      Optimizations for better performances (in the end performances are about
-      the same or a little worse than XML::Twig 2.02 but the module is much
-      more powerful)
+- improved: optimizations for better performances (in the end performances are about
+  the same or a little worse than XML::Twig 2.02 but the module is much
+  more powerful)
 
-    Known bugs:
+[Known bugs]
 
-    The DTD interface is completely broken, and I have little hope of
-    fixing it considering I have to deal with 2 incompatible versions of
-    XML::Parser. Plus no one seems to be using it...
+- the DTD interface is completely broken, and I have little hope of
+  fixing it considering I have to deal with 2 incompatible versions of
+  XML::Parser. Plus no one seems to be using it...
 
-    Some XPath/Navigation expressions using " or ' in the text()="" part
-    of the expression will cause a fatal error
+- some XPath/Navigation expressions using " or ' in the text()="" part
+  of the expression will cause a fatal error
 
-    Note that this version works better (but doesn't necessarily require)
-    with WeakRef (Perl version 5.6.0 and above) and Text::Iconv for all
-    its encoding conversions. 
+- note that this version works better (but doesn't necessarily require)
+  with WeakRef (Perl version 5.6.0 and above) and Text::Iconv for all
+  its encoding conversions. 
