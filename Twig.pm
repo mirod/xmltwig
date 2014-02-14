@@ -10397,8 +10397,9 @@ with the tags within the element
 =item idented_a
 
 This formats XML files in a line-oriented version control friendly way. 
-The format is described in L<http://tinyurl.com/2kwscq> (that's an Oracle
-document with an insanely long URL).
+The format is described in L<http://tinyurl.com/OracleTeamXML> (that's an Oracle
+document which no longer exists, cached on the L<http://www.archive.org> 
+"Wayback Machine", with an insanely long URL).
 
 Note that to be totaly conformant to the "spec", the order of attributes
 should not be changed, so if they are not already in alphabetical order
