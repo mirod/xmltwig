@@ -144,7 +144,7 @@ my $SEP= qr/\s*(?:$|\|)/;
 
 BEGIN
 { 
-$VERSION = '3.44';
+$VERSION = '3.45';
 
 use XML::Parser;
 my $needVersion = '2.23';
@@ -1177,7 +1177,7 @@ sub _xml_escape
               {&amp;}gx;    # Needs to be escaped to amp
 
     # in old versions of HTML::TreeBuilder &amp; can come out as &Amp;
-    if( $HTML::TreeBuilder::VERSION <= 3.23) { $html=~ s{&Amp;}{&amp;}g; }
+    if( $HTML::TreeBuilder::VERSION && $HTML::TreeBuilder::VERSION <= 3.23) { $html=~ s{&Amp;}{&amp;}g; }
 
     # simple character escapes
     $html =~ s/</&lt;/g;
@@ -2273,7 +2273,8 @@ sub _twig_end
     my $t=$p->{twig};
 
     if( $t->{twig_in_pcdata} && (my $text_handler= $t->{TwigHandlers}->{$TEXT}) )
-      { local $_= $t->{twig_current}; $text_handler->( $t, $t->{twig_current}) if $_; }
+      { local $_= $t->{twig_current}; $text_handler->( $t, $_) if $_;
+      }
 
     if( $t->{twig_map_xmlns}) { $gi= $t->_replace_prefix( $gi); }
   
@@ -3254,6 +3255,21 @@ sub print_to_file
     return $t;
   }
 
+# probably only works on *nix
+# first print to a temporary file, then rename that file to the desired file name, then change permissions
+# to the original file permissions (or to the current umask)
+sub safe_print_to_file
+  { my( $t, $filename)= (shift, shift);
+    my $perm= -f $filename ? (stat $filename)[2] & 07777 : ~umask() ;
+    XML::Twig::_use( 'File::Temp') || croak "need File::Temp to use safe_print_to_file\n";
+    my $tmpdir= dirname( $filename);    
+    my( $fh, $tmpfilename) = File::Temp::tempfile( DIR => $tmpdir);
+    $t->print_to_file( $tmpfilename, @_);
+    rename( $tmpfilename, $filename) or unlink $tmpfilename && _croak( "cannot move temporary file to $filename: $!"); 
+    chmod $perm, $filename;
+  }
+    
+
 sub print
   { my $t= shift;
     my $fh=  _is_fh( $_[0])  ? shift : undef;
@@ -3749,8 +3765,8 @@ BEGIN
                            current_line current_column current_byte
                            recognized_string original_string 
                            xpcroak xpcarp 
-                           xml_escape
                            base current_element element_index 
+                           xml_escape
                            position_in_context);
     foreach my $method (@expat_methods)
       { 
@@ -4627,7 +4643,7 @@ sub getParentNode      { return undef; }
 sub getChildNodes      { my @children= ($_[0]->root); return wantarray ? @children : \@children; }
 
 sub _weakrefs     { return $weakrefs;       }
-sub _set_weakrefs { $weakrefs=shift() || 0; } # for testing purposes
+sub _set_weakrefs { $weakrefs=shift() || 0; XML::Twig::Elt::set_destroy()if ! $weakrefs; } # for testing purposes
 
 sub _dump
   { my $t= shift;
@@ -6899,14 +6915,14 @@ sub _del_flushed { delete $_[0]->{flushed}; }
 
 sub cut
   { my $elt= shift;
-    my( $parent, $prev_sibling, $next_sibling, $last_elt);
-
-    $parent=  $elt->_parent;
-    if( ! $parent)
+    my( $parent, $prev_sibling, $next_sibling);
+    $parent=  $elt->_parent; 
+    my $a= $elt->att( 'a') || 'na';
+    if( ! $parent && $elt->is_elt)
       { # are we cutting the root?
-         my $t= $elt->{twig};
+        my $t= $elt->{twig};
         if( $t && ! $t->{twig_parsing})
-          { delete $t->{twig_root}; 
+          { delete $t->{twig_root};
             delete $elt->{twig};
             return $elt;
           }  # cutt`ing the root
@@ -6920,11 +6936,10 @@ sub cut
          if( $XML::Twig::weakrefs) { weaken( $elt->{former}->{$link}); }
       }
 
-    # it we cut the current element then its parent becomes the current elt
+    # if we cut the current element then its parent becomes the current elt
     if( $elt->{twig_current})
       { my $twig_current= $elt->_parent;
-        my $t= $elt->twig;
-        $t->{twig_current}= $twig_current;
+        $elt->twig->{twig_current}= $twig_current;
         $twig_current->set_twig_current;
         $elt->del_twig_current;
       }
@@ -7040,12 +7055,12 @@ sub erase
             if( $elt->_parent->{twig_current} && $elt->_last_child->is_text) {  $elt->_parent->{twig_to_be_normalized}=1; }
 
             # elt is not referenced any more, so it will be DESTROYed
-            # so we'd better break the links to its children
+            # so we'd better break the links to its children ## FIX
             undef $elt->{first_child};
             undef $elt->{last_child};
             undef $elt->{parent};
-            undef $elt->{prev_sibling};
             undef $elt->{next_sibling};
+            undef $elt->{prev_sibling};
  
           }
           { # elt had no child, delete it
@@ -7836,27 +7851,29 @@ sub copy
 sub delete
   { my $elt= shift;
     $elt->cut;
-    $elt->DESTROY unless( $XML::Twig::weakrefs);
+    $elt->DESTROY unless $XML::Twig::weakrefs;
     return undef;
   }
 
-{ 
-  sub DESTROY
-    { my $elt= shift;
-      return if( $XML::Twig::weakrefs);
-      my $t= shift || $elt->twig; # optional argument, passed in recursive calls
+sub __destroy
+  { my $elt= shift; 
+    return if( $XML::Twig::weakrefs); 
+    my $t= shift || $elt->twig; # optional argument, passed in recursive calls
+  
+    foreach( @{[$elt->_children]}) { $_->DESTROY( $t); }
+  
+    # the id reference needs to be destroyed
+    # lots of tests to avoid warnings during the cleanup phase
+    $elt->del_id( $t) if( $ID && $t && defined( $elt->{att}) && exists( $elt->{att}->{$ID}));
+    if( $elt->{former}) { foreach (keys %{$elt->{former}}) { delete $elt->{former}->{$_}; } delete $elt->{former}; } 
+    foreach (qw( keys %$elt)) { delete $elt->{$_}; }
+    undef $elt;
+  }
 
-      foreach( @{[$elt->_children]}) { $_->DESTROY( $t); }
-
-      # the id reference needs to be destroyed
-      # lots of tests to avoid warnings during the cleanup phase
-      $elt->del_id( $t) if( $ID && $t && defined( $elt->{att}) && exists( $elt->{att}->{$ID}));
-      if( $elt->{former}) { foreach (keys %{$elt->{former}}) { delete $elt->{former}->{$_}; } delete $elt->{former}; } 
-      foreach (qw( keys %$elt)) { delete $elt->{$_}; }
-      undef $elt;
-    }
+BEGIN
+{ sub set_destroy { if( $XML::Twig::weakrefs) { undef *DESTROY } else { *DESTROY= *__destroy; } }
+  set_destroy();
 }
-
 
 # ignores the element
 sub ignore
