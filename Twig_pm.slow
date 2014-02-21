@@ -6944,13 +6944,13 @@ sub cut
         $elt->del_twig_current;
       }
 
-    if( $parent->_first_child == $elt)
+    if( $parent->_first_child && $parent->_first_child == $elt)
       { $parent->set_first_child( $elt->_next_sibling);
         # cutting can make the parent empty
         if( ! $parent->_first_child) { $parent->set_empty( 1); }
       }
 
-    if( $parent->_last_child == $elt)
+    if( $parent->_last_child && $parent->_last_child == $elt)
       { $parent->set_last_child( $elt->_prev_sibling);
       }
 
