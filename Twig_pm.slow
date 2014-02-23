@@ -9588,6 +9588,11 @@ Huge documents (processed in combined stream/tree mode):
                          );
   $twig->parsefile( 'my_big.xml');
 
+  sub my_list_process
+    { my( $twig, $list)= @_;
+      # ...
+    }
+
 See L<XML::Twig 101|/XML::Twig 101> for other ways to use the module, as a 
 filter for example.
 
@@ -9611,6 +9616,38 @@ to increase performances.
 XML::Twig tries to make simple things easy so it tries its best to takes care 
 of a lot of the (usually) annoying (but sometimes necessary) features that 
 come with XML and XML::Parser.
+
+=head1 TOOLS
+
+XML::Twig comes with a few command-line utilities:
+
+=head2 xml_pp - xml pretty-printer
+
+XML pretty printer using XML::Twig
+
+=head2 xml_grep - grep XML files looking for specific elements
+
+C<xml_grep> does a grep on XML files. Instead of using regular expressions 
+it uses XPath expressions (in fact the subset of XPath supported by 
+XML::Twig). 
+
+=head2 xml_split - cut a big XML file into smaller chunks
+
+C<xml_split> takes a (presumably big) XML file and split it in several smaller
+files, based on various criteria (level in the tree, size or an XPath 
+expression)
+
+=head2 xml_merge - merge back XML files split with xml_split
+
+C<xml_merge> takes several xml files that have been split using C<xml_split>
+and recreates a single file.
+
+=head2 xml_spellcheck - spellcheck XML files
+
+C<xml_spellcheck> lets you spell check the content of an XML file. It extracts
+the text (the content of elements and optionally of attributes), call a spell
+checker on it and then recreates the XML document.
+
 
 =head1 XML::Twig 101
 
@@ -11186,6 +11223,19 @@ options: see C<flush>.
 
 Prints the whole document associated with the twig to file C<$filename>.
 To be used only AFTER the parse.
+
+options: see C<flush>.
+
+=item safe_print_to_file    ($filename, %options)
+
+Prints the whole document associated with the twig to file C<$filename>.
+This variant, which probably only works on *nix prints to a temp file,
+then move the temp file to overwrite the original file.
+
+This is a bit safer when 2 processes an potentiallywrite the same file: 
+only the last one will succeed, but the file won't be corruted. I often
+use this for cron jobs, so testing the code doesn't interfere with the
+cron job running at the same time.   
 
 options: see C<flush>.
 
