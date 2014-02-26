@@ -560,13 +560,13 @@ sub fid { my $elt= $_[0]->elt_id( $_[1]) or return "unknown";
   is( $copy->sprint, $t->root->sprint, "copy with extra data, and asis");
 }
 
-{ my $save= $XML::Twig::weakrefs;
-  $XML::Twig::weakrefs=0;
+{ my $save= XML::Twig::_weakrefs();
+  XML::Twig::_set_weakrefs( 0);
   my $t= XML::Twig->new->parse( '<doc><e id="e1"/><e id="e2">foo <f id="oo"/></e></doc>');
   $t->root->first_child->cut->DESTROY;
   $t->root->first_child->cut->DESTROY;
   is( $t->sprint, '<doc></doc>', 'DESTROY');
-  $XML::Twig::weakrefs=$save;
+  XML::Twig::_set_weakrefs( $save);
 }
 
 { # test _keep_encoding even with perl > 5.8.0
