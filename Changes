@@ -1,5 +1,23 @@
 CHANGES
 
+3.45 - 2014-02-27 - minor maintenance release
+
+- fixed: link to idented_a format description
+  RT #85400 https://rt.cpan.org/Public/Bug/Display.html?id=85400
+  fixed by Martin McGrath
+
+- fixed: code that gave a warning in 5.19.9
+
+- fixed: RT #86651, xml_pp, quote not escaped in attribute values
+
+- added: docs for tools and safe_print_to_file
+
+- added: support for XPath variables
+  thanks to Nathan Glenn for the initial implementation
+
+- updated: Changes to conform to CPAN::Changes + test
+
+
 3.44 - 2013-05-13 - minor maintenance release
 
 - added: XML::Twig::Elt new method now acccepts literal content, eg
