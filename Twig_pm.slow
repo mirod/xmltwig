@@ -1153,9 +1153,8 @@ sub _as_XML {
                   }
               }
             elsif( $node=~ /<!\[CDATA\[/)  # the content includes CDATA
-              { 
-                foreach my $chunk (split /(<!\[CDATA\[.*?\]\]>)/, $node) # chunks are CDATA sections or normal text
-                  { $xml.= $chunk !~ m{<!\[CDATA\[} ? $chunk : _xml_escape( $chunk); }
+              {  foreach my $chunk (split /(<!\[CDATA\[.*?\]\]>)/s, $node) # chunks are CDATA sections or normal text
+                  { $xml.= $chunk =~ m{<!\[CDATA\[} ? $chunk : _xml_escape( $chunk); }
               }
             else   # it's just text
               { $xml .= _xml_escape($node); }

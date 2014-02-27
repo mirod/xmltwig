@@ -10,6 +10,14 @@ CHANGES
 
 - fixed: RT #86651, xml_pp, quote not escaped in attribute values
 
+- fixed various typos in docs RT#87660
+  thanks to David Steinbrunner
+
+- fixed: RT #86773 https://rt.cpan.org/Ticket/Display.html?id=86773 
+  CDATA sections in HTML were not properly escaped when using the
+  (default) HTML::TreeBuilder conversion
+  spotted by Marco Pessotto
+
 - added: docs for tools and safe_print_to_file
 
 - added: support for XPath variables
