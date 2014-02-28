@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use XML::Twig;
-use Test::More tests => 9;
+use Test::More tests => 10;
 
 is( XML::Twig->new( keep_encoding => 1)->parse( q{<d a='"foo'/>})->sprint, q{<d a="&quot;foo"/>}, "quote in att with keep_encoding");
 
@@ -68,6 +68,7 @@ SKIP:
   is( $html->first_elt( 'body')->sprint , $expected_body, "&amp; in text, converting html with treebuilder");
 }
 
+is( XML::Twig::_unescape_cdata( '&lt;tag att="foo&amp;bar&amp;baz"&gt;&gt;&gt;&lt;/tag&gt;'), '<tag att="foo&bar&baz">>></tag>', '_unescape_cdata');
 
 exit;
 
