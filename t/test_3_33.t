@@ -94,11 +94,11 @@ ok( !$t->root->att_exists( 'a5'), 'att_exists, non existent att');
   is( join( ':', XML::Twig::_pretty_print_styles), join( ':', @styles), '_pretty_print_styles');
 }
 
-{ my $doc='<d>></d>';
+{ my $doc='<d a=">>">>></d>';
   my $t= XML::Twig->parse( $doc);
   is( $t->sprint, $doc, 'gt not escaped');
   $t->escape_gt;
-  is( $t->sprint, '<d>&gt;</d>', 'gt not escaped');
+  is( $t->sprint, '<d a="&gt;&gt;">&gt;&gt;</d>', 'gt escaped');
   $t->do_not_escape_gt;
   is( $t->sprint, $doc, 'gt not escaped');
 }
