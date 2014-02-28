@@ -888,12 +888,14 @@ sub parsefile_html
 
 sub parse_html
   { my $t= shift;
+    my $options= ref $_[0] && ref $_[0] eq 'HASH' ? shift() : {};
+    my $use_tidy= exists $options->{use_tidy} ? $options->{use_tidy} : $t->{use_tidy};
     my $content= shift;
     my $indent= $t->{ErrorContext} ? 1 : 0;
     $t->set_empty_tag_style( 'html');
-    my $html2xml=  $t->{use_tidy} ? \&_tidy_html : \&_html2xml;
-    my $options= $t->{use_tidy} ? $t->{tidy_options} || {} :  { indent => $indent, html_doctype => $t->{html_doctype} };
-    $t->parse( $html2xml->( isa( $content, 'GLOB') ? _slurp_fh( $content) : $content, $options), @_);
+    my $html2xml=  $use_tidy ? \&_tidy_html : \&_html2xml;
+    my $conv_options= $use_tidy ? $t->{tidy_options} || {} :  { indent => $indent, html_doctype => $t->{html_doctype} };
+    $t->parse( $html2xml->( isa( $content, 'GLOB') ? _slurp_fh( $content) : $content, $conv_options), @_);
     return $t;
   }
 
@@ -1169,7 +1171,7 @@ sub _xml_escape
     $html =~ s{&(?!                     # An ampersand that isn't followed by...
                   (  \#[0-9]+;       |  #   A hash mark, digits and semicolon, or
                     \#x[0-9a-fA-F]+; |  #   A hash mark, "x", hex digits and semicolon, or
-                    [\w]+               #   A valid unicode entity name and semicolon
+                    [\w]+;              #   A valid unicode entity name and semicolon
                   )
                 )
               }
@@ -3254,7 +3256,7 @@ sub print_to_file
     return $t;
   }
 
-# probably only works on *nix
+# probably only works on *nix (at least the chmod bit)
 # first print to a temporary file, then rename that file to the desired file name, then change permissions
 # to the original file permissions (or to the current umask)
 sub safe_print_to_file
@@ -3266,6 +3268,7 @@ sub safe_print_to_file
     $t->print_to_file( $tmpfilename, @_);
     rename( $tmpfilename, $filename) or unlink $tmpfilename && _croak( "cannot move temporary file to $filename: $!"); 
     chmod $perm, $filename;
+    return $t;
   }
     
 
@@ -8393,7 +8396,9 @@ BEGIN {
       print $elt->sprint( @_);
       select $old_select if( defined $old_select);
     }
- 
+
+
+# those next 2 methods need to be refactored, they are copies of the same methods in XML::Twig 
 sub print_to_file
   { my( $elt, $filename)= (shift, shift);
     my $out_fh;
@@ -8404,6 +8409,23 @@ sub print_to_file
     close $out_fh;
     return $elt;
   }
+
+# probably only works on *nix (at least the chmod bit)
+# first print to a temporary file, then rename that file to the desired file name, then change permissions
+# to the original file permissions (or to the current umask)
+sub safe_print_to_file
+  { my( $elt, $filename)= (shift, shift);
+    my $perm= -f $filename ? (stat $filename)[2] & 07777 : ~umask() ;
+    XML::Twig::_use( 'File::Temp') || croak "need File::Temp to use safe_print_to_file\n";
+    XML::Twig::_use( 'File::Basename') || croak "need File::Basename to use safe_print_to_file\n";
+    my $tmpdir= File::Basename::dirname( $filename);    
+    my( $fh, $tmpfilename) = File::Temp::tempfile( DIR => $tmpdir);
+    $elt->print_to_file( $tmpfilename, @_);
+    rename( $tmpfilename, $filename) or unlink $tmpfilename && _croak( "cannot move temporary file to $filename: $!"); 
+    chmod $perm, $filename;
+    return $elt;
+  }
+
   
   # same as print but does not output the start tag if the element
   # is marked as flushed

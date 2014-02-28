@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use XML::Twig;
-use Test::More tests => 10;
+use Test::More tests => 16;
 
 is( XML::Twig->new( keep_encoding => 1)->parse( q{<d a='"foo'/>})->sprint, q{<d a="&quot;foo"/>}, "quote in att with keep_encoding");
 
@@ -69,6 +69,32 @@ SKIP:
 }
 
 is( XML::Twig::_unescape_cdata( '&lt;tag att="foo&amp;bar&amp;baz"&gt;&gt;&gt;&lt;/tag&gt;'), '<tag att="foo&bar&baz">>></tag>', '_unescape_cdata');
+
+{ 
+  # testing safe_print_to_file
+  my $tmp= "safe_print_to_file.xml";
+  my $doc= "<doc>foo</doc>";
+  unlink( $tmp); # no check, it could not be there
+  my $t1= XML::Twig->nparse( $doc)->safe_print_to_file( $tmp);
+  ok( -f $tmp, "safe_print_to_file created document");
+  my $t2= XML::Twig->nparse( $tmp);
+  is( $t2->sprint, $t1->sprint, "generated document identical to original document");
+  unlink( $tmp); 
+
+  my $e1=  XML::Twig->parse( '<d><a>foo</a><b>bar</b></d>')->first_elt( 'b')->safe_print_to_file( $tmp);
+  ok( -f $tmp, "safe_print_to_file on elt created document");
+  $t2= XML::Twig->nparse( $tmp);
+  is( $t2->sprint, '<b>bar</b>', "generated sub-document identical to original sub-document");
+  unlink( $tmp); 
+
+  # failure modes
+  eval { XML::Twig->nparse( $tmp); };
+  like( $@, qr/Couldn't open $tmp:/, 'parse a non-existent file');
+  my $non_existent="safe_non_existent_I_hope_01/tmp";
+  while( -f $non_existent) { $non_existent++; } # most likely unnecessary ;--)
+  eval { $t1->safe_print_to_file( $non_existent); };
+  like( $@, qr/does not exist/, 'safe_print_to_file in non-existent dir');
+} 
 
 exit;
 
