@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use XML::Twig;
-use Test::More tests => 7;
+use Test::More tests => 9;
 
 is( XML::Twig->new( keep_encoding => 1)->parse( q{<d a='"foo'/>})->sprint, q{<d a="&quot;foo"/>}, "quote in att with keep_encoding");
 
@@ -45,6 +45,28 @@ foreach my $module ( sort keys  %html_conv)
           }
       }
   }
+
+# test & in HTML (RT #86633)
+my $html_with_amp='<h1>Marco&amp;company</h1>';
+my $expected_body= '<body><h1>Marco&amp;company</h1></body>';
+
+SKIP: 
+{ eval "use HTML::Tidy";
+  skip "HTML::Tidy not available", 1 if $@ ;
+  my $parsert = XML::Twig->new();
+  my $html_tidy = $parsert->safe_parse_html( { use_tidy => 1 }, "<h1>Marco&amp;company</h1>");
+  diag $@ if $@;
+  is( $html_tidy->first_elt( 'body')->sprint, $expected_body, "&amp; in text, converting html with use_tidy");
+}
+
+SKIP:
+{ eval "use HTML::TreeBuilder";
+  skip "HTML::TreeBuilder not available", 1 if $@ ;
+  my $parserh= XML::Twig->new();
+  my $html = $parserh->safe_parse_html("<h1>Marco&amp;company</h1>");
+  diag $@ if $@;
+  is( $html->first_elt( 'body')->sprint , $expected_body, "&amp; in text, converting html with treebuilder");
+}
 
 
 exit;
