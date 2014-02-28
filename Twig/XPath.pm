@@ -40,6 +40,8 @@ package XML::Twig::XPath;
 
 use base 'XML::Twig';
 
+my $XP; # the global xp object;
+
 sub to_number { return $XPATH_NUMBER->new( $_[0]->root->text); }
 
 sub new
@@ -77,25 +79,10 @@ sub matches             { my( $t, $path, $node)= @_; $node ||= $t; return $t->{t
 #distribution and cast it to the proper $XPATH class to use as a
 #variable (via 'nodes' argument or something)
 sub set_var {
-  my ($t, $name, %args) = @_;
-  my $value;
-  if(exists $args{selector}){
-    $value = $t->find($args{selector});
-  }elsif(exists $args{literal}){
-    my $literal_class = "${XPATH}::Literal";
-    $value = $literal_class->new($args{literal});
-  }else{
-    die "can't use anything besides selectors and literals yet";
-  }
-  $t->{twig_xp}->{path_parser}->set_var($name, $value);
+  my ($t, $name, $value) = @_;
+  if( ! ref $value) { $value= $t->findnodes( qq{"$value"}); } 
+  $t->{twig_xp}->set_var($name, $value);
 }
-
-# TODO: I have no idea about a getter;
-# would need to bless into proper packages?
-# sub get_var {
-#   my ($t, $name) = @_;
-
-# }
 
 1;
 
