@@ -5,14 +5,18 @@ use strict;
 use FindBin qw($Bin); BEGIN { unshift @INC, $Bin; } use xmlxpath_tools;
 
 use Test::More;
-plan( tests => 9);
 
 use XML::Twig::XPath;
-ok(1);
+
+eval "use XML::XPathEngine";
+if( $@) { print "1..1\nok 1\n"; warn "skipping, using variables in XPath requires XML::XPathEngine\n"; exit; }
+
+plan( tests => 8);
 
 my( $employees, $areas)= do { local $/="\n\n"; <DATA>; };
 
-{ # test all data in 1 single file
+{ 
+  # test all data in 1 single file
   my $data= "<data>$employees$areas</data>";
   my $t = XML::Twig::XPath->new->parse( $data);
 

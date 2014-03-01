@@ -93,7 +93,7 @@ is( XML::Twig::_unescape_cdata( '&lt;tag att="foo&amp;bar&amp;baz"&gt;&gt;&gt;&l
   my $non_existent="safe_non_existent_I_hope_01/tmp";
   while( -f $non_existent) { $non_existent++; } # most likely unnecessary ;--)
   eval { $t1->safe_print_to_file( $non_existent); };
-  like( $@, qr/does not exist/, 'safe_print_to_file in non-existent dir');
+  like( $@, qr/(does not exist|is not a directory)/, 'safe_print_to_file in non-existent dir');
 } 
 
 exit;

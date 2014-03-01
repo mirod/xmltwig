@@ -21,7 +21,7 @@ elsif( $opt eq "-y")
   { @programs= map { $_->[0] } @prompts; }
 elsif( $opt eq "-d")
   { @programs= map { $_->[0] if( $_->[1] eq 'y') } @prompts; }
-elsif( $ENV{AUTOMATED_TESTING})
+elsif( $ENV{AUTOMATED_TESTING} || $ENV{NONINTERACTIVE_TESTING})
   { @programs=(); }
 else
   { print "run 'perl Makefile.PL -y' to install all tools,\n",
