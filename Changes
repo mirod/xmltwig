@@ -1,5 +1,9 @@
 CHANGES
 
+3.46 - 2014-03-05 - minor maintenance release
+
+- fixed: test failed on Windows
+
 3.45 - 2014-02-27 - minor maintenance release
 
 - fixed: link to idented_a format description
@@ -934,7 +938,7 @@ cwimproved: made the tests pass when the UTF8 perlIO layer is
   them with _
 
 
-3.13 - 2004-03-16  # maintenance release to get the tests to pass on various platforms
+3.13 - 2004-03-16  - maintenance release to get the tests to pass on various platforms
 
 - improved: the README file
 
@@ -943,7 +947,7 @@ cwimproved: made the tests pass when the UTF8 perlIO layer is
 
 - fixed: tests to pass when trying to use an unsupported iconv filter    
 
-3.12 - 2004-01-29 # new features and greatly increased test coverage
+3.12 - 2004-01-29 - new features and greatly increased test coverage
 
 - added: lots of tests (>900), thanks to David Rigaudiere, Forrest 
   Cahoon, Sebastien Aperghis-Tramoni, Henrik Tougaard and Sam Tregar

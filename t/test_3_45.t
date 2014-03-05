@@ -70,7 +70,8 @@ SKIP:
 
 is( XML::Twig::_unescape_cdata( '&lt;tag att="foo&amp;bar&amp;baz"&gt;&gt;&gt;&lt;/tag&gt;'), '<tag att="foo&bar&baz">>></tag>', '_unescape_cdata');
 
-{ 
+SKIP:
+{ skip "safe_print_to_file method does not work on Windows", 6 if $^O =~ m{win}i;
   # testing safe_print_to_file
   my $tmp= "safe_print_to_file.xml";
   my $doc= "<doc>foo</doc>";
