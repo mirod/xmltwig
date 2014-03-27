@@ -91,7 +91,7 @@ else
 sub test_error
   { my( $command, $options, $expected)= @_;
     my( $stdout, $stderr, $success, $exit_code) = IO::CaptureOutput::capture_exec( "$perl $command $options test_xml_split.xml");
-    matches( $stderr, qr/^$expected/, "$command $options");
+    matches( $stderr, qr/$expected/, "$command $options");
   }
 
 sub test_out
