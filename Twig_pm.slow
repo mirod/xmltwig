@@ -144,7 +144,7 @@ my $SEP= qr/\s*(?:$|\|)/;
 
 BEGIN
 { 
-$VERSION = '3.46';
+$VERSION = '3.47';
 
 use XML::Parser;
 my $needVersion = '2.23';
@@ -996,6 +996,7 @@ sub _html2xml
 
     $xml.= _as_XML( $tree);
 
+
     _fix_xml( $tree, \$xml);
 
     if( $options->{indent}) { _indent_xhtml( \$xml); }
@@ -1175,7 +1176,9 @@ sub _xml_escape
                   )
                 )
               }
-              {&amp;}gx;    # Needs to be escaped to amp
+              {&amp;}gx if 0;    # Needs to be escaped to amp
+
+    $html=~ s{&}{&amp;}g;
 
     # in old versions of HTML::TreeBuilder &amp; can come out as &Amp;
     if( $HTML::TreeBuilder::VERSION && $HTML::TreeBuilder::VERSION <= 3.23) { $html=~ s{&Amp;}{&amp;}g; }

@@ -1,5 +1,10 @@
 CHANGES
 
+3.47 - 2014-03-27 - minor maintenance release
+
+- fixed: missing entities when parsing HTML
+  RT #93604 https://rt.cpan.org/Public/Bug/Display.html?id=93604
+
 3.46 - 2014-03-05 - minor maintenance release
 
 - fixed: test failed on Windows
