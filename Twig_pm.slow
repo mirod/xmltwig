@@ -154,7 +154,7 @@ croak "need at least XML::Parser version $needVersion" unless $parser_version >=
 ($perl_version= $])=~ s{_\d+}{};
 
 if( $perl_version >= 5.008) 
-  { eval "use Encode qw( :all)";
+  { eval "use Encode qw( :all)"; ## no critic ProhibitStringyEval
     $FB_XMLCREF  = 0x0400; # Encode::FB_XMLCREF;
     $FB_HTMLCREF = 0x0200; # Encode::FB_HTMLCREF;
   }
@@ -1143,7 +1143,7 @@ sub _as_XML {
                          if( $new_att ne $att) { $node->{$new_att}= delete $node->{$att}; }
                        }
 
-                    if ( $empty_element_map->{$tag} and !@{ $node->{'_content'} || []} )
+                    if ( $empty_element_map->{$tag} && (!@{ $node->{'_content'} || []}) )
                       { $xml.= $node->starttag_XML( undef, 1 ); }
                     else 
                       { $xml.= $node->starttag_XML(undef); }
@@ -1302,7 +1302,7 @@ sub add_stylesheet
       $version ||= 0;
       if( $disallowed{$module})   { return 0; }
       if( $used{$module})         { return 1; }
-      if( eval "require $module") { import $module; $used{$module}= 1; 
+      if( eval "require $module") { import $module; $used{$module}= 1;  # no critic ProhibitStringyEval
                                     if( $version)
                                       { 
                                         ## no critic (TestingAndDebugging::ProhibitNoStrict);
@@ -1319,7 +1319,7 @@ sub add_stylesheet
 
 # used to solve the [n] predicates while avoiding getting the entire list
 # needs a prototype to accept passing bare blocks
-sub _first_n(&$@)       ## nocritic (Subroutines::ProhibitSubroutinePrototypes);
+sub _first_n(&$@)       ## no critic (Subroutines::ProhibitSubroutinePrototypes);
   { my $coderef= shift;
     my $n= shift;         
     my $i=0;
@@ -1765,7 +1765,8 @@ sub _tag_cond
 sub _parse_predicate_in_handler
   { my( $flag, $score)= @_[1..2];
     $_[0]=~ s{(   ($REG_STRING)                            # strings
-                 |\@($REG_TAG_NAME)(?=\s*(?:[><=!]|!~|=~)) # @att (followed by a comparison operator)
+                 |\@($REG_TAG_NAME)(\s* $REG_MATCH \s* $REG_REGEXP) # @att and regexp
+                 |\@($REG_TAG_NAME)(?=\s*(?:[><=!]))       # @att followed by a comparison operator
                  |\@($REG_TAG_NAME)                        # @att (not followed by a comparison operator)
                  |=~|!~                                    # matching operators
                  |([><]=?|=|!=)(?=\s*[\d+-])               # test before a number
@@ -1780,8 +1781,8 @@ sub _parse_predicate_in_handler
                  |($REG_TAG_IN_PREDICATE)                  # nested tag name (needs to be after all other unquoted strings)
                  
               )}
-             { my( $token, $str, $att, $bare_att, $num_test, $alpha_test, $func, $str_regexp, $str_test_alpha, $str_test_num, $and_or, $tag) 
-               = ( $1,     $2,   $3,   $4,        $5,        $6,          $7,    $8,          $9,              $10,           $11,     $12); 
+             { my( $token, $str, $att_re_name, $att_re_regexp, $att, $bare_att, $num_test, $alpha_test, $func, $str_regexp, $str_test_alpha, $str_test_num, $and_or, $tag) 
+               = ( $1,     $2,   $3,           $4,             $5,   $6,        $7,        $8,          $9,    $10,         $11,             $12,           $13,     $14); 
     
                $score->{predicates}++;
               
@@ -1792,6 +1793,9 @@ sub _parse_predicate_in_handler
                elsif( $tag)           { qq{(\$elt->{'$ST_ELT'} && \$elt->{'$ST_ELT'}->has_child( '$tag'))} }
                elsif( $att)           { $att=~ m{^#} ? qq{ (\$elt->{'$ST_ELT'} && \$elt->{'$ST_ELT'}->{att}->{'$att'})}
                                                      : qq{\$elt->{'$att'}}
+                                      }
+               elsif( $att_re_name)   { $att_re_name=~ m{^#} ? qq{ (\$elt->{'$ST_ELT'} && \$elt->{'$ST_ELT'}->{att}->{'$att_re_name'}$att_re_regexp)}
+                                                     : qq{\$elt->{'$att_re_name'}$att_re_regexp}
                                       }
                                         # for some reason Devel::Cover flags the following lines as not tested. They are though.
                elsif( $bare_att)      { $bare_att=~ m{^#} ? qq{(\$elt->{'$ST_ELT'} && defined(\$elt->{'$ST_ELT'}->{att}->{'$bare_att'}))}

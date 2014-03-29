@@ -5,6 +5,11 @@ CHANGES
 - fixed: missing entities when parsing HTML
   RT #93604 https://rt.cpan.org/Public/Bug/Display.html?id=93604
 
+- fixed: tests failed when using a version of HTML::TreeBuilder with a non-numeric version
+
+- fixed in twig_handlers, '=' in regexps on attributes are turned into 'eq'
+  RT #94295 https://rt.cpan.org/Public/Bug/Display.html?id=94295
+
 3.46 - 2014-03-05 - minor maintenance release
 
 - fixed: test failed on Windows
