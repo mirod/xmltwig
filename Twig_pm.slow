@@ -144,7 +144,7 @@ my $SEP= qr/\s*(?:$|\|)/;
 
 BEGIN
 { 
-$VERSION = '3.47';
+$VERSION = '3.48';
 
 use XML::Parser;
 my $needVersion = '2.23';
