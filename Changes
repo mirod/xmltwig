@@ -1,5 +1,9 @@
 CHANGES
 
+3.48 - 2014-03-30 - minor maintenance release
+
+- fixed tests 
+
 3.47 - 2014-03-27 - minor maintenance release
 
 - fixed: missing entities when parsing HTML
