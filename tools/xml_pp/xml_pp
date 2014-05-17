@@ -209,7 +209,7 @@ be able to process the pretty_printed file (XML::Parser does not support
 
 =item -l
 
-loads the documents in memory instead of outputing them as they are being
+loads the documents in memory instead of outputting them as they are being
 parsed.
 
 This prevents a bug (see L<BUGS|bugs>) but uses more memory

@@ -353,7 +353,7 @@ sub parser_declaration
 sub twig_options
   { my( $state)= @_;
 
-    # base options, ensures maximun fidelity to the original document
+    # base options, ensures maximum fidelity to the original document
     my $twig_options= { keep_encoding => 1, keep_spaces => 1 };
 
     # prepare output to the main document
