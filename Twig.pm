@@ -6759,7 +6759,7 @@ sub next_siblings
                         }
                     }
                   #warn "step: '$step'";
-                  $sub .= "\@results= grep { \$_ } map { $step } \@results;"; 
+                  $sub .= "\@results= grep defined, map { $step } \@results;";
                 }
             }
         }
