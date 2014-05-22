@@ -39,30 +39,30 @@ __DATA__
   <test1>
     <elt><erase/></elt>
     <elt>text <erase/></elt>
-    <elt><erase/> text</elt>
-    <elt>text <erase/> text</elt>
+    <elt><erase/> text (1)</elt>
+    <elt>text <erase/> text (2)</elt>
     <elt><child/><erase/><child/></elt>
     <elt><erase/><child/></elt>
     <elt><child/><erase/></elt>
   </test1>
   <!-- erase an element with 1 text child -->
   <test2>
-    <elt><erase>text</erase></elt>
-    <elt>text <erase>text</erase></elt>
-    <elt><erase>text</erase> text</elt>
-    <elt>text <erase>text</erase> text</elt>
-    <elt><child/><erase>text</erase><child/></elt>
-    <elt><erase>text</erase><child/></elt>
+    <elt><erase>text (3)</erase></elt>
+    <elt>text <erase>text (4)</erase></elt>
+    <elt><erase>text (5)</erase> text (6)</elt>
+    <elt>text (7)<erase>text (8)</erase> text (9)</elt>
+    <elt><child/><erase>text (10)</erase><child/></elt>
+    <elt><erase>text (11)</erase><child/></elt>
     <elt><child/><erase>text</erase></elt>
   </test2>
   <!-- erase an element with several children -->
   <test3>
-    <elt><erase><child>text</child><child/></erase></elt>
-    <elt>text <erase><child>text</child><child/></erase></elt>
-    <elt><erase><child>text</child><child/></erase> text</elt>
-    <elt>text <erase><child>text</child><child/></erase> text</elt>
-    <elt><child/><erase><child>text</child><child/></erase>child/></elt>
-    <elt><erase><child>text</child><child/></erase>child/></elt>
-    <elt><child/><erase><child>text</child><child/></erase></elt>
+    <elt><erase><child>text (12)</child><child/></erase></elt>
+    <elt>text (13)<erase><child>text (14)</child><child/></erase></elt>
+    <elt><erase><child>text (15)</child><child/></erase> text (16)</elt>
+    <elt>text (17)<erase><child>text (18)</child><child/></erase> text (19)</elt>
+    <elt><child/><erase><child>text (20)</child><child/></erase>child/></elt>
+    <elt><erase><child>text (21)</child><child/></erase>child/></elt>
+    <elt><child/><erase><child>text (22)</child><child/></erase></elt>
   </test3>
 </doc>

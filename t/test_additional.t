@@ -55,23 +55,23 @@ my $warning="";
 $SIG{__WARN__} = sub { $warning.= join '', @_ };
 XML::Twig->new( dummy_opt => 1);
 $SIG{__WARN__}= $old_warning_handler;
-ok( $warning=~ m{^invalid option DummyOpt}, "expecting 'invalid option DummyOpt...', got '$warning'\n");# test 5
+chomp $warning;
+matches( $warning, qr{^invalid option DummyOpt}, "expecting 'invalid option DummyOpt...', got '$warning'");# test 5
 
 # test no warming if more_options is used
 $warning="";
 $SIG{__WARN__} = sub { $warning.= join '', @_ };
 XML::Twig->new( more_options => 1, dummy_opt => 1);
 $SIG{__WARN__}= $old_warning_handler;
-nok( $warning, "expecting no warning, got '$warning'\n");# test 6
+nok( $warning, "expecting no warning, got '$warning'");# test 6
 
 $warning="";
 $SIG{__WARN__} = sub { $warning.= join '', @_ };
 XML::Twig::add_options( 'dummy_opt');
 XML::Twig->new( dummy_opt => 1);
 $SIG{__WARN__}= $old_warning_handler;
-nok( $warning, "expecting no warning (2), got '$warning'\n");# test 7
+nok( $warning, "expecting no warning (2), got '$warning'");# test 7
 }
-
 
 {
 # test do_not_chain_handlers

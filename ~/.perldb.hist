@@ -1,0 +1,100 @@
+x ref $te->findnodes('/employees/employee[@salary>10000]')+
+x ref $te->findnodes('/employees/employee[@salary>10000]')
+x ref $ta->findnodes('/areas/area[district="Brooklyn"]/street')
+x ref $value
+x ref $results
+x "$XPATH::Literal"->new( $value)
+x XML::XPathEngine::Literal->new( $value)
+$X="$XPATH::Literal"
+x $X->new( $value)
+x $X::new( $value)
+x $X
+x $X->new(1)
+x $L
+b 40
+x $employees
+x 3 $te->findnodes( '/employees/employee[@salary>10000]')
+x map { $_->sprint } $te->findnodes( '/employees/employee[@salary>10000]')
+x map { $_->sprint } $te->findnodes( '/employees/employee[@salary=12000]')
+x map { $_->sprint } $te->findnodes( '/employees/employee[@salary=$salary]')
+x map { $_->sprint } $te->findnodes( '/employees/employee[@salary=$salary]/name')
+x map { $_->sprint } @nodes
+x map { $_->sprint } $te->findnodes( '/employees/employee[@salary=$salary]/name')
+x results( @nodes)
+@n=$te->findnodes('/data/employees/employee[@salary=$salary]/name')
+x results( @n)
+x @n
+$n=$te->findnodes('/data/employees/employee[@salary=$salary]/name')
+x $n
+x $te->findnodes('/data/employees/employee[@salary=$salary]/name')
+b 49
+x map { $_->text } $ta->findnodes( '/areas/area[district="Brooklyn"]/street')
+x map { $_->text } $te->findnodes('$E[work_area/street = $A]/name')
+x map { $_->text } $te->findnodes( '$E[work_area/street]/name')
+x $te->{twig_xp}
+x 2 $te->{twig_xp}
+x 2 $te->{twig_xp}->{vars}
+b 20
+x $t->findnodes('/data/employees/employee[@salary=$salary]/name')
+x $t->find('/data/employees/employee[@salary=$salary]/name')
+b 20
+$t->set_var( E => $t->find( '/data/employees/employee[@salary>10000]'))
+$t->set_var( A => $t->find( '/data/areas/area[district="Brooklyn"]/street'))
+my @nodes = $t->findnodes('$E[work_area/street = $A]/name');
+s( results( @nodes), 'e3:e4', '1 doc, var is a node set');
+is( results( @nodes), 'e3:e4', '1 doc, var is a node set');
+x $data
+x $employees
+x $areas
+b 6918
+x $eelt->tag
+x $elt->tag
+x $elt->parent->tag
+x $elt->{twig_current}
+x $elt->twig->sprint
+x 1 $twig_current
+x $twig_current->tag
+x $twig_current->{'twig_current'}
+b 25
+b setTwigHandlers
+b setTwigHandlers
+x $handlers
+x $TEXT
+nn
+x $t->{twig_handlers}
+x 2 $t
+x 2 $twig
+x $args
+x %args
+x $release->version
+x $release->date
+x $release->serialize
+x $change_item
+x $change_item
+x $type
+x $change_item
+x $change_item
+x $release->serialize
+x $change_item
+x $realeas->changes( 'added')
+x $realease->changes( 'added')
+x $release->changes( 'added')
+x @$release_changes
+x @$release_changes
+b 53
+b XML::XPathEngine::NodeSet::sort
+    warn "sorting:\n  ", join( ' - ',  map { ref $_ } @$self), "\n";
+b 53
+b 35
+x map { $_->id } @$self
+x $self->[0]->node_cmp( $self->[1])
+x $self->[1]->node_cmp( $self->[0])
+x $self->[0]->cmp( $self->[1])
+x UNIVERSAL::isa( $b, 'XML::Twig::XPath::Elt')
+x $a->id
+x $b->id
+b 79
+x 2 $t
+b 764
+x $cdata->_dump
+.q

@@ -12,7 +12,8 @@ my( $help, $man, @roots, @paths, $files,
     $count, $nb_results, $nb_results_per_file,
     $encoding, @exclude,
     $wrap, $nowrap, $descr, $group, $pretty_print, $version, $text_only, $date, 
-    $html, $tidy,
+    $html, $tidy, 
+    $add_ns,
     $verbose, $strict
   );
 
@@ -46,6 +47,7 @@ GetOptions( 'help'            => \$help,
             'strict'          => \$strict,
             'html'            => \$html,
             'tidy'            => \$tidy,
+            'add_ns'          => \$add_ns,
             'verbose'         => \$verbose,
     ) or pod2usage(2);
 

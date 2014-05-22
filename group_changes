@@ -1,0 +1,26 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use  CPAN::Changes;
+
+binmode( STDOUT, 'utf8');
+
+my $changes= CPAN::Changes->load_string( do { open( my $fh, '<:utf8', "Changes"); local undef $/; <$fh>} ); 
+
+foreach my $release ( $changes->releases()) 
+  { my $release_changes= $release->changes( "");
+    foreach my $change_item (@$release_changes)
+      { last if ! defined $change_item;
+        #warn "item: $change_item\n\n";
+        my( $type, $text)= $change_item=~ m{^([^:]*): (.*)}s;
+        if( $type)
+          { $release->add_changes( { group => $type }, $text); }
+        else
+          { $release->add_changes( $text); }
+      }
+    $release->delete_group( '');
+  }
+
+print $changes->serialize();

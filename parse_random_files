@@ -1,0 +1,88 @@
+#!/usr/bin/perl
+
+# Bug in XML::Twig?
+#
+
+
+use strict;
+use warnings;
+
+use lib "lib";
+use XML::Twig::XPath;
+
+use Getopt::Std;
+my %opt;
+getopts( 'dn:s:S:', \%opt); # -d       uses dispose
+                            # -n <nb>  number of iterations (default 5)
+                            # -s <nb>  set the rng seed
+                            # -S <nb>  1-10 size of the individual size default 8
+
+my $f_xml = "to_parse.xml";
+my $prog  = $0;
+
+my $nb= $opt{n} || 5;
+srand( $opt{s}) if $opt{s};
+
+my $fsize= $opt{S} || 8;
+if( $fsize < 1 || $fsize > 10) { die "out-of-bounds value for -S option, must be 1-10\n"; }
+
+sub mem
+{
+    my $ps = ($^O eq "cygwin") ? "procps" : "ps";       ## "procps" in cygwin
+    my $size= `$ps aux | grep $prog | grep -v grep | grep -v gvim | perl -l -n -a -e'print \$F[5]'`;
+    return formated( $size);
+}
+
+sub say
+{
+    print scalar localtime(), ' | ', sprintf( "%-45s", @_), " : ", mem(), "\n";
+}
+
+
+say "start";
+
+foreach (1..$nb)
+{   my $size= gen_random_files( $f_xml, $fsize); 
+    my $atwig = XML::Twig::XPath->new();
+    $atwig->safe_parsefile($f_xml)
+        or die "can't load xml";
+    # use XPath searches to check for leakage
+    my @hits_att  = $atwig->findnodes( '/doc/line/hit[@att="abar"]');
+    my @hits_text = $atwig->findnodes( 'doc/line/hit[text()="efoo"]');
+    
+    say sprintf( "run %3d (%s l) (hits: %6d - %6d)", $_, $size, scalar( @hits_att), scalar( @hits_text));
+
+    if( $opt{d})
+      { 
+        $atwig->dispose();
+        #say "dispose";
+      }
+}
+
+say "end";
+
+
+sub gen_random_files
+  { my( $file)= @_;
+    my $size= int( 2**(rand($fsize+5)+5) + rand( 1000)) ;
+    open( my $out, '>', $file) or die "cannot create $file: $!";
+    print {$out} "<doc>\n";
+    foreach my $l (1..$size)
+      { print {$out} qq{  <line id="l$l">lorem ipsus whatever <i>(clever latin stuff) no $l</i>};
+        foreach my $m ( qw(foo bar baz)) { print {$out} qq{<more att="$l">$m $l</more><hit att="a$m">e$m</hit>} if rand(2) > 1; }
+        print {$out} qq{</line>\n}; 
+      }
+    print {$out} qq{</doc>\n};
+    close $out;
+    return formated( $size);
+  }
+
+sub formated
+  { my( $nb)= shift;
+    chomp $nb;
+    $nb=~ s{(\d?\d?\d)(\d\d\d)(\d\d\d)$}{$1 $2 $3};
+    $nb=~ s{(\d?\d?\d)(\d\d\d)$}{$1 $2};
+    $nb= sprintf "%9s", $nb;
+    return $nb;
+  }
+    

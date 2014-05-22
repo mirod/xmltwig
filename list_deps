@@ -1,0 +1,1 @@
+perl  -MCPAN::ReverseDependencies -E'$,="\n"; $r= CPAN::ReverseDependencies->new; my @l= $r->get_reverse_dependencies( "XML-Twig"); say @l'

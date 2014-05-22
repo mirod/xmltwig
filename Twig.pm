@@ -39,19 +39,39 @@ use vars qw( $weakrefs);
 # wrt doctype handling. This is global for performance reasons. 
 my $expat_1_95_2=0;
 
-# xml name (leading # allowed)
+# a slight non-xml mod: # is allowed as a first character
+my $REG_TAG_FIRST_LETTER;
+#$REG_TAG_FIRST_LETTER= q{(?:[^\W\d]|[:#_])};  # < perl 5.6 - does not work for leading non-ascii letters
+$REG_TAG_FIRST_LETTER= q{(?:[[:alpha:]:#_])}; # >= perl 5.6
+
+my $REG_TAG_LETTER= q{(?:[\w_.-]*)};
+
+# a simple name (no colon)
+my $REG_NAME_TOKEN= qq{(?:$REG_TAG_FIRST_LETTER$REG_TAG_LETTER*)};
+
+# a tag name, possibly including namespace
+my $REG_NAME= qq{(?:(?:$REG_NAME_TOKEN:)?$REG_NAME_TOKEN)};
+
+# tag name (leading # allowed)
 # first line is for perl 5.005, second line for modern perl, that accept character classes
-my $REG_NAME       = q{(?:(?:[^\W\d]|[:#_])(?:[\w.-]*:)?[\w.-]*)};     # does not work for leading non-ascii letters
-   $REG_NAME       = q{(?:(?:[[:alpha:]:#_])(?:[\w.-]*:)?[\w.-]*)};    # > perl 5.5
+my $REG_TAG_NAME=$REG_NAME;
 
 # name or wildcard (* or '') (leading # allowed)
-my $REG_NAME_W     = q{(?:(?:[^\W\d]|[:#_])(?:[\w.-]*:)?[\w.-]*|\*)}; # does not work for leading non-ascii letters
-   $REG_NAME_W     = q{(?:(?:[[:alpha:]:#_])(?:[\w.-]*:)?[\w.-]*|\*)}; # > perl 5.5
+my $REG_NAME_W = qq{(?:$REG_NAME|[*])}; 
 
-# name or wildcard (* or '') (leading # allowed) with optional class
-my $REG_NAME_WC    = q{(?(?:(?:[^\W\d]|[:#_])(?:[\w.-]*:)?[\w.-]*|\*)(?:\.[\w-]+)?|(?:\.[\w-]+))}; # does not work for leading non-ascii letters
-   $REG_NAME_WC    = q{(?:(?:(?:[[:alpha:]:#_])(?:[\w.-]*:)?[\w.-]*|\*)(?:\.[\w-]+)?|(?:\.[\w-]+))}; # > perl 5.5
+# class and ids are deliberatly permissive
+my $REG_NTOKEN_FIRST_LETTER;
+#$REG_NTOKEN_FIRST_LETTER= q{(?:[^\W\d]|[:_])};  # < perl 5.6 - does not work for leading non-ascii letters
+$REG_NTOKEN_FIRST_LETTER= q{(?:[[:alpha:]:_])}; # >= perl 5.6
 
+my $REG_NTOKEN_LETTER= q{(?:[\w_:.-]*)};
+
+my $REG_NTOKEN= qq{(?:$REG_NTOKEN_FIRST_LETTER$REG_NTOKEN_LETTER*)};
+my $REG_CLASS = $REG_NTOKEN;
+my $REG_ID    = $REG_NTOKEN;
+
+# allow <tag> #<tag> (private elt) * <tag>.<class> *.<class> <tag>#<id> *#<id>
+my $REG_TAG_PART= qq{(?:$REG_NAME_W(?:[.]$REG_CLASS|[#]$REG_ID)?|[.]$REG_CLASS)};
 
 my $REG_REGEXP     = q{(?:/(?:[^\\/]|\\.)*/[eimsox]*)};               # regexp
 my $REG_MATCH      = q{[!=]~};                                        # match (or not)
@@ -63,8 +83,12 @@ my $REG_FUNCTION   = q{(?:string|text)\(\s*\)};
 my $REG_STRING_ARG = qq{(?:string|text)\\(\\s*$REG_NAME_W\\s*\\)};
 my $REG_COMP       = q{(?:>=|<=|!=|<|>|=)};
 
-my $REG_TAG_IN_PREDICATE= $REG_NAME . q{(?=\s*(?i:and\b|or\b|\]|$))};
+my $REG_TAG_IN_PREDICATE= $REG_NAME_W . q{(?=\s*(?i:and\b|or\b|\]|$))};
 
+# keys in the context stack, chosen not to interfere with att names, even private (#-prefixed) ones
+my $ST_TAG = '##tag';
+my $ST_ELT = '##elt';
+my $ST_NS  = '##ns' ;
 
 # used in the handler trigger code
 my $REG_NAKED_PREDICATE= qq{((?:"[^"]*"|'[^']*'|$REG_STRING_ARG|$REG_FUNCTION|\@$REG_NAME_W|$REG_MATCH\\s*$REG_REGEXP|[\\s\\d><=!()+.-]|(?i:and)|(?i:or)|$REG_TAG_IN_PREDICATE)*)};
@@ -77,7 +101,7 @@ my @supported_axis= ( 'ancestor', 'ancestor-or-self', 'child', 'descendant', 'de
 my $REG_AXIS       = "(?:" . join( '|', @supported_axis) .")";
 
 # only used in the "xpath"engine (for get_xpath/findnodes) for now
-my $REG_PREDICATE_ALT  = qr{\[(?:(?:string\(\s*\)|\@$REG_NAME)\s*$REG_MATCH\s*$REG_REGEXP\s*|[^\]]*)\]};
+my $REG_PREDICATE_ALT  = qr{\[(?:(?:string\(\s*\)|\@$REG_TAG_NAME)\s*$REG_MATCH\s*$REG_REGEXP\s*|[^\]]*)\]};
 
 # used to convert XPath tests on strings to the perl equivalent 
 my %PERL_ALPHA_TEST= ( '=' => ' eq ', '!=' => ' ne ', '>' => ' gt ', '>=' => ' ge ', '<' => ' lt ', '<=' => ' le ');
@@ -120,7 +144,7 @@ my $SEP= qr/\s*(?:$|\|)/;
 
 BEGIN
 { 
-$VERSION = '3.40';
+$VERSION = '3.48';
 
 use XML::Parser;
 my $needVersion = '2.23';
@@ -130,7 +154,7 @@ croak "need at least XML::Parser version $needVersion" unless $parser_version >=
 ($perl_version= $])=~ s{_\d+}{};
 
 if( $perl_version >= 5.008) 
-  { eval "use Encode qw( :all)";
+  { eval "use Encode qw( :all)"; ## no critic ProhibitStringyEval
     $FB_XMLCREF  = 0x0400; # Encode::FB_XMLCREF;
     $FB_HTMLCREF = 0x0200; # Encode::FB_HTMLCREF;
   }
@@ -182,6 +206,7 @@ $BUFSIZE = 32768;
 $XML::Twig::SPECIAL_GI= @XML::Twig::index2gi;
 
 %XML::Twig::base_ent= ( '>' => '&gt;', '<' => '&lt;', '&' => '&amp;', "'" => '&apos;', '"' => '&quot;',);
+foreach my $c ( "\n", "\r", "\t") { $XML::Twig::base_ent{$c}= sprintf( "&#x%02x;", ord( $c)); }
 
 # now set some aliases
 *find_nodes           = *get_xpath;               # same as XML::XPath
@@ -677,7 +702,7 @@ sub new
 
     if( my $acc_a= $args{AttAccessors})   { $self->att_accessors( @$acc_a);  }
     if( my $acc_e= $args{EltAccessors})   { $self->elt_accessors( isa( $acc_e, 'ARRAY') ? @$acc_e : $acc_e);   }
-    if( my $acc_f= $args{FieldAccessors}) { $self->field_accessors( @$acc_f); }
+    if( my $acc_f= $args{FieldAccessors}) { $self->field_accessors( isa( $acc_f, 'ARRAY') ? @$acc_f : $acc_f); }
 
     if( $args{UseTidy}) { $self->{use_tidy}= 1; }
     $self->{tidy_options}= $args{TidyOptions} || {};
@@ -863,12 +888,14 @@ sub parsefile_html
 
 sub parse_html
   { my $t= shift;
+    my $options= ref $_[0] && ref $_[0] eq 'HASH' ? shift() : {};
+    my $use_tidy= exists $options->{use_tidy} ? $options->{use_tidy} : $t->{use_tidy};
     my $content= shift;
     my $indent= $t->{ErrorContext} ? 1 : 0;
     $t->set_empty_tag_style( 'html');
-    my $html2xml=  $t->{use_tidy} ? \&_tidy_html : \&_html2xml;
-    my $options= $t->{use_tidy} ? $t->{tidy_options} || {} :  { indent => $indent, html_doctype => $t->{html_doctype} };
-    $t->parse( $html2xml->( isa( $content, 'GLOB') ? _slurp_fh( $content) : $content, $options), @_);
+    my $html2xml=  $use_tidy ? \&_tidy_html : \&_html2xml;
+    my $conv_options= $use_tidy ? $t->{tidy_options} || {} :  { indent => $indent, html_doctype => $t->{html_doctype} };
+    $t->parse( $html2xml->( isa( $content, 'GLOB') ? _slurp_fh( $content) : $content, $conv_options), @_);
     return $t;
   }
 
@@ -960,7 +987,7 @@ sub _html2xml
                   }xe;
 
         # then check that the declaration looks OK (so it parses), if not remove it,
-        # better to parse without the declaration than to die stupidely
+        # better to parse without the declaration than to die stupidly
         if(    $decl =~ m{<!DOCTYPE \s+ (?i:HTML) (\s+ PUBLIC \s+ "[^"]*" \s+ (SYSTEM \s+)? "[^"]*")? \s*>}x # PUBLIC then SYSTEM
             || $decl =~ m{<!DOCTYPE \s+ (?i:HTML) \s+ SYSTEM \s+ "[^"]*" \s*>}x                             # just SYSTEM
           )
@@ -968,6 +995,7 @@ sub _html2xml
       } 
 
     $xml.= _as_XML( $tree);
+
 
     _fix_xml( $tree, \$xml);
 
@@ -1115,7 +1143,7 @@ sub _as_XML {
                          if( $new_att ne $att) { $node->{$new_att}= delete $node->{$att}; }
                        }
 
-                    if ( $empty_element_map->{$tag} and !@{ $node->{'_content'} || []} )
+                    if ( $empty_element_map->{$tag} && (!@{ $node->{'_content'} || []}) )
                       { $xml.= $node->starttag_XML( undef, 1 ); }
                     else 
                       { $xml.= $node->starttag_XML(undef); }
@@ -1128,9 +1156,8 @@ sub _as_XML {
                   }
               }
             elsif( $node=~ /<!\[CDATA\[/)  # the content includes CDATA
-              { 
-                foreach my $chunk (split /(<!\[CDATA\[.*?\]\]>)/, $node) # chunks are CDATA sections or normal text
-                  { $xml.= $chunk !~ m{<!\[CDATA\[} ? $chunk : _xml_escape( $chunk); }
+              {  foreach my $chunk (split /(<!\[CDATA\[.*?\]\]>)/s, $node) # chunks are CDATA sections or normal text
+                  { $xml.= $chunk =~ m{<!\[CDATA\[} ? $chunk : _xml_escape( $chunk); }
               }
             else   # it's just text
               { $xml .= _xml_escape($node); }
@@ -1145,14 +1172,16 @@ sub _xml_escape
     $html =~ s{&(?!                     # An ampersand that isn't followed by...
                   (  \#[0-9]+;       |  #   A hash mark, digits and semicolon, or
                     \#x[0-9a-fA-F]+; |  #   A hash mark, "x", hex digits and semicolon, or
-                    [\w]+               #   A valid unicode entity name and semicolon
+                    [\w]+;              #   A valid unicode entity name and semicolon
                   )
                 )
               }
-              {&amp;}gx;    # Needs to be escaped to amp
+              {&amp;}gx if 0;    # Needs to be escaped to amp
+
+    $html=~ s{&}{&amp;}g;
 
     # in old versions of HTML::TreeBuilder &amp; can come out as &Amp;
-    if( $HTML::TreeBuilder::VERSION <= 3.23) { $html=~ s{&Amp;}{&amp;}g; }
+    if( $HTML::TreeBuilder::VERSION && $HTML::TreeBuilder::VERSION <= 3.23) { $html=~ s{&Amp;}{&amp;}g; }
 
     # simple character escapes
     $html =~ s/</&lt;/g;
@@ -1273,7 +1302,7 @@ sub add_stylesheet
       $version ||= 0;
       if( $disallowed{$module})   { return 0; }
       if( $used{$module})         { return 1; }
-      if( eval "require $module") { import $module; $used{$module}= 1; 
+      if( eval "require $module") { import $module; $used{$module}= 1;  # no critic ProhibitStringyEval
                                     if( $version)
                                       { 
                                         ## no critic (TestingAndDebugging::ProhibitNoStrict);
@@ -1290,7 +1319,7 @@ sub add_stylesheet
 
 # used to solve the [n] predicates while avoiding getting the entire list
 # needs a prototype to accept passing bare blocks
-sub _first_n(&$@)       ## nocritic (Subroutines::ProhibitSubroutinePrototypes);
+sub _first_n(&$@)       ## no critic (Subroutines::ProhibitSubroutinePrototypes);
   { my $coderef= shift;
     my $n= shift;         
     my $i=0;
@@ -1445,11 +1474,11 @@ sub _is_fh { return unless $_[0]; return $_[0] if( isa( $_[0], 'GLOB') || isa( $
 sub _set_handler
   { my( $handlers, $whole_path, $handler)= @_;
 
-    my $H_SPECIAL = qr{($ALL|$DEFAULT|$COMMENT)};
+    my $H_SPECIAL = qr{($ALL|$DEFAULT|$COMMENT|$TEXT)};
     my $H_PI      = qr{(\?|$PI)\s*(([^\s]*)\s*)};
     my $H_LEVEL   = qr{level \s* \( \s* ([0-9]+) \s* \)}x;
     my $H_REGEXP  = qr{\(\?([\^xism]*)(-[\^xism]*)?:(.*)\)}x;
-    my $H_XPATH   = qr{(/?/?$REG_NAME_WC? \s* ($REG_PREDICATE\s*)?)+}x;
+    my $H_XPATH   = qr{(/?/?$REG_TAG_PART? \s* ($REG_PREDICATE\s*)?)+}x;
 
     my $prev_handler;
 
@@ -1467,13 +1496,12 @@ sub _set_handler
         || _set_xpath_handler           ( $handlers, $path, $handler, $prev_handler)
         || croak "unrecognized expression in handler: '$whole_path'";
     
+        # this both takes care of the simple (gi) handlers and store
+        # the handler code reference for other handlers
         $handlers->{handlers}->{string}->{$path}= $handler;
       }
 
     if( $cpath) { croak "unrecognized expression in handler: '$whole_path'"; }
-
-    # this both takes care of the simple (gi) handlers and store
-    # the handler code reference for other handlers
 
     return $prev_handler;
   }
@@ -1481,7 +1509,7 @@ sub _set_handler
 
 sub _set_special_handler
   { my( $handlers, $path, $handler, $prev_handler)= @_;
-    if( $path =~ m{^\s*($ALL|$DEFAULT|$COMMENT)\s*$}io )
+    if( $path =~ m{^\s*($ALL|$DEFAULT|$COMMENT|$TEXT)\s*$}io )
       { $handlers->{handlers}->{$1}= $handler; 
         return 1;
       }
@@ -1542,7 +1570,7 @@ sub _set_level_handler
   { my( $handlers, $path, $handler, $prev_handler)= @_;
     if( $path =~ m{^ \s* level \s* \( \s* ([0-9]+) \s* \) \s* $}ox )
       { my $level= $1;
-        my $sub= sub { my( $stack)= @_; return( ($stack->[-1]->{_tag} !~ m{^#}) && (scalar @$stack == $level + 1) ) }; 
+        my $sub= sub { my( $stack)= @_; return( ($stack->[-1]->{$ST_TAG} !~ m{^#}) && (scalar @$stack == $level + 1) ) }; 
         my $handler_data=  { tag=> '*', score => { type => $LEVEL_TRIGGER}, trigger => $sub, 
                              path => $path, handler => $handler, test_on_text => 0
                            };
@@ -1558,7 +1586,7 @@ sub _set_regexp_handler
     # if the expression was a regexp it is now a string (it was stringified when it became a hash key)
     if( $path=~ m{^\(\?([\^xism]*)(?:-[\^xism]*)?:(.*)\)$}) 
       { my $regexp= qr/(?$1:$2)/; # convert it back into a regexp
-        my $sub= sub { my( $stack)= @_; return( $stack->[-1]->{_tag} =~ $regexp ) }; 
+        my $sub= sub { my( $stack)= @_; return( $stack->[-1]->{$ST_TAG} =~ $regexp ) }; 
         my $handler_data=  { tag=> '*', score => { type => $REGEXP_TRIGGER} , trigger => $sub, 
                              path => $path, handler => $handler, test_on_text => 0 
                            };
@@ -1583,7 +1611,7 @@ sub _parse_xpath_handler
     if( $DEBUG_HANDLER >=1) { _warn_debug_handler( "\n\nparsing path '$xpath'\n"); }
 
     my $path_to_check= $xpath;
-    $path_to_check=~ s{/?/?$REG_NAME_WC?\s*(?:$REG_PREDICATE\s*)?}{}g;
+    $path_to_check=~ s{/?/?$REG_TAG_PART?\s*(?:$REG_PREDICATE\s*)?}{}g;
     if( $DEBUG_HANDLER && $path_to_check=~ /\S/) { _warn_debug_handler( "left: $path_to_check\n"); }
     return if( $path_to_check=~ /\S/);
 
@@ -1594,7 +1622,7 @@ sub _parse_xpath_handler
 
     while( $xpath=~ s{^\s*
                        ( (//?)                                      # separator
-                        | (?:$REG_NAME_WC\s*(?:$REG_PREDICATE\s*)?) # tag name and optional predicate
+                        | (?:$REG_TAG_PART\s*(?:$REG_PREDICATE\s*)?) # tag name and optional predicate
                         | (?:$REG_PREDICATE)                        # just a predicate
                        )
                      }
@@ -1602,7 +1630,7 @@ sub _parse_xpath_handler
          )
       { # check that we have alternating separators and steps
         if( $2) # found a separator
-          { if(  $last_token_is_sep) { return 0; } # 2 seps in a row
+          { if(  $last_token_is_sep) { return 0; }                                 # 2 separators in a row
             $last_token_is_sep= 1;
           }
         else
@@ -1631,7 +1659,7 @@ sub _parse_xpath_handler
     my $flag= { test_on_text => 0 };
     my $sep='/';  # '/' or '//'
     while( my $xpath_step= pop @xpath_steps)
-      { my( $tag, $predicate)= $xpath_step =~ m{^($REG_NAME_WC)?(?:\[(.*)\])?\s*$};
+      { my( $tag, $predicate)= $xpath_step =~ m{^($REG_TAG_PART)?(?:\[(.*)\])?\s*$}; 
         $score->{steps}++;
         $tag||='*';
 
@@ -1649,6 +1677,8 @@ sub _parse_xpath_handler
        my $cond= join( " && ", grep { $_ } $tag_cond, $predicate) || 1;
 
        if( $css_sel && $tag=~ m{\.}) { $tag=~s{\.[^.]*$}{}; $tag ||='*'; }
+       $tag=~ s{(.)#.+$}{$1};
+
        $last_tag ||= $tag;
 
        if( $sep eq '/')
@@ -1710,13 +1740,21 @@ sub _parse_xpath_handler
 
 sub _join_n { return join( "\n", @_, ''); }
 
+# the "tag" part can be <tag>, <tag>.<class> or <tag>#<id> (where tag can be *, or start with # for hidden tags) 
 sub _tag_cond
   { my( $full_tag)= @_;
 
-    my( $tag, $class)= $css_sel ? $full_tag=~ m{^(.*?)(?:\.([^.]*))?$} : ($full_tag, undef);
-    my $tag_cond= $tag && $tag ne '*' ? qq#(\$elt->{_tag} eq "$tag")# : '';
-    my $class_cond= defined $class ? qq#(\$elt->{class}=~ m{(^| )$class( |\$)})# : '';
-    my $full_cond= join( ' && ', grep { $_ } ( $tag_cond, $class_cond));
+    my( $tag, $class, $id);
+    if( $full_tag=~ m{^(.+)#(.+)$})
+      { ($tag, $id)= ($1, $2); } # <tag>#<id>
+    else
+      { ( $tag, $class)= $css_sel ? $full_tag=~ m{^(.*?)(?:\.([^.]*))?$} : ($full_tag, undef); }
+
+    my $tag_cond   = $tag && $tag ne '*' ? qq#(\$elt->{'$ST_TAG'} eq "$tag")# : '';
+    my $id_cond    = defined $id         ? qq#(\$elt->{id} eq "$id")#  : '';
+    my $class_cond = defined $class      ? qq#(\$elt->{class}=~ m{(^| )$class( |\$)})# : '';
+
+    my $full_cond= join( ' && ', grep { $_ } ( $tag_cond, $class_cond, $id_cond));
     
     return $full_cond;
   }
@@ -1726,24 +1764,25 @@ sub _tag_cond
 #        the score 
 sub _parse_predicate_in_handler
   { my( $flag, $score)= @_[1..2];
-    $_[0]=~ s{(   ($REG_STRING)                        # strings
-                 |\@($REG_NAME)(?=\s*(?:[><=!]|!~|=~)) # @att (followed by a comparison operator)
-                 |\@($REG_NAME)                        # @att (not followed by a comparison operator)
-                 |=~|!~                                # matching operators
-                 |([><]=?|=|!=)(?=\s*[\d+-])           # test before a number
-                 |([><]=?|=|!=)                        # test, other cases
-                 |($REG_FUNCTION)                      # no arg functions
+    $_[0]=~ s{(   ($REG_STRING)                            # strings
+                 |\@($REG_TAG_NAME)(\s* $REG_MATCH \s* $REG_REGEXP) # @att and regexp
+                 |\@($REG_TAG_NAME)(?=\s*(?:[><=!]))       # @att followed by a comparison operator
+                 |\@($REG_TAG_NAME)                        # @att (not followed by a comparison operator)
+                 |=~|!~                                    # matching operators
+                 |([><]=?|=|!=)(?=\s*[\d+-])               # test before a number
+                 |([><]=?|=|!=)                            # test, other cases
+                 |($REG_FUNCTION)                          # no arg functions
                  # this bit is a mess, but it is the only solution with this half-baked parser
                  |(string\(\s*$REG_NAME\s*\)\s*$REG_MATCH\s*$REG_REGEXP)  # string( child)=~ /regexp/
                  |(string\(\s*$REG_NAME\s*\)\s*$REG_COMP\s*$REG_STRING)   # string( child) = "value" (or other test)
                  |(string\(\s*$REG_NAME\s*\)\s*$REG_COMP\s*$REG_NUMBER)   # string( child) = nb (or other test)
                  |(and|or)
-                # |($REG_NAME(?=\s*(and|or|$)))         # nested tag name (needs to be after all other unquoted strings)
-                 |($REG_TAG_IN_PREDICATE)              # nested tag name (needs to be after all other unquoted strings)
+                # |($REG_NAME(?=\s*(and|or|$)))            # nested tag name (needs to be after all other unquoted strings)
+                 |($REG_TAG_IN_PREDICATE)                  # nested tag name (needs to be after all other unquoted strings)
                  
               )}
-             { my( $token, $str, $att, $bare_att, $num_test, $alpha_test, $func, $str_regexp, $str_test_alpha, $str_test_num, $and_or, $tag) 
-               = ( $1,     $2,   $3,   $4,        $5,        $6,          $7,    $8,          $9,              $10,           $11,     $12); 
+             { my( $token, $str, $att_re_name, $att_re_regexp, $att, $bare_att, $num_test, $alpha_test, $func, $str_regexp, $str_test_alpha, $str_test_num, $and_or, $tag) 
+               = ( $1,     $2,   $3,           $4,             $5,   $6,        $7,        $8,          $9,    $10,         $11,             $12,           $13,     $14); 
     
                $score->{predicates}++;
               
@@ -1751,29 +1790,32 @@ sub _parse_predicate_in_handler
                if( $func || $str_regexp || $str_test_num || $str_test_alpha ) { $flag->{test_on_text}= 1;   }
 
                if( defined $str)      { $token }
-               elsif( $tag)           { qq{(\$elt->{_elt} && \$elt->{_elt}->has_child( '$tag'))} }
-               elsif( $att)           { $att=~ m{^#} ? qq{ (\$elt->{_elt} && \$elt->{_elt}->{att}->{'$att'})}
+               elsif( $tag)           { qq{(\$elt->{'$ST_ELT'} && \$elt->{'$ST_ELT'}->has_child( '$tag'))} }
+               elsif( $att)           { $att=~ m{^#} ? qq{ (\$elt->{'$ST_ELT'} && \$elt->{'$ST_ELT'}->{att}->{'$att'})}
                                                      : qq{\$elt->{'$att'}}
                                       }
+               elsif( $att_re_name)   { $att_re_name=~ m{^#} ? qq{ (\$elt->{'$ST_ELT'} && \$elt->{'$ST_ELT'}->{att}->{'$att_re_name'}$att_re_regexp)}
+                                                     : qq{\$elt->{'$att_re_name'}$att_re_regexp}
+                                      }
                                         # for some reason Devel::Cover flags the following lines as not tested. They are though.
-               elsif( $bare_att)      { $bare_att=~ m{^#} ? qq{(\$elt->{_elt} && defined(\$elt->{_elt}->{att}->{'$bare_att'}))}
+               elsif( $bare_att)      { $bare_att=~ m{^#} ? qq{(\$elt->{'$ST_ELT'} && defined(\$elt->{'$ST_ELT'}->{att}->{'$bare_att'}))}
                                                           : qq{defined( \$elt->{'$bare_att'})}
                                       }
                elsif( $num_test && ($num_test eq '=') ) { "==" } # others tests are unchanged
                elsif( $alpha_test)    { $PERL_ALPHA_TEST{$alpha_test} }
                elsif( $func && $func=~ m{^string})
-                                      { "\$elt->{_elt}->text"; }
-               elsif( $str_regexp     && $str_regexp     =~ m{string\(\s*($REG_NAME)\s*\)\s*($REG_MATCH)\s*($REG_REGEXP)})
-                                      { "defined( _first_n {  \$_->text $2 $3 } 1, \$elt->{_elt}->_children( '$1'))"; }
-               elsif( $str_test_alpha && $str_test_alpha =~ m{string\(\s*($REG_NAME)\s*\)\s*($REG_COMP)\s*($REG_STRING)})
+                                      { "\$elt->{'$ST_ELT'}->text"; }
+               elsif( $str_regexp     && $str_regexp     =~ m{string\(\s*($REG_TAG_NAME)\s*\)\s*($REG_MATCH)\s*($REG_REGEXP)})
+                                      { "defined( _first_n {  \$_->text $2 $3 } 1, \$elt->{'$ST_ELT'}->_children( '$1'))"; }
+               elsif( $str_test_alpha && $str_test_alpha =~ m{string\(\s*($REG_TAG_NAME)\s*\)\s*($REG_COMP)\s*($REG_STRING)})
                                       { my( $tag, $op, $str)= ($1, $2, $3);
                                         $str=~ s{(?<=.)'(?=.)}{\\'}g; # escape a quote within the string 
                                         $str=~ s{^"}{'};
                                         $str=~ s{"$}{'};
-                                        "defined( _first_n { \$_->text $PERL_ALPHA_TEST{$op} $str } 1, \$elt->{_elt}->children( '$tag'))"; }
-               elsif( $str_test_num   && $str_test_num   =~ m{string\(\s*($REG_NAME)\s*\)\s*($REG_COMP)\s*($REG_NUMBER)})
+                                        "defined( _first_n { \$_->text $PERL_ALPHA_TEST{$op} $str } 1, \$elt->{'$ST_ELT'}->children( '$tag'))"; }
+               elsif( $str_test_num   && $str_test_num   =~ m{string\(\s*($REG_TAG_NAME)\s*\)\s*($REG_COMP)\s*($REG_NUMBER)})
                                       { my $test= ($2 eq '=') ? '==' : $2;
-                                        "defined( _first_n { \$_->text $test $3 } 1, \$elt->{_elt}->children( '$1'))"; 
+                                        "defined( _first_n { \$_->text $test $3 } 1, \$elt->{'$ST_ELT'}->children( '$1'))"; 
                                       }
                elsif( $and_or)        { $score->{tests}++; $and_or eq 'and' ? '&&' : '||' ; }
                else                   { $token; }
@@ -1940,7 +1982,7 @@ sub _reset_twig
     delete $t->{twig_stored_space};
     delete $t->{twig_entity_list};
     $t->root->delete if( $t->root);
-    delete $t->{root};
+    delete $t->{twig_root};
     return $t;
   }
 
@@ -1957,25 +1999,18 @@ sub _add_or_discard_stored_spaces
     $t->{twig_right_after_root}=0; #XX
 
     my $current= $t->{twig_current} or return; # ugly hack, with ignore on, twig_current can disappear 
-    if( $t->{twig_stored_spaces} || $t->{twig_preserve_space})
-      { if( (exists $current->{'pcdata'}))
-          { $current->{pcdata}.= $t->{twig_stored_spaces}; }
-        else
-          { my $current_gi= $XML::Twig::index2gi[$current->{'gi'}];
+    return unless length $t->{twig_stored_spaces};
+    my $current_gi= $XML::Twig::index2gi[$current->{'gi'}];
 
-            if( $t->{twig_discard_all_spaces}) { $t->{twig_stored_spaces}=''; return; }
-
-            if( ! defined( $t->{twig_space_policy}->{$current_gi}))
-              { $t->{twig_space_policy}->{$current_gi}= _space_policy( $t, $current_gi); }
-
-            if(    $t->{twig_space_policy}->{$current_gi} ||  ($t->{twig_stored_spaces}!~ m{\n})
-                || $t->{twig_preserve_space}
-              )
-              { _insert_pcdata( $t, $t->{twig_stored_spaces} ); }
-            $t->{twig_stored_spaces}='';
-
-          }
+    if( ! $t->{twig_discard_all_spaces}) 
+      { if( ! defined( $t->{twig_space_policy}->{$current_gi}))
+          { $t->{twig_space_policy}->{$current_gi}= _space_policy( $t, $current_gi); }
+        if(    $t->{twig_space_policy}->{$current_gi} || ($t->{twig_stored_spaces}!~ m{\n}) || $t->{twig_preserve_space})
+          { _insert_pcdata( $t, $t->{twig_stored_spaces} ); }
       }
+
+    $t->{twig_stored_spaces}='';
+
     return;
   }
 
@@ -1989,7 +2024,7 @@ sub _twig_start
     my $t=$p->{twig};
 
     # empty the stored pcdata (space stored in case they are really part of 
-    # a pcdata element) or stored it if the space policy dictades so
+    # a pcdata element) or stored it if the space policy dictates so
     # create a pcdata element with the spaces if need be
     _add_or_discard_stored_spaces( $t);
     my $parent= $t->{twig_current};
@@ -2019,14 +2054,17 @@ sub _twig_start
         foreach my $att (@att) { $att= $filter->($att); } 
       }
 
-    if( $t->{twig_map_xmlns}) { _replace_ns( $t, \$gi, \@att); }
+    my $ns_decl;
+    if( $t->{twig_map_xmlns}) 
+      { $ns_decl= _replace_ns( $t, \$gi, \@att); }
 
     my $elt= $t->{twig_elt_class}->new( $gi);
     $elt->set_atts( @att);
- 
+
     # now we can store the tag and atts
-    my $context= { _tag => $gi, _elt => $elt, @att};
-    if( $weakrefs) { weaken( $context->{_elt}); }
+    my $context= { $ST_TAG => $gi, $ST_ELT => $elt, @att};
+    $context->{$ST_NS}= $ns_decl if $ns_decl; 
+    if( $weakrefs) { weaken( $context->{$ST_ELT}); }
     push @{$t->{_twig_context_stack}}, $context;
 
     delete $parent->{'twig_current'} if( $parent);
@@ -2042,7 +2080,7 @@ sub _twig_start
 
         $elt->{parent}=$parent; if( $XML::Twig::weakrefs) { weaken( $elt->{parent});} ;
         unless( $parent->{first_child}) { $parent->{first_child}=  $elt; } 
-         $parent->{empty}=0; $parent->{last_child}=$elt; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});} ;
+         delete $parent->{empty}; $parent->{last_child}=$elt; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});} ;
       }
     else 
       { # processing root
@@ -2102,9 +2140,11 @@ sub _twig_start
 
 sub _replace_ns
   { my( $t, $gi, $atts)= @_;
+    my $decls;
     foreach my $new_prefix ( $t->parser->new_ns_prefixes)
       { my $uri= $t->parser->expand_ns_prefix( $new_prefix);
         # replace the prefix if it is mapped
+        $decls->{$new_prefix}= $uri;
         if( !$t->{twig_keep_original_prefix} && (my $mapped_prefix= $t->{twig_map_xmlns}->{$uri}))
           { $new_prefix= $mapped_prefix; }
         # now put the namespace declaration back in the element
@@ -2147,7 +2187,7 @@ sub _replace_ns
             else           {  $att_name=1; }
           }
       }
-    return;
+    return $decls;
   }
 
 
@@ -2174,6 +2214,18 @@ sub _a_proper_ns_prefix
       }
     return;
   }
+
+# returns the uri bound to a prefix in the original document
+# only works in a handler
+# can be used to deal with xsi:type attributes
+sub original_uri
+  { my( $t, $prefix)= @_;
+    my $ST_NS  = '##ns' ;
+    foreach my $ns (map { $_->{$ST_NS} if  $_->{$ST_NS} } reverse @{$t->{_twig_context_stack}})
+      { return $ns->{$prefix} || next; }
+    return;
+  }
+
 
 sub _fill_default_atts
   { my( $t, $gi, $atts)= @_;
@@ -2203,7 +2255,7 @@ sub _parse_start_tag
 
     # get the gi (between < and the first space, / or > character)
     #if( $string=~ s{^<\s*([^\s>/]*)[\s>/]*}{}s)
-    if( $string=~ s{^<\s*($REG_NAME)\s*[\s>/]}{}s)
+    if( $string=~ s{^<\s*($REG_TAG_NAME)\s*[\s>/]}{}s)
       { $gi= $1; }
     else
       { croak "error parsing tag '$string'"; }
@@ -2215,8 +2267,10 @@ sub _parse_start_tag
 sub set_root
   { my( $t, $elt)= @_;
     $t->{twig_root}= $elt;
-    $elt->{twig}= $t;
-    if( $weakrefs) { weaken(  $elt->{twig}); }
+    if( $elt)
+      { $elt->{twig}= $t;
+        if( $weakrefs) { weaken(  $elt->{twig}); }
+      }
     return $t;
   }
 
@@ -2225,6 +2279,10 @@ sub _twig_end
     my ($p, $gi)  = @_;
 
     my $t=$p->{twig};
+
+    if( $t->{twig_in_pcdata} && (my $text_handler= $t->{TwigHandlers}->{$TEXT}) )
+      { local $_= $t->{twig_current}; $text_handler->( $t, $_) if $_;
+      }
 
     if( $t->{twig_map_xmlns}) { $gi= $t->_replace_prefix( $gi); }
   
@@ -2236,7 +2294,8 @@ sub _twig_end
 
     # if we were parsing PCDATA then we exit the pcdata too
     if( $t->{twig_in_pcdata})
-      { $t->{twig_in_pcdata}= 0;
+      { 
+        $t->{twig_in_pcdata}= 0;
         $elt= $elt->{parent} if($elt->{parent});
         delete $elt->{'twig_current'};
       }
@@ -2449,7 +2508,7 @@ sub _twig_cdatastart
         $twig_current->{next_sibling}=  $cdata;
         my $parent= $twig_current->{parent};
         $cdata->{parent}=$parent; if( $XML::Twig::weakrefs) { weaken( $cdata->{parent});} ;
-         $parent->{empty}=0; $parent->{last_child}=$cdata; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});} ;
+         delete $parent->{empty}; $parent->{last_child}=$cdata; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});} ;
         $t->{twig_in_pcdata}=0;
       }
     else
@@ -2466,7 +2525,7 @@ sub _twig_cdatastart
           }
         else
           { $twig_current->{first_child}=  $cdata; }
-         $twig_current->{empty}=0; $twig_current->{last_child}=$cdata; if( $XML::Twig::weakrefs) { weaken( $twig_current->{last_child});} ;
+         delete $twig_current->{empty}; $twig_current->{last_child}=$cdata; if( $XML::Twig::weakrefs) { weaken( $twig_current->{last_child});} ;
       
       }
 
@@ -2488,9 +2547,9 @@ sub _twig_cdataend
     my $elt= $t->{twig_current};
     delete $elt->{'twig_current'};
     my $cdata= $elt->{cdata};
-    $elt->_set_cdata( $cdata);
+    $elt->{cdata}=  $cdata;
 
-    push @{$t->{_twig_context_stack}}, { _tag => $CDATA };
+    push @{$t->{_twig_context_stack}}, { $ST_TAG => $CDATA };
 
     if( $t->{twig_handlers})
       { # look for handlers
@@ -2579,7 +2638,7 @@ sub _twig_pi_comment
     if( $t->{twig_input_filter})
           { foreach my $arg (@parser_args) { $arg= $t->{twig_input_filter}->( $arg); } }
           
-    # if pi/comments are to be kept then we piggiback them to the current element
+    # if pi/comments are to be kept then we piggyback them to the current element
     if( $keep)
       { # first add spaces
         if( $t->{twig_stored_spaces})
@@ -2668,7 +2727,7 @@ sub _twig_final
         push @args,  @{$t->{twig_autoflush_data}->{args}} if( $t->{twig_autoflush_data}->{args});
         $t->flush( @args);
         delete $t->{twig_autoflush_data};
-        $t->root->delete;
+        $t->root->delete if $t->root;
       }
 
     # tries to clean-up (probably not very well at the moment)
@@ -2687,7 +2746,7 @@ sub _insert_pcdata
     my $elt;
     if( exists $t->{twig_alt_elt_class})
       { $elt=  $t->{twig_elt_class}->new( $PCDATA);
-        $elt->_set_pcdata( $string);
+        $elt->{pcdata}=  $string;
       }
     else
       { $elt= bless( { gi => $XML::Twig::gi2index{$PCDATA}, pcdata => $string }, 'XML::Twig::Elt'); }
@@ -2701,7 +2760,7 @@ sub _insert_pcdata
       { $parent->{first_child}=  $elt; }
 
     $elt->{parent}=$parent; if( $XML::Twig::weakrefs) { weaken( $elt->{parent});} ;
-     $parent->{empty}=0; $parent->{last_child}=$elt; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});} ;
+     delete $parent->{empty}; $parent->{last_child}=$elt; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});} ;
     $t->{twig_stored_spaces}='';
     return $elt;
   }
@@ -2962,7 +3021,7 @@ sub _twig_insert_ent
         $twig_current->{next_sibling}=  $ent;
         my $parent= $twig_current->{parent};
         $ent->{parent}=$parent; if( $XML::Twig::weakrefs) { weaken( $ent->{parent});} ;
-         $parent->{empty}=0; $parent->{last_child}=$ent; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});} ;
+         delete $parent->{empty}; $parent->{last_child}=$ent; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});} ;
         # the twig_current is now the parent
         delete $twig_current->{'twig_current'};
         $t->{twig_current}= $parent;
@@ -2978,7 +3037,7 @@ sub _twig_insert_ent
           }
         else
           { if( $twig_current) { $twig_current->{first_child}=  $ent; } }
-        if( $twig_current) {  $twig_current->{empty}=0; $twig_current->{last_child}=$ent; if( $XML::Twig::weakrefs) { weaken( $twig_current->{last_child});} ; }
+        if( $twig_current) {  delete $twig_current->{empty}; $twig_current->{last_child}=$ent; if( $XML::Twig::weakrefs) { weaken( $twig_current->{last_child});} ; }
       }
 
     # meant to trigger entity handler, does not seem to be activated at this time
@@ -3134,10 +3193,10 @@ sub doctype
     if( $update_dtd)
       { if( $doctype)  
           { my $internal=$doctype->{internal};
-            # awfull hack, but at least it works a little better that what was there before
+            # awful hack, but at least it works a little better that what was there before
             if( $internal)
               { # remove entity declarations (they will be re-generated from the updated entity list)
-                $internal=~ s{<! \s* ENTITY \s+ $REG_NAME \s+ ( ("[^"]*"|'[^']*') \s* | SYSTEM [^>]*) >\s*}{}xg;
+                $internal=~ s{<! \s* ENTITY \s+ $REG_TAG_NAME \s+ ( ("[^"]*"|'[^']*') \s* | SYSTEM [^>]*) >\s*}{}xg;
                 $internal=~ s{^\n}{};
               }
             $internal .= $t->entity_list->text ||'' if( $t->entity_list);
@@ -3196,12 +3255,29 @@ sub _trailing_cpi_text
 sub print_to_file
   { my( $t, $filename)= (shift, shift);
     my $out_fh;
+#    open( $out_fh, ">$filename") or _croak( "cannot create file $filename: $!");     # < perl 5.8
     my $mode= $t->{twig_keep_encoding} ? '>' : '>:utf8';                             # >= perl 5.8
     open( $out_fh, $mode, $filename) or _croak( "cannot create file $filename: $!"); # >= perl 5.8
     $t->print( $out_fh, @_);
     close $out_fh;
     return $t;
   }
+
+# probably only works on *nix (at least the chmod bit)
+# first print to a temporary file, then rename that file to the desired file name, then change permissions
+# to the original file permissions (or to the current umask)
+sub safe_print_to_file
+  { my( $t, $filename)= (shift, shift);
+    my $perm= -f $filename ? (stat $filename)[2] & 07777 : ~umask() ;
+    XML::Twig::_use( 'File::Temp') || croak "need File::Temp to use safe_print_to_file\n";
+    my $tmpdir= dirname( $filename);    
+    my( $fh, $tmpfilename) = File::Temp::tempfile( DIR => $tmpdir);
+    $t->print_to_file( $tmpfilename, @_);
+    rename( $tmpfilename, $filename) or unlink $tmpfilename && _croak( "cannot move temporary file to $filename: $!"); 
+    chmod $perm, $filename;
+    return $t;
+  }
+    
 
 sub print
   { my $t= shift;
@@ -3266,7 +3342,7 @@ sub flush
     if( $up_to)
       { $last_elt= $up_to; }
     elsif( $t->{twig_current})
-      { $last_elt= $t->{twig_current}->_last_child; }
+      { $last_elt= $t->{twig_current}->{last_child}; }
     else
       { $last_elt= $t->{twig_root};
         $flush_trailing_data=1;
@@ -3275,7 +3351,7 @@ sub flush
 
     # flush the DTD unless it has ready flushed (ie root has been flushed)
     my $elt= $t->{twig_root};
-    unless( $elt->_flushed)
+    unless( $elt->{'flushed'})
       { # store flush info so we can auto-flush later
         if( $t->{twig_autoflush})
           { $t->{twig_autoflush_data}={};
@@ -3290,10 +3366,10 @@ sub flush
       { my $next_elt; 
         if( $last_elt && $last_elt->in( $elt))
           { 
-            unless( $elt->_flushed) 
+            unless( $elt->{'flushed'}) 
               { # just output the front tag
                 print $elt->start_tag();
-                $elt->_set_flushed;
+                $elt->{'flushed'}=1;
               }
             $next_elt= $elt->{first_child};
           }
@@ -3362,7 +3438,7 @@ sub sprint
       
     my $string=   $t->prolog( %args)       # xml declaration and doctype
                 . $t->_leading_cpi( %args) # leading comments and pi's in 'process' mode
-                . $t->{twig_root}->sprint  
+                . ( ($t->{twig_root} && $t->{twig_root}->sprint) || '')
                 . $t->_trailing_cpi        # trailing comments and pi's (elements, in 'process' mode)
                 . $t->_trailing_cpi_text   # trailing comments and pi's (in 'keep' mode)
                 ;
@@ -3390,7 +3466,7 @@ sub purge
     if( $up_to)
       { $last_elt= $up_to; }
     elsif( $t->{twig_current})
-      { $last_elt= $t->{twig_current}->_last_child; }
+      { $last_elt= $t->{twig_current}->{last_child}; }
     else
       { $last_elt= $t->{twig_root}; }
     
@@ -3399,7 +3475,7 @@ sub purge
     while( $elt)
       { my $next_elt; 
         if( $last_elt && $last_elt->in( $elt))
-          { $elt->_set_flushed;
+          { $elt->{'flushed'}=1;
             $next_elt= $elt->{first_child};
           }
         else
@@ -3496,26 +3572,26 @@ sub field_accessors
     my $elt_class= ref $twig_or_class ? $twig_or_class->{twig_elt_class}
                                       : 'XML::Twig::Elt'
                                       ;
+    my %exp_to_alias= ref( $_[0]) && isa( $_[0], 'HASH') ? %{$_[0]}
+                                                         : map { $_ => $_ } @_;
+
     ## no critic (TestingAndDebugging::ProhibitNoStrict);
     no strict 'refs';
-    foreach my $exp (@_)
-      { _croak( "attempt to redefine existing method $exp using field_accessors")
-          if( $elt_class->can( $exp) && !$accessor{$exp});
-
-        if( !$accessor{$exp})                                
-          { *{"$elt_class\::$exp"}=                          
+    while( my( $alias, $exp)= each %exp_to_alias )
+      { if( $elt_class->can( $alias) && !$accessor{$alias})
+          { _croak( "attempt to redefine existing method $exp using field_accessors"); }
+        if( !$accessor{$alias})                                
+          { *{"$elt_class\::$alias"}=                          
                 sub                                          
                   { my $elt= shift;                          
                     $elt->field( $exp)                       
                   };                                         
-            $accessor{$exp}=1;                               
+            $accessor{$alias}=1;                               
           }                                                  
       }
     return $twig_or_class;
   }
 }
-
-
 
 sub first_elt
   { my( $t, $cond)= @_;
@@ -3638,7 +3714,6 @@ sub escape_gt
 sub do_not_escape_gt
   { my $t= shift; $t->{twig_escape_gt}= 0; return XML::Twig::Elt::do_not_escape_gt( @_); }
 
-# WARNING: at the moment the id list is not updated reliably
 sub elt_id
   { return $_[0]->{twig_id_list}->{$_[1]}; }
 
@@ -3699,8 +3774,8 @@ BEGIN
                            current_line current_column current_byte
                            recognized_string original_string 
                            xpcroak xpcarp 
-                           xml_escape
                            base current_element element_index 
+                           xml_escape
                            position_in_context);
     foreach my $method (@expat_methods)
       { 
@@ -3815,7 +3890,7 @@ sub dispose
   }
   
 sub DESTROY
-  { my $t= shift;
+  { my $t= shift; 
     if( $t->{twig_root} && isa(  $t->{twig_root}, 'XML::Twig::Elt')) 
       { $t->{twig_root}->delete } 
 
@@ -3970,11 +4045,14 @@ sub _twig_start_check_roots
     
     my $fh= $t->{twig_output_fh} || select() || \*STDOUT;
 
+    my $ns_decl;
     unless( $p->depth == 0)
-      { if( $t->{twig_map_xmlns}) { _replace_ns( $t, \$gi, \@_); }
+      { if( $t->{twig_map_xmlns}) { $ns_decl= _replace_ns( $t, \$gi, \@_); }
       }
 
-    push @{$t->{_twig_context_stack}}, { _tag => $gi, @_};
+    my $context= { $ST_TAG => $gi, @_};
+    $context->{$ST_NS}= $ns_decl if $ns_decl;
+    push @{$t->{_twig_context_stack}}, $context;
     my %att= @_;
 
     if( _handler( $t, $t->{twig_roots}, $gi))
@@ -3997,7 +4075,7 @@ sub _twig_start_check_roots
         print {$fh} $tag if( $tag);
         pop @{$t->{_twig_context_stack}}; # will be pushed back in _twig_start
         _twig_start( $p, $gi, @_);
-        $t->root->_set_flushed; # or the root start tag gets output the first time we flush
+        $t->root->{'flushed'}=1; # or the root start tag gets output the first time we flush
       }
     elsif( $t->{twig_starttag_handlers})
       { # look for start tag handlers
@@ -4135,7 +4213,7 @@ sub _twig_ignore_end
     if( ! $t->{twig_ignore_level})
       { 
         $t->{twig_current}   = $t->{twig_ignore_elt};
-        $t->{twig_current}->set_twig_current;
+        $t->{twig_current}->{'twig_current'}=1;
 
         $t->{twig_ignore_elt}->cut;  # there could possibly be a memory leak here (delete would avoid it,
                                      # but could also delete elements that should not be deleted)
@@ -4158,7 +4236,7 @@ sub _twig_ignore_end
     return;    
   }
 
-#sub _dump_stack { my( $stack)= @_; return join( ":", map { $_->{_tag} } @$stack); }
+#sub _dump_stack { my( $stack)= @_; return join( ":", map { $_->{$ST_TAG} } @$stack); }
     
 sub ignore
   { my( $t, $elt, $action)= @_;
@@ -4215,7 +4293,7 @@ sub _level_in_stack
   { my( $t, $elt)= @_;
     my $level=1;
     foreach my $elt_in_stack ( @{$t->{_twig_context_stack}} )
-      { if( $elt_in_stack->{_elt} && ($elt == $elt_in_stack->{_elt})) { return $level }
+      { if( $elt_in_stack->{$ST_ELT} && ($elt == $elt_in_stack->{$ST_ELT})) { return $level }
         $level++;
       }
   }
@@ -4342,12 +4420,12 @@ sub _flush_toSAX
     # the "real" last element processed, as _twig_end has closed it
     my $last_elt;
     if( $t->{twig_current})
-      { $last_elt= $t->{twig_current}->_last_child; }
+      { $last_elt= $t->{twig_current}->{last_child}; }
     else
       { $last_elt= $t->{twig_root}; }
 
     my $elt= $t->{twig_root};
-    unless( $elt->_flushed)
+    unless( $elt->{'flushed'})
       { # init unless already done (ie root has been flushed)
         if( my $start_document =  $handler->can( 'start_document'))
           { $start_document->( $handler); }
@@ -4359,13 +4437,13 @@ sub _flush_toSAX
       { my $next_elt; 
         if( $last_elt && $last_elt->in( $elt))
           { 
-            unless( $elt->_flushed) 
+            unless( $elt->{'flushed'}) 
               { # just output the front tag
                 if( my $start_element = $handler->can( 'start_element'))
                  { if( my $tag_data= $start_tag_data->( $elt))
                      { $start_element->( $handler, $tag_data); }
                  }
-                $elt->_set_flushed;
+                $elt->{'flushed'}=1;
               }
             $next_elt= $elt->{first_child};
           }
@@ -4574,7 +4652,7 @@ sub getParentNode      { return undef; }
 sub getChildNodes      { my @children= ($_[0]->root); return wantarray ? @children : \@children; }
 
 sub _weakrefs     { return $weakrefs;       }
-sub _set_weakrefs { $weakrefs=shift() || 0; } # for testing purposes
+sub _set_weakrefs { $weakrefs=shift() || 0; XML::Twig::Elt::set_destroy()if ! $weakrefs; } # for testing purposes
 
 sub _dump
   { my $t= shift;
@@ -4858,6 +4936,8 @@ sub new
 
     return $elt unless @_;
 
+    if( @_ == 1 && $_[0]=~ m{^\s*<}) { return $class->parse( @_); }
+
     # if a gi is passed then use it
     my $gi= shift;
     $elt->{gi}=$XML::Twig::gi2index{$gi} or $elt->set_gi( $gi);
@@ -4874,21 +4954,21 @@ sub new
 
     if( $gi eq $PCDATA)
       { if( grep { ref $_ } @_) { croak "element $PCDATA can only be created from text"; }
-        $elt->_set_pcdata( join( '', @_)); 
+        $elt->{pcdata}=  join '', @_; 
       }
     elsif( $gi eq $ENT)
       { $elt->{ent}=  shift; }
     elsif( $gi eq $CDATA)
       { if( grep { ref $_ } @_) { croak "element $CDATA can only be created from text"; }
-        $elt->_set_cdata( join( '', @_)); 
+        $elt->{cdata}=  join '', @_; 
       }
     elsif( $gi eq $COMMENT)
       { if( grep { ref $_ } @_) { croak "element $COMMENT can only be created from text"; }
-        $elt->_set_comment( join( '', @_)); 
+        $elt->{comment}=  join '', @_; 
       }
     elsif( $gi eq $PI)
       { if( grep { ref $_ } @_) { croak "element $PI can only be created from text"; }
-        $elt->_set_pi( shift, join( '', @_));
+        $elt->_set_pi( shift, join '', @_);
       }
     else
       { # the rest of the arguments are the content of the element
@@ -4916,7 +4996,7 @@ sub _new_pcdata
     my $elt  = {};
     bless $elt, $class;
     $elt->{gi}=$XML::Twig::gi2index{$PCDATA} or $elt->set_gi( $PCDATA);
-    $elt->_set_pcdata( $_[1]);
+    $elt->{pcdata}=  $_[1];
     return $elt;
   }
     
@@ -4937,6 +5017,8 @@ sub parse
     delete $elt->{twig};         # get rid of the twig data
     delete $elt->{twig_current}; # better get rid of this too
     if( $t->{twig_id_list}) { $elt->{twig_id_list}= $t->{twig_id_list}; }
+    $elt->cut; 
+    undef $t->{twig_root};
     return $elt;
   }
    
@@ -5050,7 +5132,7 @@ sub _current_ns_prefix_map
                       ;
             if( ! exists $map->{$prefix}) { $map->{$prefix}= $elt->{'att'}->{$att}; }
           }
-        $elt= $elt->{parent} || $elt->former_parent;
+        $elt= $elt->{parent} || ($elt->{former} && $elt->{former}->{parent});
       }
     return $map;
   }
@@ -5149,7 +5231,7 @@ sub set_asis
       { $descendant->{asis}= 1;
         if( (exists $descendant->{'cdata'}))
           { $descendant->{gi}=$XML::Twig::gi2index{$PCDATA} or $descendant->set_gi( $PCDATA);
-            $descendant->_set_pcdata( $descendant->{cdata});
+            $descendant->{pcdata}=  $descendant->{cdata};
           }
 
       }
@@ -5187,8 +5269,16 @@ sub set_pcdata
 sub _extra_data_in_pcdata      { return $_[0]->{extra_data_in_pcdata}; }
 sub _set_extra_data_in_pcdata  { $_[0]->{extra_data_in_pcdata}= $_[1]; return $_[0]; }
 sub _del_extra_data_in_pcdata  { delete $_[0]->{extra_data_in_pcdata}; return $_[0]; }
-sub _unshift_extra_data_in_pcdata { unshift @{shift()->{extra_data_in_pcdata}}, { text => shift(), offset => shift() }; }
-sub _push_extra_data_in_pcdata    { push @{shift()->{extra_data_in_pcdata}},    { text => shift(), offset => shift() }; }
+sub _unshift_extra_data_in_pcdata 
+    { my $e= shift;
+      $e->{extra_data_in_pcdata}||=[];
+      unshift @{$e->{extra_data_in_pcdata}}, { text => shift(), offset => shift() };
+    }
+sub _push_extra_data_in_pcdata    
+  { my $e= shift; 
+    $e->{extra_data_in_pcdata}||=[]; 
+    push @{$e->{extra_data_in_pcdata}}, { text => shift(), offset => shift() }; 
+  }
 
 sub _extra_data_before_end_tag     { return $_[0]->{extra_data_before_end_tag} || ''; }
 sub _set_extra_data_before_end_tag { $_[0]->{extra_data_before_end_tag}= $_[1]; return $_[0]}
@@ -5374,7 +5464,8 @@ sub set_comment
       { $elt->cut_children;
         $elt->{gi}=$XML::Twig::gi2index{$COMMENT} or $elt->set_gi( $COMMENT);
       }
-    return $elt->_set_comment( @_);
+    $elt->{comment}=  $_[0];
+    return $elt;
   }
 
 sub _set_comment   { $_[0]->{comment}= $_[1]; return $_[0]; }
@@ -5400,7 +5491,8 @@ sub set_cdata
         $elt->insert_new_elt( first_child => $CDATA, @_);
         return $elt;
       }
-    return $elt->_set_cdata( @_);
+    $elt->{cdata}=  $_[0];
+    return $_[0];
   }
   
 sub _set_cdata 
@@ -5448,7 +5540,7 @@ sub root
 
 sub _root_through_cut
   { my $elt= shift;
-    while( $elt->{parent} || $elt->former_parent) { $elt= $elt->{parent} || $elt->former_parent; }
+    while( $elt->{parent} || ($elt->{former} && $elt->{former}->{parent})) { $elt= $elt->{parent} || ($elt->{former} && $elt->{former}->{parent}); }
     return $elt;
   }
 
@@ -5504,13 +5596,13 @@ sub reset_cond_cache { %cond_cache=(); }
                 { push @tests, qq{\$_[0]->is_elt}; }
               elsif( $cond=~ s{$TEXT$SEP}{}) 
                 { push @tests, qq{\$_[0]->is_text}; }
-              elsif( $cond=~ s{^\s*($REG_NAME_WC)$SEP}{})                  
+              elsif( $cond=~ s{^\s*($REG_TAG_PART)$SEP}{})                  
                 { push @tests, _gi_test( $1); } 
               elsif( $cond=~ s{^\s*($REG_REGEXP)$SEP}{})
                 { # /regexp/
                   push @tests, qq{ \$_[0]->gi=~ $1 }; 
                 }
-              elsif( $cond=~ s{^\s*($REG_NAME_WC)?\s*  # $1
+              elsif( $cond=~ s{^\s*($REG_TAG_PART)?\s*  # $1
                                \[\s*(-?)\s*(\d+)\s*\]  #   [$2]
                                $SEP}{}xo
                    )
@@ -5522,7 +5614,7 @@ sub reset_cond_cache { %cond_cache=(); }
                   else
                     { push @tests, qq{(scalar( $siblings) + 1 == $index)}; }
                 }
-              elsif( $cond=~ s{^\s*($REG_NAME_WC?)\s*($REG_PREDICATE)$SEP}{})
+              elsif( $cond=~ s{^\s*($REG_TAG_PART?)\s*($REG_PREDICATE)$SEP}{})
                 { my( $gi, $predicate)= ( $1, $2);
                   push @tests, _and( _gi_test( $gi), _parse_predicate_in_step( $predicate));
                 }
@@ -5551,7 +5643,7 @@ sub reset_cond_cache { %cond_cache=(); }
       my $index= $XML::Twig::gi2index{$full_gi};
       if( $index) { return qq{\$_[0]->{gi} == $index}; }
 
-      my( $gi, $class)= $full_gi=~ m{^(.*?)(?:\.([^.]*))?$};
+      my( $gi, $class, $id)= $full_gi=~ m{^(.*?)(?:[.]([^.]*)|[#](.*))?$};
 
       my $gi_test='';
       if( $gi && $gi ne '*' )
@@ -5575,8 +5667,15 @@ sub reset_cond_cache { %cond_cache=(); }
       #warn "class: '$class'";
       if( $class)
         { $class_test = qq{ defined( \$_[0]->{att}->{class}) && \$_[0]->{att}->{class}=~ m{\\b$class\\b} }; }
+
+      my $id_test='';
+      #warn "id: '$id'";
+      if( $id)
+        { $id_test = qq{ defined( \$_[0]->{att}->{$ID}) && \$_[0]->{att}->{$ID} eq '$id' }; }
+
+
       #warn "gi_test: '$gi_test' - class_test: '$class_test' returning ",  _and( $gi_test, $class_test);
-      return _and( $gi_test, $class_test);
+      return _and( $gi_test, $class_test, $id_test);
   }
 
 
@@ -5587,17 +5686,17 @@ sub reset_cond_cache { %cond_cache=(); }
 
       $cond=~ s{^\s*\[\s*}{};
       $cond=~ s{\s*\]\s*$}{};
-      $cond=~ s{(   ($REG_STRING|$REG_REGEXP)            # strings or regexps
-                   |\@($REG_NAME)(?=\s*(?:[><=!]|!~|=~)) # @att (followed by a comparison operator)
-                   |\@($REG_NAME)                        # @att (not followed by a comparison operator)
-                   |=~|!~                                # matching operators
-                   |([><]=?|=|!=)(?=\s*[\d+-])           # test before a number
-                   |([><]=?|=|!=)                        # test, other cases
-                   |($REG_FUNCTION)                      # no arg functions
+      $cond=~ s{(   ($REG_STRING|$REG_REGEXP)                # strings or regexps
+                   |\@($REG_TAG_NAME)(?=\s*(?:[><=!]|!~|=~)) # @att (followed by a comparison operator)
+                   |\@($REG_TAG_NAME)                        # @att (not followed by a comparison operator)
+                   |=~|!~                                    # matching operators
+                   |([><]=?|=|!=)(?=\s*[\d+-])               # test before a number
+                   |([><]=?|=|!=)                            # test, other cases
+                   |($REG_FUNCTION)                          # no arg functions
                    # this bit is a mess, but it is the only solution with this half-baked parser
-                   |((?:string|text)\(\s*$REG_NAME\s*\)\s*$REG_MATCH\s*$REG_REGEXP) # string( child) =~ /regexp/
-                   |((?:string|text)\(\s*$REG_NAME\s*\)\s*!?=\s*$REG_VALUE)         # string( child) = "value" (or !=)
-                   |((?:string|text)\(\s*$REG_NAME\s*\)\s*[<>]=?\s*$REG_VALUE)      # string( child) > "value"
+                   |((?:string|text)\(\s*$REG_TAG_NAME\s*\)\s*$REG_MATCH\s*$REG_REGEXP) # string( child) =~ /regexp/
+                   |((?:string|text)\(\s*$REG_TAG_NAME\s*\)\s*!?=\s*$REG_VALUE)         # string( child) = "value" (or !=)
+                   |((?:string|text)\(\s*$REG_TAG_NAME\s*\)\s*[<>]=?\s*$REG_VALUE)      # string( child) > "value"
                    |(and|or)
                 )}
                { my( $token, $string, $att, $bare_att, $num_test, $alpha_test, $func, $string_regexp, $string_eq, $string_test, $and_or)
@@ -5610,11 +5709,11 @@ sub reset_cond_cache { %cond_cache=(); }
                  elsif( $alpha_test)    { $PERL_ALPHA_TEST{$alpha_test} }
                  elsif( $func && $func=~ m{^(?:string|text)})
                                         { "\$_[0]->text"; }
-                 elsif( $string_regexp && $string_regexp =~ m{(?:string|text)\(\s*($REG_NAME)\s*\)\s*($REG_MATCH)\s*($REG_REGEXP)})
+                 elsif( $string_regexp && $string_regexp =~ m{(?:string|text)\(\s*($REG_TAG_NAME)\s*\)\s*($REG_MATCH)\s*($REG_REGEXP)})
                                         { "(XML::Twig::_first_n { (\$_->gi eq '$1') && (\$_->text $2 $3) } 1, \$_[0]->_children)"; }
-                 elsif( $string_eq     && $string_eq     =~ m{(?:string|text)\(\s*($REG_NAME)\s*\)\s*(!?=)\s*($REG_VALUE)})
+                 elsif( $string_eq     && $string_eq     =~ m{(?:string|text)\(\s*($REG_TAG_NAME)\s*\)\s*(!?=)\s*($REG_VALUE)})
                                         {"(XML::Twig::_first_n { (\$_->gi eq '$1') && (\$_->text $PERL_ALPHA_TEST{$2} $3) } 1, \$_[0]->_children)"; }
-                 elsif( $string_test   && $string_test   =~ m{(?:string|text)\(\s*($REG_NAME)\s*\)\s*([<>]=?)\s*($REG_VALUE)})
+                 elsif( $string_test   && $string_test   =~ m{(?:string|text)\(\s*($REG_TAG_NAME)\s*\)\s*([<>]=?)\s*($REG_VALUE)})
                                         { "(XML::Twig::_first_n { (\$_->gi eq '$1') && (\$_->text $2 $3) } 1, \$_[0]->_children)"; }
                  elsif( $and_or)        { $and_or eq 'and' ? '&&' : '||' ; }
                  else                   { $token; }
@@ -5681,7 +5780,7 @@ sub set_field
     if( $child)
       { $child->set_content( @_); }
     else
-      { if( $cond=~ m{^\s*($REG_NAME)})
+      { if( $cond=~ m{^\s*($REG_TAG_NAME)})
           { my $gi= $1;
             $child= $record->insert_new_elt( last_child => $gi, @_); 
           }
@@ -5693,6 +5792,7 @@ sub set_field
 
 sub set_last_child 
   { $_[0]->{'last_child'}= $_[1];
+    delete $_->[0]->{empty};
     if( $XML::Twig::weakrefs) { weaken( $_[0]->{'last_child'}); }
   }
 
@@ -5797,7 +5897,7 @@ sub set_atts
   { my $elt= shift;
     my %atts;
     tie %atts, 'Tie::IxHash' if( keep_atts_order());
-    %atts= ( (ref( $_[0] || '') eq 'HASH') || isa( $_[0] || '', 'HASH')) ? %{$_[0]} : @_;
+    %atts= @_ == 1 ? %{$_[0]} : @_;
     $elt->{att}= \%atts;
     if( exists $atts{$ID}) { $elt->_set_id( $atts{$ID}); }
     return $elt;
@@ -6047,7 +6147,7 @@ sub _inherit_att_through_cut
            && ( !%tags || $tags{$XML::Twig::index2gi[$elt->{'gi'}]})
           )
           { return $elt->{'att'}->{$att}; }
-      } while( $elt= $elt->{parent} || $elt->former_parent);
+      } while( $elt= $elt->{parent} || ($elt->{former} && $elt->{former}->{parent}));
     return undef;
   }
 
@@ -6106,7 +6206,7 @@ sub next_elt
             # case where elt is subtree_root, is empty and has no sibling
             return undef if( $subtree_root && ($elt == $subtree_root));
              
-            $next_elt= $elt->{parent};
+            $next_elt= $elt->{parent} || return undef;
 
             until( $next_elt->{next_sibling})
               { return undef if( $subtree_root && ($subtree_root == $next_elt));
@@ -6321,13 +6421,13 @@ sub child_matches
 
 sub prev_sibling_text  
   { my $elt= shift;
-    my $dest=$elt->_prev_sibling(@_) or return '';
+    my $dest= $elt->_prev_sibling(@_) or return '';
     return $dest->text;
   }
   
 sub prev_sibling_trimmed_text  
   { my $elt= shift;
-    my $dest=$elt->_prev_sibling(@_) or return '';
+    my $dest= $elt->_prev_sibling(@_) or return '';
     return $dest->trimmed_text;
   }
   
@@ -6339,13 +6439,13 @@ sub prev_sibling_matches
   
 sub next_sibling_text  
   { my $elt= shift;
-    my $dest=$elt->next_sibling(@_) or return '';
+    my $dest= $elt->next_sibling(@_) or return '';
     return $dest->text;
   }
   
 sub next_sibling_trimmed_text  
   { my $elt= shift;
-    my $dest=$elt->next_sibling(@_) or return '';
+    my $dest= $elt->next_sibling(@_) or return '';
     return $dest->trimmed_text;
   }
   
@@ -6357,13 +6457,13 @@ sub next_sibling_matches
   
 sub prev_elt_text  
   { my $elt= shift;
-    my $dest=$elt->prev_elt(@_) or return '';
+    my $dest= $elt->prev_elt(@_) or return '';
     return $dest->text;
   }
   
 sub prev_elt_trimmed_text  
   { my $elt= shift;
-    my $dest=$elt->prev_elt(@_) or return '';
+    my $dest= $elt->prev_elt(@_) or return '';
     return $dest->trimmed_text;
   }
   
@@ -6375,13 +6475,13 @@ sub prev_elt_matches
   
 sub next_elt_text  
   { my $elt= shift;
-    my $dest=$elt->next_elt(@_) or return '';
+    my $dest= $elt->next_elt(@_) or return '';
     return $dest->text;
   }
   
 sub next_elt_trimmed_text  
   { my $elt= shift;
-    my $dest=$elt->next_elt(@_) or return '';
+    my $dest= $elt->next_elt(@_) or return '';
     return $dest->trimmed_text;
   }
   
@@ -6393,13 +6493,13 @@ sub next_elt_matches
   
 sub parent_text  
   { my $elt= shift;
-    my $dest=$elt->parent(@_) or return '';
+    my $dest= $elt->parent(@_) or return '';
     return $dest->text;
   }
   
 sub parent_trimmed_text  
   { my $elt= shift;
-    my $dest=$elt->parent(@_) or return '';
+    my $dest= $elt->parent(@_) or return '';
     return $dest->trimmed_text;
   }
   
@@ -6652,12 +6752,14 @@ sub next_siblings
       while( $xpath_exp &&
              $xpath_exp=~s{^\s*(/?)                            
                             # the xxx=~/regexp/ is a pain as it includes /  
-                            (\s*(?:(?:($REG_AXIS)::)?(\*|$REG_NAME|\.\.|\.)\s*)?($REG_PREDICATE_ALT*)
+                            (\s*(?:(?:($REG_AXIS)::)?(\*|$REG_TAG_PART|\.\.|\.)\s*)?($REG_PREDICATE_ALT*)
                             )
                             (/|$)}{}xo)
   
         { my( $wildcard, $sub_exp, $axis, $gi, $predicates)= ($1, $2, $3, $4, $5);
-          
+           if( $axis && ! $gi)
+                { _croak_and_doublecheck_xpath( $original_exp, "error in xpath expression $original_exp"); }
+
           # grab a parent
           if( $sub_exp eq '..')
             { _croak_and_doublecheck_xpath( $original_exp, "error in xpath expression $original_exp") if( $wildcard);
@@ -6666,9 +6768,9 @@ sub next_siblings
           # test the element itself
           elsif( $sub_exp=~ m{^\.(.*)$}s)
             { $sub .= "\@results= grep { \$_->matches( q{$1}) } \@results;" }
-              # grab children
+          # grab children
           else       
-            { 
+            {
               if( !$axis)             
                 { $axis= $wildcard ? 'descendant' : 'child'; }
               if( !$gi or $gi eq '*') { $gi=''; }
@@ -6734,17 +6836,17 @@ sub next_siblings
                                 }
                               elsif( $pred =~ s{^string\(\s*\)\s*}{}o)  # string() pred
                                 { $test .= "\$_->text"; }
-                             elsif( $pred=~ s{^@($REG_NAME)\s*($REG_OP)\s*($REG_STRING|$REG_NUMBER)}{}o)  # @att="val" pred
+                             elsif( $pred=~ s{^@($REG_TAG_NAME)\s*($REG_OP)\s*($REG_STRING|$REG_NUMBER)}{}o)  # @att="val" pred
                                 { my( $att, $oper, $val)= ($1, _op( $2), $3);
                                   $test .= qq{((defined \$_->{'att'}->{"$att"})  && (\$_->{'att'}->{"$att"} $oper $val))};
                                 }
-                             elsif( $pred =~ s{^@($REG_NAME)\s*($REG_MATCH)\s*($REG_REGEXP)\s*}{}o)  # @att=~/regex/ pred XXX
+                             elsif( $pred =~ s{^@($REG_TAG_NAME)\s*($REG_MATCH)\s*($REG_REGEXP)\s*}{}o)  # @att=~/regex/ pred XXX
                                 { my( $att, $match, $regexp)= ($1, $2, $3);
                                   $test .= qq{((defined \$_->{'att'}->{"$att"})  && (\$_->{'att'}->{"$att"} $match $regexp))};; 
                                 }
-                             elsif( $pred=~ s{^@($REG_NAME)\s*}{}o)                      # @att pred
+                             elsif( $pred=~ s{^@($REG_TAG_NAME)\s*}{}o)                      # @att pred
                                 { $test .= qq{(defined \$_->{'att'}->{"$1"})}; }
-                             elsif( $pred=~ s{^\s*(?:not|!)\s*@($REG_NAME)\s*}{}o)       # not @att pred
+                             elsif( $pred=~ s{^\s*(?:not|!)\s*@($REG_TAG_NAME)\s*}{}o)       # not @att pred
                                 { $test .= qq{((\$_->is_elt) && (not defined \$_->{'att'}->{"$1"}))}; }
                               elsif( $pred=~ s{^\s*([()])}{})                            # ( or ) (just add to the test)
                                 { $test .= qq{$1};           }
@@ -6759,7 +6861,7 @@ sub next_siblings
                         }
                     }
                   #warn "step: '$step'";
-                  $sub .= "\@results= grep { \$_ } map { $step } \@results;"; 
+                  $sub .= "\@results= grep defined, map { $step } \@results;"; 
                 }
             }
         }
@@ -6825,10 +6927,19 @@ sub _del_flushed { delete $_[0]->{flushed}; }
 
 sub cut
   { my $elt= shift;
-    my( $parent, $prev_sibling, $next_sibling, $last_elt);
-
-    # you can't cut the root, sorry
-    unless( $parent= $elt->{parent}) { return; }
+    my( $parent, $prev_sibling, $next_sibling);
+    $parent=  $elt->{parent}; 
+    if( ! $parent && $elt->is_elt)
+      { # are we cutting the root?
+        my $t= $elt->{twig};
+        if( $t && ! $t->{twig_parsing})
+          { delete $t->{twig_root};
+            delete $elt->{twig};
+            return $elt;
+          }  # cutt`ing the root
+        else
+          { return;  }  # cutting an orphan, returning $elt would break backward compatibility
+      }
 
     # save the old links, that'll make it easier for some loops
     foreach my $link ( qw(parent prev_sibling next_sibling) )
@@ -6836,23 +6947,22 @@ sub cut
          if( $XML::Twig::weakrefs) { weaken( $elt->{former}->{$link}); }
       }
 
-    # it we cut the current element then its parent becomes the current elt
+    # if we cut the current element then its parent becomes the current elt
     if( $elt->{twig_current})
       { my $twig_current= $elt->{parent};
-        my $t= $elt->twig;
-        $t->{twig_current}= $twig_current;
+        $elt->twig->{twig_current}= $twig_current;
         $twig_current->{'twig_current'}=1;
         delete $elt->{'twig_current'};
       }
 
-    if( $parent->{first_child} == $elt)
+    if( $parent->{first_child} && $parent->{first_child} == $elt)
       { $parent->{first_child}=  $elt->{next_sibling};
         # cutting can make the parent empty
         if( ! $parent->{first_child}) { $parent->{empty}=  1; }
       }
 
-    if( $parent->{last_child} == $elt)
-      {  $parent->{empty}=0; $parent->{last_child}=$elt->{prev_sibling}; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});} ;
+    if( $parent->{last_child} && $parent->{last_child} == $elt)
+      {  delete $parent->{empty}; $parent->{last_child}=$elt->{prev_sibling}; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});} ;
       }
 
     if( $prev_sibling= $elt->{prev_sibling})
@@ -6895,13 +7005,48 @@ sub cut_descendants
   }
 
 
-
 sub erase
   { my $elt= shift;
     #you cannot erase the current element
     if( $elt->{twig_current})
       { croak "trying to erase an element before it has been completely parsed"; }
-    unless( $elt->{parent})
+    if( my $parent= $elt->{parent})
+      { # normal case
+        $elt->_move_extra_data_after_erase;
+        my @children= do { my $elt= $elt; my @children=(); my $child= $elt->{first_child}; while( $child) { push @children, $child; $child= $child->{next_sibling}; } @children; };
+        if( @children)
+          { 
+            # elt has children, move them up
+
+            # the first child may need to be merged with a previous text
+            my $first_child= shift @children;
+            $first_child->move( before => $elt);
+            my $prev= $first_child->{prev_sibling};
+            if( $prev && $prev->is_text && ($XML::Twig::index2gi[$first_child->{'gi'}] eq $XML::Twig::index2gi[$prev->{'gi'}]) )
+              { $prev->merge_text( $first_child); }
+
+            # move the rest of the children
+            foreach my $child (@children) 
+              { $child->move( before => $elt); }
+
+            # now the elt had no child, delete it
+            $elt->delete;
+
+            # now see if we need to merge the last child with the next element
+            my $last_child= $children[-1] || $first_child; # if no last child, then it's also the first child
+            my $next= $last_child->{next_sibling};
+            if( $next && $next->is_text && ($XML::Twig::index2gi[$last_child->{'gi'}] eq $XML::Twig::index2gi[$next->{'gi'}]) )
+              { $last_child->merge_text( $next); }
+
+            # if parsing and have now a PCDATA text, mark so we can normalize later on if need be
+            if( $parent->{twig_current} && $last_child->is_text) {  $parent->{twig_to_be_normalized}=1; }
+          }
+       else
+         { # no children, just cut the elt
+           $elt->delete;
+         }
+      }
+    else     
       { # trying to erase the root (of a twig or of a cut/new element)
         my @children= do { my $elt= $elt; my @children=(); my $child= $elt->{first_child}; while( $child) { push @children, $child; $child= $child->{next_sibling}; } @children; };
         unless( @children == 1)
@@ -6912,63 +7057,7 @@ sub erase
         my $twig= $elt->twig;
         $twig->set_root( $child);
       }
-    else     
-      { # normal case
-        $elt->_move_extra_data_after_erase;
-        my @children= do { my $elt= $elt; my @children=(); my $child= $elt->{first_child}; while( $child) { push @children, $child; $child= $child->{next_sibling}; } @children; };
-        if( @children)
-          { # elt has children, move them up
 
-            my $first_child= $elt->{first_child};
-            my $prev_sibling=$elt->{prev_sibling};
-            if( $prev_sibling)
-              { # connect first child to previous sibling
-                $first_child->{prev_sibling}=$prev_sibling; if( $XML::Twig::weakrefs) { weaken( $first_child->{prev_sibling});} ;      
-                $prev_sibling->{next_sibling}=  $first_child; 
-              }
-            else
-              { # elt was the first child
-                $elt->{parent}->set_first_child( $first_child);
-              }
-
-            my $last_child= $elt->{last_child};
-            my $next_sibling= $elt->{next_sibling};
-            if( $next_sibling)
-              { # connect last child to next sibling
-                $last_child->{next_sibling}=  $next_sibling;      
-                $next_sibling->{prev_sibling}=$last_child; if( $XML::Twig::weakrefs) { weaken( $next_sibling->{prev_sibling});} ; 
-              }
-            else
-              { # elt was the last child
-                $elt->{parent}->set_last_child( $last_child);
-              }
-            # update parent for all siblings
-            foreach my $child (@children)
-              { $child->{parent}=$elt->{parent}; if( $XML::Twig::weakrefs) { weaken( $child->{parent});} ; }
-
-            # merge consecutive text elements if need be
-            if( $prev_sibling && $prev_sibling->is_text && ($XML::Twig::index2gi[$first_child->{'gi'}] eq $XML::Twig::index2gi[$prev_sibling->{'gi'}]) )
-              { $prev_sibling->merge_text( $first_child); }
-            if( $next_sibling && $next_sibling->is_text && ($XML::Twig::index2gi[$last_child->{'gi'}] eq $XML::Twig::index2gi[$next_sibling->{'gi'}]) )
-              { $last_child->merge_text( $next_sibling); }
-
-            # if parsing and have now a PCDATA text, mark so we can normalize later on if need be
-            if( $elt->{parent}->{twig_current} && $elt->{last_child}->is_text) {  $elt->{parent}->{twig_to_be_normalized}=1; }
-
-            # elt is not referenced any more, so it will be DESTROYed
-            # so we'd better break the links to its children
-            undef $elt->{first_child};
-            undef $elt->{last_child};
-            undef $elt->{parent};
-            undef $elt->{prev_sibling};
-            undef $elt->{next_sibling};
- 
-          }
-          { # elt had no child, delete it
-             $elt->delete;
-          }
-              
-      }
     return $elt;
 
   }
@@ -7115,7 +7204,7 @@ BEGIN
         $next_sibling= $ref->{next_sibling};
 
         $elt->{parent}=$parent; if( $XML::Twig::weakrefs) { weaken( $elt->{parent});} ;
-        if( $parent->{last_child}== $ref) {  $parent->{empty}=0; $parent->{last_child}=$elt; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});} ; }
+        if( $parent->{last_child}== $ref) {  delete $parent->{empty}; $parent->{last_child}=$elt; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});} ; }
 
         $prev_sibling->{next_sibling}=  $elt;
         $elt->{prev_sibling}=$prev_sibling; if( $XML::Twig::weakrefs) { weaken( $elt->{prev_sibling});} ;
@@ -7134,7 +7223,7 @@ BEGIN
 
         $elt->{parent}=$parent; if( $XML::Twig::weakrefs) { weaken( $elt->{parent});} ;
         $parent->{first_child}=  $elt;
-        unless( $parent->{last_child}) {  $parent->{empty}=0; $parent->{last_child}=$elt; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});} ; }
+        unless( $parent->{last_child}) {  delete $parent->{empty}; $parent->{last_child}=$elt; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});} ; }
 
         $elt->{prev_sibling}=undef; if( $XML::Twig::weakrefs) { weaken( $elt->{prev_sibling});} ;
 
@@ -7150,7 +7239,7 @@ BEGIN
         $prev_sibling= $ref->{last_child};
 
         $elt->{parent}=$parent; if( $XML::Twig::weakrefs) { weaken( $elt->{parent});} ;
-         $parent->{empty}=0; $parent->{last_child}=$elt; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});} ;
+         delete $parent->{empty}; $parent->{last_child}=$elt; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});} ;
         unless( $parent->{first_child}) { $parent->{first_child}=  $elt; }
 
         $elt->{prev_sibling}=$prev_sibling; if( $XML::Twig::weakrefs) { weaken( $elt->{prev_sibling});} ;
@@ -7492,7 +7581,7 @@ sub mark
       my $gi= $XML::Twig::index2gi[$elt->{'gi'}];
   
       # 2 uses: if split matches then the first substring reuses $elt
-      #         once a split has occured then the last match needs to be put in
+      #         once a split has occurred then the last match needs to be put in
       #         a new element      
       my $previous_match= 0;
 
@@ -7571,6 +7660,9 @@ sub _repl_match
   
       my $replacement_string;
       my $is_string= _is_string( $replace);
+
+      my @parents;
+
       foreach my $text_elt ($elt->descendants_or_self( $TEXT))
         { 
           if( $is_string)
@@ -7592,28 +7684,19 @@ sub _repl_match
                   my $match_length = length( $match_string);
                   my $post_match   = $match->split_at( $match_length); 
                   $replace_sub->( $match, @var);
-                  # merge previous text with current one
-                  my $next_sibling;
-                  if(    ($next_sibling= $text_elt->{next_sibling})
-                      && ($XML::Twig::index2gi[$text_elt->{'gi'}] eq $XML::Twig::index2gi[$next_sibling->{'gi'}])
-                    )
-                    { $text_elt->merge_text( $next_sibling); }
-                    
-                  # if the match is at the beginning of the text an empty #PCDATA is left: remove it 
-                  if( !$text_elt->text) { $text_elt->delete; } 
-                  
+
                   # go to next 
                   $text_elt= $post_match;
                   $text= $post_match->text;
 
-                  # if the match is at the end of the text an empty #PCDATA is left: remove it 
-                  if( !$text_elt->text) { $text_elt->delete; } 
-                  
+                  if( $found_hit) { push @parents, $text_elt->{parent} unless $parents[-1] && $parents[-1]== $text_elt->{parent}; }
+
                 }
-              if( $found_hit) { $text_elt->normalize; } # in case consecutive #PCDATA have been created 
-              
             }
         }
+
+      foreach my $parent (@parents) { $parent->normalize; }
+
       return $elt;
     }
 
@@ -7662,22 +7745,12 @@ sub merge_text
     croak "invalid merge: can only merge 2 text elements" 
         unless( $e1->is_text && $e2->is_text && ($e1->gi eq $e2->gi));
 
-    my $text1= $e1->text; if( ! defined $text1) { $text1= ''; }
-    my $text2= $e2->text; if( ! defined $text2) { $text2= ''; }
+    my $t1_length= length( $e1->text);
 
-    $e1->set_text( $text1 . $text2);
+    $e1->set_text( $e1->text . $e2->text);
 
-    my $extra_data= $e1->_extra_data_before_end_tag . $e2->extra_data;
-    if( $extra_data) 
-      { $e1->_del_extra_data_before_end_tag;
-        $e1->_push_extra_data_in_pcdata( $extra_data, length( $text1)); 
-      }
-
-    if( $extra_data= $e2->_extra_data_in_pcdata)
-      { foreach my $data (@$extra_data) { $e1->_push_extra_data_in_pcdata( $data->{text}, $data->{offset} + length( $text1)); } }
-
-    if( my $extra_data_before_end_tag= $e2->_extra_data_before_end_tag) 
-      { $e1->_set_extra_data_before_end_tag( $extra_data_before_end_tag); }
+    if( my $extra_data_in_pcdata= $e2->_extra_data_in_pcdata)
+      { foreach my $data (@$extra_data_in_pcdata) { $e1->_push_extra_data_in_pcdata( $data->{text}, $data->{offset} + $t1_length); } }
 
     $e2->delete;
 
@@ -7690,8 +7763,27 @@ sub merge
     if(     $e1->_last_child && $e1->_last_child->is_pcdata
         &&  @e2_children && $e2_children[0]->is_pcdata
       )
-      { $e1->_last_child->{pcdata} .= $e2_children[0]->{pcdata}; shift @e2_children; }
+      { my $t1_length= length( $e1->_last_child->{pcdata});
+        my $child1= $e1->_last_child; 
+        my $child2= shift @e2_children; 
+        $child1->{pcdata} .= $child2->{pcdata}; 
+
+        my $extra_data= $e1->_extra_data_before_end_tag . $e2->extra_data;
+
+        if( $extra_data) 
+          { $e1->_del_extra_data_before_end_tag;
+            $child1->_push_extra_data_in_pcdata( $extra_data, $t1_length); 
+          }
+
+        if( my $extra_data_in_pcdata= $child2->_extra_data_in_pcdata)
+          { foreach my $data (@$extra_data_in_pcdata) { $child1->_push_extra_data_in_pcdata( $data->{text}, $data->{offset} + $t1_length); } }
+
+        if( my $extra_data_before_end_tag= $e2->_extra_data_before_end_tag) 
+          { $e1->_set_extra_data_before_end_tag( $extra_data_before_end_tag); }
+      }
+
     foreach my $e (@e2_children) { $e->move( last_child => $e1); } 
+
     $e2->delete;
     return $e1;
   }
@@ -7712,13 +7804,13 @@ sub copy
         if( $elt->{extra_data_in_pcdata}) { $copy->_set_extra_data_in_pcdata( $elt->{extra_data_in_pcdata}); }
       }
     elsif( (exists $elt->{'cdata'}))
-      { $copy->_set_cdata( $elt->{cdata}); 
+      { $copy->{cdata}=  $elt->{cdata}; 
         if( $elt->{extra_data_in_pcdata}) { $copy->_set_extra_data_in_pcdata( $elt->{extra_data_in_pcdata}); }
       }
     elsif( (exists $elt->{'target'}))
       { $copy->_set_pi( $elt->{target}, $elt->{data}); }
     elsif( (exists $elt->{'comment'}))
-      { $copy->_set_comment( $elt->{comment}); }
+      { $copy->{comment}=  $elt->{comment}; }
     elsif( (exists $elt->{'ent'}))
       { $copy->{ent}=  $elt->{ent}; }
     else
@@ -7749,25 +7841,29 @@ sub copy
 sub delete
   { my $elt= shift;
     $elt->cut;
-    $elt->DESTROY unless( $XML::Twig::weakrefs);
+    $elt->DESTROY unless $XML::Twig::weakrefs;
     return undef;
   }
 
-{ 
-  sub DESTROY
-    { my $elt= shift;
-      return if( $XML::Twig::weakrefs);
-      my $t= shift || $elt->twig; # optional argument, passed in recursive calls
+sub __destroy
+  { my $elt= shift; 
+    return if( $XML::Twig::weakrefs); 
+    my $t= shift || $elt->twig; # optional argument, passed in recursive calls
+  
+    foreach( @{[$elt->_children]}) { $_->DESTROY( $t); }
+  
+    # the id reference needs to be destroyed
+    # lots of tests to avoid warnings during the cleanup phase
+    $elt->del_id( $t) if( $ID && $t && defined( $elt->{att}) && exists( $elt->{att}->{$ID}));
+    if( $elt->{former}) { foreach (keys %{$elt->{former}}) { delete $elt->{former}->{$_}; } delete $elt->{former}; } 
+    foreach (qw( keys %$elt)) { delete $elt->{$_}; }
+    undef $elt;
+  }
 
-      foreach( @{[$elt->_children]}) { $_->DESTROY( $t); }
-
-      # the id reference needs to be destroyed
-      # lots of tests to avoid warnings during the cleanup phase
-      $elt->del_id( $t) if( $ID && $t && defined( $elt->{att}) && exists( $elt->{att}->{$ID}));
-      undef $elt;
-    }
+BEGIN
+{ sub set_destroy { if( $XML::Twig::weakrefs) { undef *DESTROY } else { *DESTROY= *__destroy; } }
+  set_destroy();
 }
-
 
 # ignores the element
 sub ignore
@@ -8086,7 +8182,7 @@ BEGIN {
                   :                       ' '
                   ;
 
-      my $replace_in_att_value= $replaced_ents . $quote;
+      my $replace_in_att_value= $replaced_ents . "$quote\t\r\n";
       if( $option->{escape_gt} && $replaced_ents !~ m{>}) { $replace_in_att_value.= '>'; }
 
       my $tag;
@@ -8113,8 +8209,8 @@ BEGIN {
       if( ($empty_tag_style eq $HTML) && !$elt->{first_child} && !$elt->{extra_data_before_end_tag} && $html_empty_elt{$gi})
         { $elt->{empty}= 1; }
       my $empty= defined $elt->{empty} ? $elt->{empty} 
-               : $elt->{first_child}    ? 1
-               :                         0;
+               : $elt->{first_child}    ? 0
+               :                         1;
 
       $tag .= (!$elt->{empty} || $elt->{extra_data_before_end_tag})  ? '>'            # element has content
             : (($empty_tag_style eq $HTML) && $html_empty_elt{$gi}) ? ' />'          # html empty element 
@@ -8288,16 +8384,36 @@ BEGIN {
       print $elt->sprint( @_);
       select $old_select if( defined $old_select);
     }
- 
+
+
+# those next 2 methods need to be refactored, they are copies of the same methods in XML::Twig 
 sub print_to_file
   { my( $elt, $filename)= (shift, shift);
     my $out_fh;
+#    open( $out_fh, ">$filename") or _croak( "cannot create file $filename: $!");     # < perl 5.8
     my $mode= $keep_encoding ? '>' : '>:utf8';                                       # >= perl 5.8
     open( $out_fh, $mode, $filename) or _croak( "cannot create file $filename: $!"); # >= perl 5.8
     $elt->print( $out_fh, @_);
     close $out_fh;
     return $elt;
   }
+
+# probably only works on *nix (at least the chmod bit)
+# first print to a temporary file, then rename that file to the desired file name, then change permissions
+# to the original file permissions (or to the current umask)
+sub safe_print_to_file
+  { my( $elt, $filename)= (shift, shift);
+    my $perm= -f $filename ? (stat $filename)[2] & 07777 : ~umask() ;
+    XML::Twig::_use( 'File::Temp') || croak "need File::Temp to use safe_print_to_file\n";
+    XML::Twig::_use( 'File::Basename') || croak "need File::Basename to use safe_print_to_file\n";
+    my $tmpdir= File::Basename::dirname( $filename);    
+    my( $fh, $tmpfilename) = File::Temp::tempfile( DIR => $tmpdir);
+    $elt->print_to_file( $tmpfilename, @_);
+    rename( $tmpfilename, $filename) or unlink $tmpfilename && _croak( "cannot move temporary file to $filename: $!"); 
+    chmod $perm, $filename;
+    return $elt;
+  }
+
   
   # same as print but does not output the start tag if the element
   # is marked as flushed
@@ -8336,7 +8452,7 @@ sub print_to_file
       if( $elt->{gi} >= $XML::Twig::SPECIAL_GI)
         { my $preserve= ($elt->{'att'}->{'xml:space'} || '') eq 'preserve';
           $xml_space_preserve++ if $preserve;
-          unless( $elt->_flushed)
+          unless( $elt->{'flushed'})
             { print $elt->start_tag();
             }
       
@@ -8496,7 +8612,7 @@ sub print_to_file
         { 
           if( ! $elt->{extra_data_in_pcdata})
             { 
-              $string=~ s/([$replaced_ents])/$XML::Twig::base_ent{$1}/g unless( $keep_encoding || $elt->{asis});  
+              $string=~ s/([$replaced_ents])/$XML::Twig::base_ent{$1}/g unless( !$replaced_ents || $keep_encoding || $elt->{asis});  
               $string=~ s{\Q]]>}{]]&gt;}g;
             }
           else
@@ -8561,7 +8677,7 @@ sub print_to_file
     { my $elt= shift;
       my $att= shift;
 
-      my $replace= $replaced_ents . $quote;
+      my $replace= $replaced_ents . "$quote\n\r\t";
       if($_[0] && $_[0]->{escape_gt} && ($replace!~ m{>}) ) { $replace .='>'; }
 
       if( defined (my $string= $elt->{att}->{$att}))
@@ -8574,7 +8690,10 @@ sub print_to_file
   sub _att_xml_string 
     { my( $string, $escape)= @_;
       if( !defined( $string)) { return ''; }
-      unless( $keep_encoding)
+      if( $keep_encoding)
+        { $string=~ s{$quote}{$XML::Twig::base_ent{$quote}}g; 
+        }
+      else
         { 
           if( $do_not_escape_amp_in_atts)
             { $escape=~ s{^.}{}; # seems like the most backward compatible way to remove & from the list
@@ -8685,10 +8804,10 @@ sub normalize
   { my( $elt)= @_;
     my @descendants= $elt->descendants( $PCDATA);
     while( my $desc= shift @descendants)
-      { while( @descendants && $desc->{next_sibling} && $desc->{next_sibling}== $descendants[0])
+      { if( ! length $desc->{pcdata}) { $desc->delete; next; }
+        while( @descendants && $desc->{next_sibling} && $desc->{next_sibling}== $descendants[0])
           { my $to_merge= shift @descendants;
-            $desc->{pcdata}.= $to_merge->{pcdata};
-            $to_merge->delete;
+            $desc->merge_text( $to_merge);
           }
       }
     return $elt;
@@ -8707,7 +8826,7 @@ sub _toSAX
       { my $data= $start_tag_data->( $elt);
         _start_prefix_mapping( $elt, $handler, $data);
         if( $data && (my $start_element = $handler->can( 'start_element')))
-          { unless( $elt->_flushed) { $start_element->( $handler, $data); } }
+          { unless( $elt->{'flushed'}) { $start_element->( $handler, $data); } }
       
         foreach my $child ($elt->_children)
           { $child->_toSAX( $handler, $start_tag_data, $end_tag_data); }
@@ -8859,11 +8978,13 @@ sub set_text
     elsif( $XML::Twig::index2gi[$elt->{'gi'}] eq $CDATA)  
       { if( $option{force_pcdata})
           { $elt->{gi}=$XML::Twig::gi2index{$PCDATA} or $elt->set_gi( $PCDATA);
-            $elt->_set_cdata('');
+            $elt->{cdata}= '';
             return $elt->{pcdata}= (delete $elt->{empty} || 1) &&  $string;
           }
         else
-          { return $elt->_set_cdata( $string); }
+          { $elt->{cdata}=  $string; 
+            return $string;
+          }
       }
     elsif( $elt->contains_a_single( $PCDATA) )
       { # optimized so we have a slight chance of not loosing embedded comments and pi's
@@ -8877,7 +8998,7 @@ sub set_text
     my $pcdata= $elt->_new_pcdata( $string);
     $pcdata->paste( $elt);
 
-    $elt->{empty}=0;
+    delete $elt->{empty};
 
     return $elt;
   }
@@ -8908,7 +9029,7 @@ sub set_content
         return $elt;
       }
     elsif( ($XML::Twig::index2gi[$elt->{'gi'}] eq $CDATA) && (@_ == 1) && !( ref $_[0]))
-      { $elt->_set_cdata( $_[0]);
+      { $elt->{cdata}=  $_[0];
         return $elt;
       }
 
@@ -8916,7 +9037,7 @@ sub set_content
     foreach my $child (@{[$elt->_children]})
       { $child->delete; }
 
-    if( @_) { $elt->{empty}=0; }
+    if( @_) { delete $elt->{empty}; }
 
     foreach my $child (@_)
       { if( ref( $child) && isa( $child, 'XML::Twig::Elt'))
@@ -8930,7 +9051,7 @@ sub set_content
                 $pcdata->{pcdata}= (delete $pcdata->{empty} || 1) &&  $pcdata->{pcdata} . $child 
               }
             else
-              { # previous child is not a string: creat a new pcdata element
+              { # previous child is not a string: create a new pcdata element
                 $pcdata= $elt->_new_pcdata( $child);
                 $pcdata->paste( 'last_child', $elt);  
               }
@@ -8958,7 +9079,7 @@ sub insert
           { $new_elt->set_atts( shift @args); }
         # paste the element
         $new_elt->paste( $elt);
-        $elt->{empty}=0;
+        delete $elt->{empty};
         $elt= $new_elt;
       }
     # paste back the children
@@ -9006,7 +9127,7 @@ sub wrap_in
         if( my $parent= $elt->{parent})
           { $new_elt->{parent}=$parent; if( $XML::Twig::weakrefs) { weaken( $new_elt->{parent});} ; 
             if( $parent->{first_child} == $elt) { $parent->{first_child}=  $new_elt; }
-             if( $parent->{last_child} == $elt) {  $parent->{empty}=0; $parent->{last_child}=$new_elt; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});} ;  }
+             if( $parent->{last_child} == $elt) {  delete $parent->{empty}; $parent->{last_child}=$new_elt; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});} ;  }
           }
         else
           { # wrapping the root
@@ -9026,7 +9147,7 @@ sub wrap_in
             $next_sibling->{prev_sibling}=$new_elt; if( $XML::Twig::weakrefs) { weaken( $next_sibling->{prev_sibling});} ;
           }
         $new_elt->{first_child}=  $elt;
-         $new_elt->{empty}=0; $new_elt->{last_child}=$elt; if( $XML::Twig::weakrefs) { weaken( $new_elt->{last_child});} ;
+         delete $new_elt->{empty}; $new_elt->{last_child}=$elt; if( $XML::Twig::weakrefs) { weaken( $new_elt->{last_child});} ;
 
         $elt->{parent}=$new_elt; if( $XML::Twig::weakrefs) { weaken( $elt->{parent});} ;
         $elt->{prev_sibling}=undef; if( $XML::Twig::weakrefs) { weaken( $elt->{prev_sibling});} ;
@@ -9050,8 +9171,11 @@ sub replace
     if( my $parent= $ref->{parent})
       { $elt->{parent}=$parent; if( $XML::Twig::weakrefs) { weaken( $elt->{parent});} ;
         if( $parent->{first_child} == $ref) { $parent->{first_child}=  $elt; }
-        if( $parent->{last_child} == $ref)  {  $parent->{empty}=0; $parent->{last_child}=$elt; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});}  ; }
+        if( $parent->{last_child} == $ref)  {  delete $parent->{empty}; $parent->{last_child}=$elt; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});}  ; }
       }
+    elsif( $ref->twig && $ref == $ref->twig->root)
+      { $ref->twig->set_root( $elt); }
+
     if( my $prev_sibling= $ref->{prev_sibling})
       { $elt->{prev_sibling}=$prev_sibling; if( $XML::Twig::weakrefs) { weaken( $elt->{prev_sibling});} ;
         $prev_sibling->{next_sibling}=  $elt;
@@ -9103,7 +9227,8 @@ sub prefix
       }
     else
       { my $new_elt= $elt->_new_pcdata( $prefix);
-        $new_elt->paste( $elt);
+        my $pos= (exists $elt->{'pcdata'}) ? 'before' : 'first_child';
+        $new_elt->paste( $pos => $elt);
         if( $asis) { $new_elt->set_asis; }
       }
     return $elt;
@@ -9124,7 +9249,8 @@ sub suffix
       { $elt->{last_child}->set_pcdata( $elt->{last_child}->pcdata . $suffix); }
     else
       { my $new_elt= $elt->_new_pcdata( $suffix);
-        $new_elt->paste( 'last_child', $elt);
+        my $pos= (exists $elt->{'pcdata'}) ? 'after' : 'last_child';
+        $new_elt->paste( $pos => $elt);
         if( $asis) { $new_elt->set_asis; }
       }
     return $elt;
@@ -9388,7 +9514,7 @@ sub _dump
         if( (exists $elt->{'pcdata'}))
           { $dump .= "$indent|-PCDATA:  '"  . _short_text( $elt->{pcdata}, $short_text) . "'\n" }
         elsif( (exists $elt->{'ent'}))
-          { warn "here"; $dump .= "$indent|-ENTITY:  '" . _short_text( $elt->{ent}, $short_text) . "'\n" }
+          { $dump .= "$indent|-ENTITY:  '" . _short_text( $elt->{ent}, $short_text) . "'\n" }
         elsif( (exists $elt->{'cdata'}))
           { $dump .= "$indent|-CDATA:   '" . _short_text( $elt->{cdata}, $short_text) . "'\n" }
         elsif( (exists $elt->{'comment'}))
@@ -9471,11 +9597,17 @@ Huge documents (processed in combined stream/tree mode):
     pretty_print => 'indented',                # output will be nicely formatted
     empty_tags   => 'html',                    # outputs <empty_tag />
                          );
-    $twig->flush;                              # flush the end of the document
+  $twig->parsefile( 'my_big.xml');
+
+  sub my_list_process
+    { my( $twig, $list)= @_;
+      # ...
+    }
 
 See L<XML::Twig 101|/XML::Twig 101> for other ways to use the module, as a 
 filter for example.
 
+=encoding utf8   
 
 =head1 DESCRIPTION
 
@@ -9495,6 +9627,38 @@ to increase performances.
 XML::Twig tries to make simple things easy so it tries its best to takes care 
 of a lot of the (usually) annoying (but sometimes necessary) features that 
 come with XML and XML::Parser.
+
+=head1 TOOLS
+
+XML::Twig comes with a few command-line utilities:
+
+=head2 xml_pp - xml pretty-printer
+
+XML pretty printer using XML::Twig
+
+=head2 xml_grep - grep XML files looking for specific elements
+
+C<xml_grep> does a grep on XML files. Instead of using regular expressions 
+it uses XPath expressions (in fact the subset of XPath supported by 
+XML::Twig). 
+
+=head2 xml_split - cut a big XML file into smaller chunks
+
+C<xml_split> takes a (presumably big) XML file and split it in several smaller
+files, based on various criteria (level in the tree, size or an XPath 
+expression)
+
+=head2 xml_merge - merge back XML files split with xml_split
+
+C<xml_merge> takes several xml files that have been split using C<xml_split>
+and recreates a single file.
+
+=head2 xml_spellcheck - spellcheck XML files
+
+C<xml_spellcheck> lets you spell check the content of an XML file. It extracts
+the text (the content of elements and optionally of attributes), call a spell
+checker on it and then recreates the XML document.
+
 
 =head1 XML::Twig 101
 
@@ -9557,8 +9721,6 @@ relevant element has been parsed.
                           },
                        );
   $t->parsefile( 'doc.xml');
-  $t->flush; # don't forget to flush one last time in the end or anything
-             # after the last </section> tag will not be output 
 
   # the handler is called once a section is completely parsed, ie when 
   # the end tag for section is found, it receives the twig itself and
@@ -9749,7 +9911,7 @@ You might want to look the C<L<elt_class>> option if you want to subclass C<XML:
 
 Attributes are just attached to their parent element, they are not objects per se. (Please
 use the provided methods C<L<att>> and C<L<set_att>> to access them, if you access them
-as a hash, then your code becomes implementaion dependent and might break in the future).
+as a hash, then your code becomes implementation dependent and might break in the future).
 
 Other classes that are seldom used are C<L<XML::Twig::Entity_list>> and C<L<XML::Twig::Entity>>.
 
@@ -9839,7 +10001,7 @@ they are not valid XML) are checked against the current twig.
 Handlers are triggered in fixed order, sorted by their type (xpath expressions
 first, then regexps, then level), then by whether they specify a full path 
 (starting at the root element) or
-not, then by by number of steps in the expression , then number of
+not, then by number of steps in the expression , then number of
 predicates, then number of tests in predicates. Handlers where the last
 step does not specify a step (C<foo/bar/*>) are triggered after other XPath 
 handlers. Finally C<_all_> handlers are triggered last. 
@@ -9911,7 +10073,7 @@ confuse XML::Twig ;--(
 
 Note: you can set handlers (twig_handlers) using twig_roots
   Example: my $t= XML::Twig->new( twig_roots => 
-                                   { title    => sub { $_{1]->print;}, 
+                                   { title    => sub { $_[1]->print;}, 
                                      subtitle => \&process_subtitle 
                                    }
                                );
@@ -9931,7 +10093,7 @@ value this will print the document outside of the C<twig_roots> elements.
            sub number_title
              { my( $twig, $title);
                $nb++;
-               $title->prefix( "$nb "; }
+               $title->prefix( "$nb ");
                $title->print;
              }
            }
@@ -9954,7 +10116,7 @@ C<twig_roots> elements will be output to this file handle:
            sub number_title
              { my( $twig, $title);
                $nb++;
-               $title->prefix( "$nb "; }
+               $title->prefix( "$nb ");
                $title->print( $out);    # you have to print to \*OUT here
              }
            }
@@ -9989,8 +10151,8 @@ C<$t> (the twig), C<$tag> (the tag of the element) and C<%att> (a hash of the
 attributes of the element). 
 
 If the C<twig_print_outside_roots> argument is also used, if the last handler
-called returns  a C<true> value, then the the start tag will be output as it
-appeared in the original document, if the handler returns a a C<false> value
+called returns  a C<true> value, then the start tag will be output as it
+appeared in the original document, if the handler returns a C<false> value
 then the start tag will B<not> be printed (so you can print a modified string 
 yourself for example).
 
@@ -10149,7 +10311,7 @@ more
 
 =item safe_hex
 
-same as C<safe> except that the character entities are in hexa (C<&#xnnn;>)
+same as C<safe> except that the character entities are in hex (C<&#xnnn;>)
 
 =item encode_convert ($encoding)
 
@@ -10397,9 +10559,8 @@ with the tags within the element
 =item idented_a
 
 This formats XML files in a line-oriented version control friendly way. 
-The format is described in L<http://tinyurl.com/OracleTeamXML> (that's an Oracle
-document which no longer exists, cached on the L<http://www.archive.org> 
-"Wayback Machine", with an insanely long URL).
+The format is described in L<http://tinyurl.com/2kwscq> (that's an Oracle
+document with an insanely long URL).
 
 Note that to be totaly conformant to the "spec", the order of attributes
 should not be changed, so if they are not already in alphabetical order
@@ -10558,6 +10719,11 @@ This will output:
      <gr:circle cx="10" cy="90" r="20"/>
   </doc>
 
+=item original_uri ($prefix)
+
+called within a handler, this will return the uri bound to the namespace prefix
+in the original document.
+
 =item index ($arrayref or $hashref)
 
 This option creates lists of specific elements during the parsing of the XML.
@@ -10569,14 +10735,14 @@ example:
 
   # using an array ref
   my $t= XML::Twig->new( index => [ 'div', 'table' ])
-                  ->parsefile( "foo.xml');
+                  ->parsefile( "foo.xml");
   my $divs= $t->index( 'div');
   my $first_div= $divs->[0];
   my $last_table= $t->index( table => -1);
 
   # using a hashref to name the indexes
-  my $t= XML::Twig->new( index => { email => 'a[@href=~/^\s*mailto:/]')
-                  ->parsefile( "foo.xml');
+  my $t= XML::Twig->new( index => { email => 'a[@href=~/^ \s*mailto:/]'})
+                  ->parsefile( "foo.xml");
   my $last_emails= $t->index( email => -1);
 
 Note that the index is not maintained after the parsing. If elements are 
@@ -10589,7 +10755,7 @@ creates methods that give direct access to attribute:
 
   my $t= XML::Twig->new( att_accessors => [ 'href', 'src'])
                   ->parsefile( $file);
-  my $first href= $t->first_elt( 'img')->src; # same as ->att( 'src')
+  my $first_href= $t->first_elt( 'img')->src; # same as ->att( 'src')
   $t->first_elt( 'img')->src( 'new_logo.png') # changes the attribute value
 
 =item elt_accessors
@@ -10604,7 +10770,7 @@ or in a hash alias => expression
   my $title_text= $t->root->head->field( 'title');
   # same as $title_text= $t->root->first_child( 'head')->field( 'title');
 
-  my $t=  XML::Twig->new( elt_accessors => { warnings => 'p[@class="warning"]', d2 => 'div[2]', )
+  my $t=  XML::Twig->new( elt_accessors => { warnings => 'p[@class="warning"]', d2 => 'div[2]'}, )
                   ->parsefile( $file);
   my $body= $t->first_elt( 'body');
   my @warnings= $body->warnings; # same as $body->children( 'p[@class="warning"]');
@@ -10656,6 +10822,14 @@ If this method is called as a class method
 created, using the parameters except the last one (eg 
 C<< XML::Twig->parse( pretty_print => 'indented', $some_xml_or_html) >>)
 and C<L<xparse>> is called on it.
+
+Note that when parsing a filehandle, the handle should NOT be open with an 
+encoding (ie open with C<open( my $in, '<', $filename)>. The file will be
+parsed by C<expat>, so specifying the encoding actually causes problems
+for the parser (as in: it can crash it, see
+https://rt.cpan.org/Ticket/Display.html?id=78877). For parsing a file it
+is actually recommended to use C<parsefile> on the file name, instead of
+<parse> on the open file.
 
 =item parsestring
 
@@ -10738,7 +10912,7 @@ HTML::TreeBuilder, which needs to be available).
 
 This works nicely, but some information gets lost in the process:
 newlines are removed, and (at least on the version I use), comments
-get get an extra CDATA section inside ( <!-- foo --> becomes
+get an extra CDATA section inside ( <!-- foo --> becomes
 <!-- <![CDATA[ foo ]]> -->
 
 =item parsefile_html ($file)
@@ -11019,6 +11193,9 @@ The doctype and entity declarations are also printed.
 
 flush take an optional filehandle as an argument.
 
+If you use C<flush> at any point during parsing, the document will be flushed
+one last time at the end of the parsing, to the proper filehandle.
+
 options: use the C<update_DTD> option if you have updated the (internal) DTD 
 and/or the entity list and you want the updated DTD to be output 
 
@@ -11057,6 +11234,19 @@ options: see C<flush>.
 
 Prints the whole document associated with the twig to file C<$filename>.
 To be used only AFTER the parse.
+
+options: see C<flush>.
+
+=item safe_print_to_file    ($filename, %options)
+
+Prints the whole document associated with the twig to file C<$filename>.
+This variant, which probably only works on *nix prints to a temp file,
+then move the temp file to overwrite the original file.
+
+This is a bit safer when 2 processes an potentiallywrite the same file: 
+only the last one will succeed, but the file won't be corruted. I often
+use this for cron jobs, so testing the code doesn't interfere with the
+cron job running at the same time.   
 
 options: see C<flush>.
 
@@ -11301,7 +11491,7 @@ the root element start tag.
 
 Returns the string from the document that was recognized in order
 to call the current handler. For instance, when called from a start
-handler, it will give us the the start-tag string. The string is
+handler, it will give us the start-tag string. The string is
 encoded in UTF-8.  This method doesn't return a meaningful string
 inside declaration handlers.
 
@@ -11703,7 +11893,7 @@ The C<$optional_elt> is the root of a subtree. When the C<next_elt> is out of th
 subtree then the method returns undef. You can then walk a sub-tree with:
 
   my $elt= $subtree_root;
-  while( $elt= $elt->next_elt( $subtree_root)
+  while( $elt= $elt->next_elt( $subtree_root))
     { # insert processing code here
     }
 
@@ -11732,7 +11922,7 @@ Return the list of following elements (as per the XPath following axis)
 
 =item preceding_elts
 
-Return the pst of preceding elements (as per the XPath preceding axis)
+Return the list of preceding elements (as per the XPath preceding axis)
 
 =item children     ($optional_condition)
 
@@ -11746,7 +11936,7 @@ C<$optional_condition>)
 
 =item children_text ($optional_condition)
 
-In array context, reeturns an array containing the text of children of the
+In array context, returns an array containing the text of children of the
 element (optionally which matches C<$optional_condition>)
 
 In scalar context, returns the concatenation of the text of children of
@@ -11859,7 +12049,7 @@ This makes it easier to write loops where you cut elements:
 
     my $child= $parent->first_child( 'achild');
     while( $child->{'att'}->{'cut'}) 
-      { $child->cut; $child= $child->former_next_sibling; }
+      { $child->cut; $child= ($child->{former} && $child->{former}->{next_sibling}); }
 
 =item former_prev_sibling
 
@@ -12037,7 +12227,7 @@ DATA::dumper or YAML to dump the data structure)
 B<Note>: there is no magic here, if you write 
 C<< $twig->parsefile( $file )->simplify(); >> then it will load the entire 
 document in memory. I am afraid you will have to put some work into it to 
-get just the bits you want and discard the rest. Look at the synopsys or
+get just the bits you want and discard the rest. Look at the synopsis or
 the XML::Twig 101 section at the top of the docs for more information.
 
 =over 4
@@ -12277,8 +12467,8 @@ of the element.
 B<Bug>: in the C<$regexp>, you can only use C<\1>, C<\2>... if the replacement
 expression does not include elements or attributes. eg
 
-  t->subs_text( qr/((t[aiou])\2)/, '$2');             # ok, replaces toto, tata, titi, tutu by to, ta, ti, tu
-  t->subs_text( qr/((t[aiou])\2)/, '&elt(p => $1)' ); # NOK, does not find toto...
+  $t->subs_text( qr/((t[aiou])\2)/, '$2');             # ok, replaces toto, tata, titi, tutu by to, ta, ti, tu
+  $t->subs_text( qr/((t[aiou])\2)/, '&elt(p => $1)' ); # NOK, does not find toto...
 
 =item add_id ($optional_coderef)
 
@@ -12520,7 +12710,7 @@ table for example.
 Optionally each tag can be followed by a hashref of attributes, that will be 
 set on the wrapping element:
 
-  $elt->wrap_in( p => { class => "advisory" }, div => { class => "intro", id => "div_intro });
+  $elt->wrap_in( p => { class => "advisory" }, div => { class => "intro", id => "div_intro" });
 
 =item insert_new_elt ($opt_position, $tag, $opt_atts_hashref, @opt_content)
 
@@ -13501,23 +13691,35 @@ If you need to modify the entity list this is probably the easiest way to do it.
 
 =head2 Flush
 
-If you set handlers and use C<flush>, do not forget to flush the twig one
-last time AFTER the parsing, or you might be missing the end of the document.
-
 Remember that element handlers are called when the element is CLOSED, so
 if you have handlers for nested elements the inner handlers will be called
 first. It makes it for example trickier than it would seem to number nested
-clauses.
-
+sections (or clauses, or divs), as the titles in the inner sections are handled
+before the outer sections.
 
 
 =head1 BUGS
 
 =over 4
 
+=item segfault during parsing
+
+This happens when parsing huge documents, or lots of small ones, with a version
+of Perl before 5.16. 
+
+This is due to a bug in the way weak references are handled in Perl itself.
+
+The fix is either to upgrade to Perl 5.16 or later (C<perlbrew> is a great
+tool to manage several installations of perl on the same machine).
+
+An other, NOT RECOMMENDED, way of fixing the problem, is to switch off weak
+references by writing C<XML::Twig::_set_weakrefs( 0);> at the top of the code. 
+This is totally unsupported, and may lead to other problems though, 
+
 =item entity handling
 
-Due to XML::Parser behaviour, non-base entities in attribute values disappear:
+Due to XML::Parser behaviour, non-base entities in attribute values disappear if
+they are not declared in the document:
 C<att="val&ent;"> will be turned into C<< att => val >>, unless you use the 
 C<keep_encoding> argument to C<< XML::Twig->new >> 
 
@@ -13530,13 +13732,14 @@ several slightly incompatible versions of XML::Parser and of libexpat.
 Basically you can read the DTD, output it back properly, and update entities,
 but not much more.
 
-So use XML::Twig with standalone documents, or with documents refering to an
+So use XML::Twig with standalone documents, or with documents referring to an
 external DTD, but don't expect it to properly parse and even output back the
 DTD.
 
 =item memory leak
 
-If you use a lot of twigs you might find that you leak quite a lot of memory
+If you use a REALLY old Perl (5.005!) and 
+a lot of twigs you might find that you leak quite a lot of memory
 (about 2Ks per twig). You can use the C<L<dispose> > method to free 
 that memory after you are done.
 
@@ -13759,7 +13962,7 @@ comments and non-significant whitespaces out of the way but preserving them in
 the output for example. As it does not stick to the DOM, is also usually leads 
 to shorter code than in XML::LibXML.
 
-Beyond the pure features of the 2 modules, XML::LibXML seems to be prefered by
+Beyond the pure features of the 2 modules, XML::LibXML seems to be preferred by
 "XML-purists", while XML::Twig seems to be more used by Perl Hackers who have 
 to deal with XML. As you have noted, XML::Twig also comes with quite a lot of 
 docs, but I am sure if you ask for help about XML::LibXML here or on Perlmonks
@@ -13771,7 +13974,7 @@ to (or I improve it ;--), while I have a very basic knowledge of XML::LibXML.
 So feature-wise, I'd rather use XML::Twig ;--). On the other hand, I am 
 painfully aware of some of the deficiencies, potential bugs and plain ugly code
 that lurk in XML::Twig, even though you are unlikely to be affected by them 
-(unless for example you need to change the DTD of a document programatically),
+(unless for example you need to change the DTD of a document programmatically),
 while I haven't looked much into XML::LibXML so it still looks shinny and clean
 to me.
 
