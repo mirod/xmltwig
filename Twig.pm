@@ -5797,7 +5797,7 @@ sub set_atts
   { my $elt= shift;
     my %atts;
     tie %atts, 'Tie::IxHash' if( keep_atts_order());
-    %atts= ( (ref( $_[0] || '') eq 'HASH') || isa( $_[0] || '', 'HASH')) ? %{$_[0]} : @_;
+    %atts= @_ == 1 ? %{$_[0]} : @_;
     $elt->{att}= \%atts;
     if( exists $atts{$ID}) { $elt->_set_id( $atts{$ID}); }
     return $elt;
