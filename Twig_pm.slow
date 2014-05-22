@@ -4954,21 +4954,21 @@ sub new
 
     if( $gi eq $PCDATA)
       { if( grep { ref $_ } @_) { croak "element $PCDATA can only be created from text"; }
-        $elt->_set_pcdata( join( '', @_)); 
+        $elt->_set_pcdata( join '', @_); 
       }
     elsif( $gi eq $ENT)
       { $elt->set_ent( shift); }
     elsif( $gi eq $CDATA)
       { if( grep { ref $_ } @_) { croak "element $CDATA can only be created from text"; }
-        $elt->_set_cdata( join( '', @_)); 
+        $elt->_set_cdata( join '', @_); 
       }
     elsif( $gi eq $COMMENT)
       { if( grep { ref $_ } @_) { croak "element $COMMENT can only be created from text"; }
-        $elt->_set_comment( join( '', @_)); 
+        $elt->_set_comment( join '', @_); 
       }
     elsif( $gi eq $PI)
       { if( grep { ref $_ } @_) { croak "element $PI can only be created from text"; }
-        $elt->_set_pi( shift, join( '', @_));
+        $elt->_set_pi( shift, join '', @_);
       }
     else
       { # the rest of the arguments are the content of the element
@@ -5464,7 +5464,8 @@ sub set_comment
       { $elt->cut_children;
         $elt->set_gi( $COMMENT);
       }
-    return $elt->_set_comment( @_);
+    $elt->_set_comment( $_[0]);
+    return $elt;
   }
 
 sub _set_comment   { $_[0]->{comment}= $_[1]; return $_[0]; }
@@ -5490,7 +5491,8 @@ sub set_cdata
         $elt->insert_new_elt( first_child => $CDATA, @_);
         return $elt;
       }
-    return $elt->_set_cdata( @_);
+    $elt->_set_cdata( $_[0]);
+    return $_[0];
   }
   
 sub _set_cdata 
@@ -5790,6 +5792,7 @@ sub set_field
 
 sub set_last_child 
   { $_[0]->{'last_child'}= $_[1];
+    delete $_->[0]->{empty};
     if( $XML::Twig::weakrefs) { weaken( $_[0]->{'last_child'}); }
   }
 
@@ -5894,7 +5897,7 @@ sub set_atts
   { my $elt= shift;
     my %atts;
     tie %atts, 'Tie::IxHash' if( keep_atts_order());
-    %atts= ( (ref( $_[0] || '') eq 'HASH') || isa( $_[0] || '', 'HASH')) ? %{$_[0]} : @_;
+    %atts= @_ == 1 ? %{$_[0]} : @_;
     $elt->{att}= \%atts;
     if( exists $atts{$ID}) { $elt->_set_id( $atts{$ID}); }
     return $elt;
@@ -6203,7 +6206,7 @@ sub next_elt
             # case where elt is subtree_root, is empty and has no sibling
             return undef if( $subtree_root && ($elt == $subtree_root));
              
-            $next_elt= $elt->_parent;
+            $next_elt= $elt->_parent || return undef;
 
             until( $next_elt->_next_sibling)
               { return undef if( $subtree_root && ($subtree_root == $next_elt));
@@ -6418,13 +6421,13 @@ sub child_matches
 
 sub prev_sibling_text  
   { my $elt= shift;
-    my $dest=$elt->_prev_sibling(@_) or return '';
+    my $dest= $elt->_prev_sibling(@_) or return '';
     return $dest->text;
   }
   
 sub prev_sibling_trimmed_text  
   { my $elt= shift;
-    my $dest=$elt->_prev_sibling(@_) or return '';
+    my $dest= $elt->_prev_sibling(@_) or return '';
     return $dest->trimmed_text;
   }
   
@@ -6436,13 +6439,13 @@ sub prev_sibling_matches
   
 sub next_sibling_text  
   { my $elt= shift;
-    my $dest=$elt->next_sibling(@_) or return '';
+    my $dest= $elt->next_sibling(@_) or return '';
     return $dest->text;
   }
   
 sub next_sibling_trimmed_text  
   { my $elt= shift;
-    my $dest=$elt->next_sibling(@_) or return '';
+    my $dest= $elt->next_sibling(@_) or return '';
     return $dest->trimmed_text;
   }
   
@@ -6454,13 +6457,13 @@ sub next_sibling_matches
   
 sub prev_elt_text  
   { my $elt= shift;
-    my $dest=$elt->prev_elt(@_) or return '';
+    my $dest= $elt->prev_elt(@_) or return '';
     return $dest->text;
   }
   
 sub prev_elt_trimmed_text  
   { my $elt= shift;
-    my $dest=$elt->prev_elt(@_) or return '';
+    my $dest= $elt->prev_elt(@_) or return '';
     return $dest->trimmed_text;
   }
   
@@ -6472,13 +6475,13 @@ sub prev_elt_matches
   
 sub next_elt_text  
   { my $elt= shift;
-    my $dest=$elt->next_elt(@_) or return '';
+    my $dest= $elt->next_elt(@_) or return '';
     return $dest->text;
   }
   
 sub next_elt_trimmed_text  
   { my $elt= shift;
-    my $dest=$elt->next_elt(@_) or return '';
+    my $dest= $elt->next_elt(@_) or return '';
     return $dest->trimmed_text;
   }
   
@@ -6490,13 +6493,13 @@ sub next_elt_matches
   
 sub parent_text  
   { my $elt= shift;
-    my $dest=$elt->parent(@_) or return '';
+    my $dest= $elt->parent(@_) or return '';
     return $dest->text;
   }
   
 sub parent_trimmed_text  
   { my $elt= shift;
-    my $dest=$elt->parent(@_) or return '';
+    my $dest= $elt->parent(@_) or return '';
     return $dest->trimmed_text;
   }
   
@@ -6858,7 +6861,7 @@ sub next_siblings
                         }
                     }
                   #warn "step: '$step'";
-                  $sub .= "\@results= grep { \$_ } map { $step } \@results;"; 
+                  $sub .= "\@results= grep defined, map { $step } \@results;"; 
                 }
             }
         }
@@ -6926,7 +6929,6 @@ sub cut
   { my $elt= shift;
     my( $parent, $prev_sibling, $next_sibling);
     $parent=  $elt->_parent; 
-    my $a= $elt->att( 'a') || 'na';
     if( ! $parent && $elt->is_elt)
       { # are we cutting the root?
         my $t= $elt->{twig};
@@ -7003,13 +7005,48 @@ sub cut_descendants
   }
 
 
-
 sub erase
   { my $elt= shift;
     #you cannot erase the current element
     if( $elt->{twig_current})
       { croak "trying to erase an element before it has been completely parsed"; }
-    unless( $elt->_parent)
+    if( my $parent= $elt->_parent)
+      { # normal case
+        $elt->_move_extra_data_after_erase;
+        my @children= $elt->_children;
+        if( @children)
+          { 
+            # elt has children, move them up
+
+            # the first child may need to be merged with a previous text
+            my $first_child= shift @children;
+            $first_child->move( before => $elt);
+            my $prev= $first_child->prev_sibling;
+            if( $prev && $prev->is_text && ($first_child->gi eq $prev->gi) )
+              { $prev->merge_text( $first_child); }
+
+            # move the rest of the children
+            foreach my $child (@children) 
+              { $child->move( before => $elt); }
+
+            # now the elt had no child, delete it
+            $elt->delete;
+
+            # now see if we need to merge the last child with the next element
+            my $last_child= $children[-1] || $first_child; # if no last child, then it's also the first child
+            my $next= $last_child->next_sibling;
+            if( $next && $next->is_text && ($last_child->gi eq $next->gi) )
+              { $last_child->merge_text( $next); }
+
+            # if parsing and have now a PCDATA text, mark so we can normalize later on if need be
+            if( $parent->{twig_current} && $last_child->is_text) {  $parent->{twig_to_be_normalized}=1; }
+          }
+       else
+         { # no children, just cut the elt
+           $elt->delete;
+         }
+      }
+    else     
       { # trying to erase the root (of a twig or of a cut/new element)
         my @children= $elt->_children;
         unless( @children == 1)
@@ -7020,63 +7057,7 @@ sub erase
         my $twig= $elt->twig;
         $twig->set_root( $child);
       }
-    else     
-      { # normal case
-        $elt->_move_extra_data_after_erase;
-        my @children= $elt->_children;
-        if( @children)
-          { # elt has children, move them up
 
-            my $first_child= $elt->first_child;
-            my $prev_sibling=$elt->_prev_sibling;
-            if( $prev_sibling)
-              { # connect first child to previous sibling
-                $first_child->set_prev_sibling( $prev_sibling);      
-                $prev_sibling->set_next_sibling( $first_child); 
-              }
-            else
-              { # elt was the first child
-                $elt->_parent->set_first_child( $first_child);
-              }
-
-            my $last_child= $elt->_last_child;
-            my $next_sibling= $elt->_next_sibling;
-            if( $next_sibling)
-              { # connect last child to next sibling
-                $last_child->set_next_sibling( $next_sibling);      
-                $next_sibling->set_prev_sibling( $last_child); 
-              }
-            else
-              { # elt was the last child
-                $elt->_parent->set_last_child( $last_child);
-              }
-            # update parent for all siblings
-            foreach my $child (@children)
-              { $child->set_parent( $elt->_parent); }
-
-            # merge consecutive text elements if need be
-            if( $prev_sibling && $prev_sibling->is_text && ($first_child->gi eq $prev_sibling->gi) )
-              { $prev_sibling->merge_text( $first_child); }
-            if( $next_sibling && $next_sibling->is_text && ($last_child->gi eq $next_sibling->gi) )
-              { $last_child->merge_text( $next_sibling); }
-
-            # if parsing and have now a PCDATA text, mark so we can normalize later on if need be
-            if( $elt->_parent->{twig_current} && $elt->_last_child->is_text) {  $elt->_parent->{twig_to_be_normalized}=1; }
-
-            # elt is not referenced any more, so it will be DESTROYed
-            # so we'd better break the links to its children ## FIX
-            undef $elt->{first_child};
-            undef $elt->{last_child};
-            undef $elt->{parent};
-            undef $elt->{next_sibling};
-            undef $elt->{prev_sibling};
- 
-          }
-          { # elt had no child, delete it
-             $elt->delete;
-          }
-              
-      }
     return $elt;
 
   }
@@ -9001,7 +8982,9 @@ sub set_text
             return $elt->set_pcdata( $string);
           }
         else
-          { return $elt->_set_cdata( $string); }
+          { $elt->_set_cdata( $string); 
+            return $string;
+          }
       }
     elsif( $elt->contains_a_single( $PCDATA) )
       { # optimized so we have a slight chance of not loosing embedded comments and pi's
