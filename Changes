@@ -2,7 +2,11 @@ CHANGES
 
 3.48 - 2014-03-30 - minor maintenance release
 
-- fixed tests 
+- fixed: tests
+
+- fixed: RT # 96009
+  keep_atts_order => 0 behaviour. Spotted by Dolmen
+  https://rt.cpan.org/Public/Bug/Display.html?id=96009
 
 3.47 - 2014-03-27 - minor maintenance release
 
@@ -29,7 +33,7 @@ CHANGES
 - fixed: RT #86651 https://rt.cpan.org/Ticket/Display.html?id=86773
   xml_pp, quote not escaped in attribute values
 
-- fixed various typos in docs RT#87660
+- fixed: various typos in docs RT#87660
   thanks to David Steinbrunner
 
 - fixed: RT #86773 https://rt.cpan.org/Ticket/Display.html?id=86773 

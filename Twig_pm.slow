@@ -673,7 +673,7 @@ sub new
     else
       { $self->set_output_text_filter( 0); }
 
-    if( exists $args{KeepAttsOrder})
+    if( $args{KeepAttsOrder})
       { $self->{keep_atts_order}= $args{KeepAttsOrder};
         if( _use( 'Tie::IxHash'))
           { $self->set_keep_atts_order(  $self->{keep_atts_order}); }
