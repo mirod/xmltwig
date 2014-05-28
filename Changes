@@ -1,12 +1,14 @@
 CHANGES
 
-3.48 - 2014-03-30 - minor maintenance release
-
-- fixed: tests
+3.49
 
 - fixed: RT # 96009
   keep_atts_order => 0 behaviour. Spotted by Dolmen
   https://rt.cpan.org/Public/Bug/Display.html?id=96009
+
+3.48 - 2014-03-30 - minor maintenance release
+
+- fixed: tests
 
 3.47 - 2014-03-27 - minor maintenance release
 
