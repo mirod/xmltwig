@@ -17,7 +17,8 @@ use vars qw($VERSION);
 $VERSION="0.02";
 
 BEGIN
-{ package XML::XPath::NodeSet;
+{ package # hide from PAUSE
+    XML::XPath::NodeSet;
   no warnings; # to avoid the "Subroutine sort redefined" message
   # replace the native sort routine by a Twig'd one
   sub sort
@@ -26,7 +27,8 @@ BEGIN
       return $self;
     }
 
-  package XML::XPathEngine::NodeSet;
+  package # hide from PAUSE
+    XML::XPathEngine::NodeSet;
   no warnings; # to avoid the "Subroutine sort redefined" message
   # replace the native sort routine by a Twig'd one
   sub sort
