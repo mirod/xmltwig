@@ -9588,7 +9588,8 @@ Huge documents (processed in combined stream/tree mode):
   # at most one div will be loaded in memory
   my $twig=XML::Twig->new(   
     twig_handlers => 
-      { title   => sub { $_->set_tag( 'h2') }, # change title tags to h2
+      { title   => sub { $_->set_tag( 'h2') }, # change title tags to h2 
+                                               # $_ is the current element
         para    => sub { $_->set_tag( 'p')  }, # change para to p
         hidden  => sub { $_->delete;       },  # remove hidden elements
         list    => \&my_list_process,          # process list elements
@@ -9727,7 +9728,7 @@ relevant element has been parsed.
   # the element (including all its sub-elements) as arguments
   sub section 
     { my( $t, $section)= @_;      # arguments for all twig_handlers
-      $section->set_tag( 'div');  # change the tag name.4, my favourite method...
+      $section->set_tag( 'div');  # change the tag name
       # let's use the attribute nb as a prefix to the title
       my $title= $section->first_child( 'title'); # find the title
       my $nb= $title->att( 'nb'); # get the attribute
