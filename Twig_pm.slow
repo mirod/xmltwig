@@ -403,7 +403,7 @@ my $css_sel=0; # set through the css_sel option to allow .class selectors in tri
       TopDownHandlers       => 1,
       KeepEncoding          => 1, DoNotEscapeAmpInAtts  => 1,
       ParseStartTag         => 1, KeepAttsOrder         => 1,
-      LoadDTD               => 1, DTDHandler            => 1,
+      LoadDTD               => 1, DTDHandler            => 1, DTDBase => 1,
       DoNotOutputDTD        => 1, NoProlog              => 1,
       ExpandExternalEnts    => 1,
       DiscardSpaces         => 1, KeepSpaces            => 1, DiscardAllSpaces => 1,
@@ -2898,6 +2898,10 @@ sub _twig_doctype
     # now check if we want to get the DTD info
     if( $t->{twig_read_external_dtd} && $sysid)
       { # let's build a fake document with an internal DTD
+        if( $t->{DTDBase}) 
+          { _use( 'File::Spec'); 
+            $sysid=File::Spec->catfile($t->{DTDBase}, $sysid);
+          }
         my $dtd=  "<!DOCTYPE $name [" . _slurp_uri( $sysid) .  "]><$name/>";
        
         $t->save_global_state();            # save the globals (they will be reset by the following new)  
