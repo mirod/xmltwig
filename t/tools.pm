@@ -77,6 +77,23 @@ BEGIN
            }
     }
 
+  sub not_matches
+    { my $got     = shift; my $expected_regexp= shift; my $message = shift;
+      $test_nb++; 
+
+      if( $got!~ /$expected_regexp/) 
+        { print "ok $test_nb"; 
+          print " $message" if( $TDEBUG);
+          print "\n"; 
+          return 1;
+        }
+      else { print "not ok $test_nb\n"; 
+             warn "$message: expected to NOT match /$expected_regexp/, got '$got'\n";
+             croak if $TFATAL;
+             return 0;
+           }
+    }
+
   sub ok
     { my $cond   = shift; my $message=shift;
       $test_nb++; 

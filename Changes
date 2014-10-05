@@ -2,6 +2,17 @@ CHANGES
 
 3.49
 
+- fixed bug RT #97461 https://rt.cpan.org/Public/Bug/Display.html?id=97461
+  wrong error message was returned calling parse on an invalid filehandle
+
+- added the DTD_base option to XML::Twig new, that forces XML::Twig to look
+  for the DTD in a different directory
+
+- Prevent PAUSE from trying to index packages that are only used for monkey
+  patching (to re-use XML::XPath as the XPath engine for XML::Twig::XPath).
+  Will also prevent UNAUTHORIZED flag on metacpan.
+  patch sent by Graham Knop
+
 - fixed: RT # 96009
   keep_atts_order => 0 behaviour. Spotted by Dolmen
   https://rt.cpan.org/Public/Bug/Display.html?id=96009

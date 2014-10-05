@@ -14,7 +14,7 @@ use tools;
 
 use XML::Twig;
 
-my $TMAX=119; 
+my $TMAX=121; 
 print "1..$TMAX\n";
 
 my $error_file= File::Spec->catfile('t','test_errors.errors');
@@ -335,6 +335,14 @@ my $init_warn= $SIG{__WARN__};
 { my $r=  XML::Twig->parse( '<doc/>')->root;
   eval { $r->find_nodes( '//foo/1following::') };
   matches( $@, "error in xpath expression", 'error in xpath expression //foo/following::');
+}
+
+# tests for https://rt.cpan.org/Public/Bug/Display.html?id=97461 (wrong error message due to filehandle seen as a file)
+{ eval { XML::Twig->new->parse( do { open( my $fh, '<', $0); $fh}); };
+  not_matches( $@, "you seem to have used the parse method on a filename", "parse on a filehandle containing invalid XML");
+  open FOO, "<$0";
+  eval { XML::Twig->new->parse( \*FOO); };
+  not_matches( $@, "you seem to have used the parse method on a filename", "parse on a GLOBAL filehandle containing invalid XML");
 }
 
 exit 0;
