@@ -763,7 +763,7 @@ sub parse
     if(    !$t 
         && $@=~m{(syntax error at line 1, column 0, byte 0|not well-formed \(invalid token\) at line 1, column 1, byte 1)} 
         && -f $_[0]
-        && ref( $_[0]) && ref( $_[0]) ne 'GLOB' # -f works on a filehandle, so this make sure $_[0] is a real file
+        && ( ! ref( $_[0]) || ref( $_[0])) ne 'GLOB' # -f works on a filehandle, so this make sure $_[0] is a real file
       )
       { croak "you seem to have used the parse method on a filename ($_[0]), you probably want parsefile instead"; }
     return _checked_parse_result( $t, $@);
