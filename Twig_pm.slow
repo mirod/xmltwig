@@ -10440,6 +10440,12 @@ specify an alternate directory.
 
 See L<DTD Handling> for more information
 
+=item DTD_base <path_to_DTD_directory>
+
+If the DTD is in a different directory, looks for it there, useful to make up 
+somewhat for the lack of catalog suport in C<expat>. You still need a SYSTEM
+declaration
+
 =item DTD_handler
 
 Set a handler that will be called once the doctype (and the DTD) have been 
