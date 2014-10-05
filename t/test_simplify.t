@@ -68,7 +68,7 @@ foreach my $doc (@doc)
         delete $options_simple->{var_regexp};
         my $simple   = XMLin( $doc, %$options_simple); 
         my $res=is_deeply( $twig, $simple, "doc: $doc_name - options: $options_text" ); #. Dump( {twig => $twig, simple => $simple}));
-        exit unless( $res);
+        #exit unless( $res);
       }
   } 
 
@@ -115,3 +115,14 @@ __DATA__
   <f1_ar><f1>f1 1</f1><f1>f1 2</f1></f1_ar>
   <f2_ar><f2>f2 1</f2><f2>f2 2</f2></f2_ar>
 </doc>
+
+<doc doc="empty elements test">
+  <section><elt><![CDATA[something]]></elt></section>
+  <section><elt><![CDATA[0]]></elt></section>
+  <section><elt><![CDATA[]]></elt></section>
+  <section><elt/></section>
+  <section><elt>something</elt></section>
+  <section><elt>0</elt></section>
+  <section><elt></elt></section>
+</doc>
+

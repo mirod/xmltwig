@@ -7410,12 +7410,17 @@ sub _simplify
                    || ( $nb_children{$child_gi} > 1)
                  )
               { # simplify element to store in an array
-                $data->{$child_gi} ||= [];
-                push @{$data->{$child_gi}}, $child_data;
+                if( defined $child_data && $child_data ne "" )
+                  { $data->{$child_gi} ||= [];
+                    push @{$data->{$child_gi}}, $child_data;
+                  }
+                else
+                  { $data->{$child_gi}= [{}]; }
               }
             else
               { # simplify element to store as a hash field
-                $data->{$child_gi}= $child_data;
+                $data->{$child_gi}=$child_data;
+                $data->{$child_gi}= defined $child_data && $child_data ne "" ? $child_data : {};
               }
           }
     }
