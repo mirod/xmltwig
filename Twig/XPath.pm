@@ -1,6 +1,7 @@
 # $Id: /xmltwig/trunk/Twig/XPath.pm 32 2008-01-18T13:11:52.128782Z mrodrigu  $
 package XML::Twig::XPath;
 use strict;
+use warnings;
 use XML::Twig;
 
 my $XPATH;        # XPath engine (XML::XPath or XML::XPathEngine);
