@@ -3,7 +3,7 @@ use strict;
 
 use XML::Twig;
 
-foreach my $module ( qw( XML::Simple Test::More Data::Dumper YAML) )
+foreach my $module ( qw( XML::Simple Test::More Data::Dumper ) ) # add YAML if using Dump() below.
   { if( eval "require $module")
       { import $module; }
     else
