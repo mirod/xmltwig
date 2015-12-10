@@ -245,5 +245,4 @@ t/test_autoencoding_conversion.t
 t/tools.pm
 t/zz_dump_config.t
 t/test_kwalitee.t
-t/test_meta_json.t 
-t/test_3_41.t 
+t/test_meta_json.t
