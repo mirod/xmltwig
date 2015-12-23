@@ -566,7 +566,7 @@ Changes in 3.22
 
       added: the parse_html and parsefile_html methods,
       which parse HTML strings (or fh) and files 
-      respectively, whith the help of HTML::TreeBuilder.
+      respectively, with the help of HTML::TreeBuilder.
       the implementation may still change. Note that
       at the moment there seems to be encoding problems
       with it (if the input is not UTF8).
@@ -574,7 +574,7 @@ Changes in 3.22
       added: info to t/zz_dump_config.t
 
       fixed: bug that caused subs_text to leave empty
-      #PCDATA elements if the regexp matched at the begining
+      #PCDATA elements if the regexp matched at the beginning
       or at the end of the text of an element.
 
       fixed: RT #15014: in a few methods objects were 
@@ -763,7 +763,7 @@ Changes in 3.16
       Sedrati-Dinet), 
       see https://rt.cpan.org/Ticket/Display.html?id=8137
 
-      fixed: bug where whitespace at the begining of an
+      fixed: bug where whitespace at the beginning of an
       element could be dropped (if followed by an element
       before any other character). Now whitespace is
       dropped only if it includes a \n
@@ -880,7 +880,7 @@ Changes in 3.12
       created
 
       when using ignore on an element, end_tag_handlers are now tested
-      at the end of the element (so you can for exemple get the byte 
+      at the end of the element (so you can for example get the byte 
       offset in the document), suggestion of Philippe Verdret
 
       added XML::Twig::Elt change_att_name 
@@ -1003,7 +1003,7 @@ Changes in 3.10
 
       added the XML::Twig::Elt children_text method
 
-      updated the doc so it can be properly formated by my custom pod2html,
+      updated the doc so it can be properly formatted by my custom pod2html,
       the generated doc (with a bigger ToC and better links) is available
       from the XML::Twig page at http://xmltwig.com/xmltwig/
       
@@ -1118,7 +1118,7 @@ Changes in 3.06
 
       Added the 'indented_c' style that gives a slightly more compact pretty
       print than 'indented': the end tags are on the same line as the 
-      preceeding text (suggestion of Hugh Myers)
+      preceding text (suggestion of Hugh Myers)
      
       Added option in get_xpath (aka find_nodes) to apply the query to
       a list of elements 

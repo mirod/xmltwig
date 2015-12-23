@@ -59,7 +59,7 @@ my $REG_TAG_NAME=$REG_NAME;
 # name or wildcard (* or '') (leading # allowed)
 my $REG_NAME_W = qq{(?:$REG_NAME|[*])}; 
 
-# class and ids are deliberatly permissive
+# class and ids are deliberately permissive
 my $REG_NTOKEN_FIRST_LETTER;
 #$REG_NTOKEN_FIRST_LETTER= q{(?:[^\W\d]|[:_])};  # < perl 5.6 - does not work for leading non-ascii letters
 $REG_NTOKEN_FIRST_LETTER= q{(?:[[:alpha:]:_])}; # >= perl 5.6
@@ -8987,7 +8987,7 @@ sub set_text
           }
       }
     elsif( $elt->contains_a_single( $PCDATA) )
-      { # optimized so we have a slight chance of not loosing embedded comments and pi's
+      { # optimized so we have a slight chance of not losing embedded comments and pi's
         $elt->{first_child}->set_pcdata( $string);
         return $elt;
       }
