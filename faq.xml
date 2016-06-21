@@ -138,7 +138,7 @@ comments and non-significant whitespaces out of the way but preserving them in
 the output for example. As it does not stick to the DOM, is also usually leads 
 to shorter code than in XML::LibXML.</p>
 
-<p>Beyond the pure features of the 2 modules, XML::LibXML seems to be prefered by
+<p>Beyond the pure features of the 2 modules, XML::LibXML seems to be preferred by
 "XML-purists", while XML::Twig seems to be more used by Perl Hackers who have 
 to deal with XML. As you have noted, XML::Twig also comes with quite a lot of 
 docs, but I am sure if you ask for help about XML::LibXML here or on Perlmonks
@@ -165,7 +165,7 @@ standard), and at this point a LOT faster (see the last test in
     </q>
    <q id="6">
       <question>My XML documents/data are produced by tools that do not grok Unicode, will XML::Twig help me there?</question>
-      <answer><p>Yes, if you use the KeepEncoding option when you create a twig all PCDATA (character data) will be returned as-is, dont forget to use an encoding declaration in the XML declaration or in the twig creation though or the parser will die on you. You can also process your document as UTF-8 internally and use the <tt>output_encoding</tt> option (XML::Twig version 3.05 and above) to convert the output to your favourite encoding.</p></answer>
+      <answer><p>Yes, if you use the KeepEncoding option when you create a twig all PCDATA (character data) will be returned as-is, don't forget to use an encoding declaration in the XML declaration or in the twig creation though or the parser will die on you. You can also process your document as UTF-8 internally and use the <tt>output_encoding</tt> option (XML::Twig version 3.05 and above) to convert the output to your favourite encoding.</p></answer>
    </q>
    <q id="7">
       <question>What's that whitespace management thing?</question>

@@ -338,10 +338,10 @@ else
 
 { my $doc=qq{<!DOCTYPE d SYSTEM "dummy.dtd" []><d><e1 id="e1">tutu &lt;&ent; <b>no</b>tata</e1></d>};
   my $t= XML::Twig->parse( $doc);
-  is( $t->elt_id( "e1")->text(), 'tutu <&ent; notata', "text wih ent");
-  is( $t->elt_id( "e1")->text( 'no_recurse'), 'tutu <&ent; tata', "text no_recurse wih ent");
-  is( $t->elt_id( "e1")->xml_text( ), 'tutu &lt;&ent; notata', "xml_text wih ent");
-  is( $t->elt_id( "e1")->xml_text( 'no_recurse'), 'tutu &lt;&ent; tata', "xml_text no_recurse wih ent");
+  is( $t->elt_id( "e1")->text(), 'tutu <&ent; notata', "text with ent");
+  is( $t->elt_id( "e1")->text( 'no_recurse'), 'tutu <&ent; tata', "text no_recurse with ent");
+  is( $t->elt_id( "e1")->xml_text( ), 'tutu &lt;&ent; notata', "xml_text with ent");
+  is( $t->elt_id( "e1")->xml_text( 'no_recurse'), 'tutu &lt;&ent; tata', "xml_text no_recurse with ent");
 }
 
 if( $] > 5.008)

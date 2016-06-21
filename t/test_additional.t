@@ -1914,7 +1914,7 @@ is( $out, $doc, 'doc with entities but no DTD');# test 465
                                                                 $_[0]->setTwigHandler( $exp => sub { $res .= "N"; });
                                                                 nok( $_->closed, 'closed (on open element)');# 14 tests 485 - 498
                                                               },
-                                                doc    => sub { }, # so _default_ doesnt find it
+                                                doc    => sub { }, # so _default_ doesn't find it
                                                 sub    => sub { },
                                               },
                            )

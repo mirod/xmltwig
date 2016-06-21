@@ -110,7 +110,7 @@ foreach my $wr (0..1)
     
 if( $warn)
   { warn "\nnote that memory leaks can happen even if the module itself doesn't leak, if running",
-         "\ntests under Devel::Cover for exemple. So do not panic if you get a warning here.\n";
+         "\ntests under Devel::Cover for example. So do not panic if you get a warning here.\n";
   }
 
 

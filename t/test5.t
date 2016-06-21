@@ -276,7 +276,7 @@ $elt= XML::Twig::Elt->new( 'p', { att1 => 'val1', att2=>'val2'}, '#EMPTY');
 $res= $elt->sprint;
 $exp_res= '<p att1="val1" att2="val2"/>';
 if( $res eq $exp_res) { print "ok 44\n"; }
-else { print "not onot ok 44\n"; warn "returns $res instead of $exp_res\n"; }
+else { print "not ok 44\n"; warn "returns $res instead of $exp_res\n"; }
 
 
 $elt= XML::Twig::Elt->new( 'p', "content");
