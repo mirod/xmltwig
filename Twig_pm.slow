@@ -30,6 +30,8 @@ use Carp;
 use File::Spec;
 use File::Basename;
 
+use Config; # to get perl's path name in case we need to know if perlio is available
+
 *isa= *UNIVERSAL::isa;
 
 # flag, set to true if the weaken sub is available
@@ -117,7 +119,7 @@ my %DEFAULT_NS= ( xml   => "http://www.w3.org/XML/1998/namespace",
 my %DEFAULT_URI2NS= map { $DEFAULT_NS{$_} => $_ } keys %DEFAULT_NS;
 
 # constants
-my( $PCDATA, $CDATA, $PI, $COMMENT, $ENT, $ELT, $TEXT, $ASIS, $EMPTY, $BUFSIZE);
+my( $PCDATA, $CDATA, $PI, $COMMENT, $ENT, $ELT, $NOTATION, $TEXT, $ASIS, $EMPTY, $BUFSIZE);
 
 # used when an HTML doc only has a PUBLIC declaration, to generate the SYSTEM one
 # this should really be done by HTML::TreeBuilder, but as of HTML::TreeBuilder 4.2 it isn't
@@ -144,7 +146,7 @@ my $SEP= qr/\s*(?:$|\|)/;
 
 BEGIN
 { 
-$VERSION = '3.49';
+$VERSION = '3.50';
 
 use XML::Parser;
 my $needVersion = '2.23';
@@ -179,11 +181,12 @@ import XML::Twig::Entity_list;
 # the init ensures that special gi's are always the same
 
 # constants: element types
-$PCDATA  = '#PCDATA';
-$CDATA   = '#CDATA';
-$PI      = '#PI';
-$COMMENT = '#COMMENT';
-$ENT     = '#ENT';
+$PCDATA    = '#PCDATA';
+$CDATA     = '#CDATA';
+$PI        = '#PI';
+$COMMENT   = '#COMMENT';
+$ENT       = '#ENT';
+$NOTATION  = '#NOTATION';
 
 # element classes
 $ELT     = '#ELT';
@@ -237,6 +240,7 @@ my %twig_handlers=( Start      => \&_twig_start,
                     End        => \&_twig_end, 
                     Char       => \&_twig_char, 
                     Entity     => \&_twig_entity, 
+                    Notation   => \&_twig_notation, 
                     XMLDecl    => \&_twig_xmldecl, 
                     Doctype    => \&_twig_doctype, 
                     Element    => \&_twig_element, 
@@ -403,7 +407,7 @@ my $css_sel=0; # set through the css_sel option to allow .class selectors in tri
       TopDownHandlers       => 1,
       KeepEncoding          => 1, DoNotEscapeAmpInAtts  => 1,
       ParseStartTag         => 1, KeepAttsOrder         => 1,
-      LoadDTD               => 1, DTDHandler            => 1, DTDBase => 1,
+      LoadDTD               => 1, DTDHandler            => 1, DTDBase => 1, NoXxe => 1,
       DoNotOutputDTD        => 1, NoProlog              => 1,
       ExpandExternalEnts    => 1,
       DiscardSpaces         => 1, KeepSpaces            => 1, DiscardAllSpaces => 1,
@@ -535,6 +539,10 @@ sub new
 
     if( !$args{NoLWP} && ! _use( 'URI') && ! _use( 'URI::File') && ! _use( 'LWP'))
       { $self->{twig_ext_ent_handler}= \&XML::Parser::initial_ext_ent_handler }
+    elsif( $args{NoXxe})
+      { $self->{twig_ext_ent_handler}= 
+          sub { my($xp, $base, $path) = @_; $xp->{ErrorMessage}.= "cannot use entities in document when the no_xxe option is on"; return undef; }; 
+      }
     else
       { $self->{twig_ext_ent_handler}= \&XML::Parser::file_ext_ent_handler }
 
@@ -732,6 +740,7 @@ sub new
     $self->setHandlers( Init => \&_twig_init, Final => \&_twig_final);
 
     $self->{twig_entity_list}= XML::Twig::Entity_list->new; 
+    $self->{twig_notation_list}= XML::Twig::Notation_list->new; 
 
     $self->{twig_id}= $ID; 
     $self->{twig_stored_spaces}='';
@@ -797,7 +806,16 @@ sub active_twig { return $active_twig; }
 sub finish_now
   { my $t= shift;
     $t->{twig_finish_now}=1;
-    die $t;    
+    # XML::Parser 2.43 changed xpcroak in a way that caused test failures for XML::Twig
+    # the change was reverted in 2.44, but this is here to ensure that tests pass with 2.43
+    if( $XML::Parser::VERSION == 2.43)
+      { no warnings;
+        $t->parser->{twig_error}= $t;
+        *XML::Parser::Expat::xpcroak= sub { die $_[0]->{twig_error}; };
+        die $t;
+      }
+    else
+      { die $t; }
   }
 
 
@@ -814,10 +832,9 @@ sub _parse_inplace
     my( $tmpfh, $tmpfile)= File::Temp::tempfile( DIR => $tmpdir);
     my $original_fh= select $tmpfh;
 
-    unless( $t->{twig_keep_encoding} || $perl_version < 5.006) 
-      { if( grep /useperlio=define/, `$^X -V`) # we can only use binmode :utf8 if perl was compiled with useperlio
-          { binmode( $tmpfh, ":utf8" ); }
-      }
+    # we can only use binmode :utf8 if perl was compiled with useperlio
+    # might be a problem if keep_encoding used but the file is already in utf8
+    if( $perl_version > 5.006 && !$t->{twig_keep_encoding} && _use_perlio()) {  binmode( $tmpfh, ":utf8" ); }
 
     $t->$method( $file);
 
@@ -2830,6 +2847,21 @@ sub _twig_entity
     return;
   }
 
+sub _twig_notation
+   { my( $p, $name, $base, $sysid, $pubid ) = @_;
+     my $t = $p->{twig};
+
+     my $notation = XML::Twig::Notation->new( $name, $base, $sysid, $pubid );
+     my $notation_list = $t->notation_list();
+     if( $notation_list ) { $notation_list->add( $notation ); }
+
+     # internal should get the recognized_string, but XML::Parser does not provide it
+     # so we need to re-create it ( $notation->text) and stick it there.
+     $t->{twig_doctype}->{internal} .= $notation->text;
+
+     return;     
+   }
+
 
 sub _twig_extern_ent
    { # warn " in _twig_extern_ent...I (", $_[0]->original_string, ")\n"; # DEBUG handler
@@ -2903,14 +2935,20 @@ sub _twig_doctype
           { _use( 'File::Spec'); 
             $sysid=File::Spec->catfile($t->{DTDBase}, $sysid);
           }
-        my $dtd=  "<!DOCTYPE $name [" . _slurp_uri( $sysid) .  "]><$name/>";
+        my $dtd= _slurp_uri( $sysid);
+        # if the DTD includes an XML declaration, it needs to be moved before the DOCTYPE bit
+        if( $dtd=~ s{^(\s*<\?xml(\s+\w+\s*=\s*("[^"]*"|'[^']*'))*\s*\?>)}{})
+          { $dtd= "$1<!DOCTYPE $name [$dtd]><$name/>"; }
+        else
+          { $dtd= "<!DOCTYPE $name [$dtd]><$name/>"; }
        
         $t->save_global_state();            # save the globals (they will be reset by the following new)  
         my $t_dtd= XML::Twig->new( load_DTD => 1, ParseParamEnt => 1, error_context => $t->{ErrorContext} || 0);          # create a temp twig
         $t_dtd->parse( $dtd);               # parse it
         $t->{twig_dtd}= $t_dtd->{twig_dtd}; # grab the dtd info
         #$t->{twig_dtd_is_external}=1;
-        $t->entity_list->_add_list( $t_dtd->entity_list) if( $t_dtd->entity_list); # grab the entity info
+        $t->entity_list->_add_list( $t_dtd->entity_list)     if( $t_dtd->entity_list);   # grab the entity info
+        $t->notation_list->_add_list( $t_dtd->notation_list) if( $t_dtd->notation_list); # grab the notation info
         $t->restore_global_state();
       }
     return;
@@ -3162,6 +3200,27 @@ sub entity
     return $t->entity_list->ent( $entity_name);
   }
 
+# return the notation_list object 
+sub notation_list
+  { my $t= shift;
+    return $t->{twig_notation_list};
+  }
+
+# return the list of notation names 
+sub notation_names
+  { my $t= shift;
+    return $t->notation_list->notation_names;
+  }
+
+# return the notation object 
+sub notation
+  { my $t= shift;
+    my $notation_name= shift;
+    return $t->notation_list->notation( $notation_name);
+  }
+
+
+
 
 sub print_prolog
   { my $t= shift;
@@ -3181,7 +3240,7 @@ sub prolog
   }
 
 sub doctype
-  { my $t= shift;
+  { my $t= shift; 
     my %args= _normalize_args( @_);
     my $update_dtd = $args{UpdateDTD} || '';
     my $doctype_text='';
@@ -3197,18 +3256,20 @@ sub doctype
 
     if( $update_dtd)
       { if( $doctype)  
-          { my $internal=$doctype->{internal};
+          { my $internal=$doctype->{internal}; 
             # awful hack, but at least it works a little better that what was there before
             if( $internal)
-              { # remove entity declarations (they will be re-generated from the updated entity list)
+              { # remove entity and notation declarations (they will be re-generated from the updated entity list)
                 $internal=~ s{<! \s* ENTITY \s+ $REG_TAG_NAME \s+ ( ("[^"]*"|'[^']*') \s* | SYSTEM [^>]*) >\s*}{}xg;
+                $internal=~ s{<! \s* NOTATION .*? >\s*}{}sxg;
                 $internal=~ s{^\n}{};
               }
-            $internal .= $t->entity_list->text ||'' if( $t->entity_list);
+            $internal .= $t->entity_list->text   ||'' if( $t->entity_list);
+            $internal .= $t->notation_list->text ||'' if( $t->notation_list);
             if( $internal) { $doctype_text .= "[\n$internal]>\n"; }
           }
-        elsif( !$t->{'twig_dtd'} && keys %{$t->entity_list}) 
-          { $doctype_text .= "<!DOCTYPE " . $t->root->gi . " [\n" . $t->entity_list->text . "\n]>";;}
+        elsif( !$t->{'twig_dtd'} && ( keys %{$t->entity_list} || keys %{$t->notation_list} ) ) 
+          { $doctype_text .= "<!DOCTYPE " . $t->root->gi . " [\n" . $t->entity_list->text . $t->notation_list->text . "\n]>";} 
         else
           { $doctype_text= $t->{twig_dtd};
             $doctype_text .= $t->dtd_text;
@@ -3223,7 +3284,13 @@ sub doctype
             # future, so this about the best I can do
             $internal=~ s{^\s*(\[\s*)?}{ [\n};
             $internal=~ s{\s*(\]\s*(>\s*)?)?\s*$}{\n]>\n};
-            $doctype_text .=  $internal; 
+
+            # XML::Parser does not include the NOTATION declarations in the DTD
+            # at least in the current version. So put them back
+            #if( $t->notation_list && $internal !~ m{<!\s*NOTATION})
+            #  { $internal=~ s{(\n]>\n)$}{ "\n" . $t->notation_list->text . $1}es; }
+
+            $doctype_text .=  $internal;
           }
       }
       
@@ -3261,7 +3328,7 @@ sub print_to_file
   { my( $t, $filename)= (shift, shift);
     my $out_fh;
     open( $out_fh, ">$filename") or _croak( "cannot create file $filename: $!");     # < perl 5.8
-    my $mode= $t->{twig_keep_encoding} ? '>' : '>:utf8';                             # >= perl 5.8
+    my $mode= $t->{twig_keep_encoding} && ! _use_perlio() ? '>' : '>:utf8';                             # >= perl 5.8
     open( $out_fh, $mode, $filename) or _croak( "cannot create file $filename: $!"); # >= perl 5.8
     $t->print( $out_fh, @_);
     close $out_fh;
@@ -3295,10 +3362,7 @@ sub print
 
     #if( !$t->{encoding} || lc( $t->{encoding}) eq 'utf-8') { my $out= $fh || \*STDOUT; binmode $out, ':utf8'; }
 
-    if( $perl_version > 5.006 && ! $t->{twig_keep_encoding}) 
-      { if( grep /useperlio=define/, `$^X -V`) # we can only use binmode :utf8 if perl was compiled with useperlio
-          { binmode( $fh || \*STDOUT, ":utf8" ); }
-      }
+    if( $perl_version > 5.006 && ! $t->{twig_keep_encoding} && _use_perlio() ) { binmode( $fh || \*STDOUT, ":utf8" ); }
 
      print  $t->prolog( %args) . $t->_leading_cpi( %args);
      $t->{twig_root}->print;
@@ -3908,6 +3972,22 @@ sub DESTROY
     undef $t;
   }        
 
+# return true if perl was compiled using perlio
+# if perl is not available return true, these days perlio should be used
+sub _use_perlio
+  { my $perl= _this_perl();
+    return $perl ? grep /useperlio=define/, `$perl -V` : 1;
+  }
+
+# returns the parth to the perl executable (if available)
+sub _this_perl
+  { # straight from perlvar
+    my $secure_perl_path= $Config{perlpath};
+    if ($^O ne 'VMS') 
+      { $secure_perl_path .= $Config{_exe} unless $secure_perl_path =~ m/$Config{_exe}$/i; }
+    if( ! -f $secure_perl_path) { $secure_perl_path= ''; } # when perl is not available (PDK)
+    return $secure_perl_path;
+  }
 
 #
 #  non standard handlers
@@ -4838,6 +4918,160 @@ sub _quoted_val
 
 sub _dump
   { my( $ent)= @_; return join( " - ", map { "$_ => '$ent->{$_}'" } grep { defined $ent->{$_} } sort keys %$ent); }
+                
+1;
+
+######################################################################
+package XML::Twig::Notation_list;
+######################################################################
+
+*isa= *UNIVERSAL::isa;
+
+sub new
+  { my $class = shift;
+    my $self={ notations => {}, updated => 0};
+
+    bless $self, $class;
+    return $self;
+
+  }
+
+sub add_new_notation
+  { my $notation_list= shift;
+    my $notation= XML::Twig::Notation->new( @_);
+    $notation_list->add( $notation);
+    return $notation_list;
+  }
+
+sub _add_list
+  { my( $notation_list, $to_add)= @_;
+    my $notations_to_add= $to_add->{notations};
+    return $notation_list unless( $notations_to_add && %$notations_to_add);
+    @{$notation_list->{notations}}{keys %$notations_to_add}= values %$notations_to_add;
+    $notation_list->{updated}=1;
+    return $notation_list;
+  }
+
+sub add
+  { my( $notation_list, $notation)= @_;
+    $notation_list->{notations}->{$notation->{name}}= $notation;
+    $notation_list->{updated}=1;
+    return $notation_list;
+  }
+
+sub notation
+  { my( $notation_list, $notation_name)= @_;
+    return $notation_list->{notations}->{$notation_name};
+  }
+
+# can be called with an notation or with an notation name
+sub delete
+  { my $notation_list= shift;
+    if( isa( ref $_[0], 'XML::Twig::Notation'))
+      { # the second arg is an notation
+        my $notation= shift;
+        delete $notation_list->{notations}->{$notation->{name}};
+      }
+    else
+      { # the second arg was not notation, must be a string then
+        my $name= shift;
+        delete $notation_list->{notations}->{$name};
+      }
+    $notation_list->{updated}=1;
+    return $notation_list;
+  }
+
+sub print
+  { my ($notation_list, $fh)= @_;
+    my $old_select= defined $fh ? select $fh : undef;
+
+    foreach my $notation_name ( sort keys %{$notation_list->{notations}})
+      { my $notation= $notation_list->{notations}->{$notation_name};
+        # we have to test what the notation is or un-defined notations can creep in
+        if( isa( $notation, 'XML::Twig::Notation')) { $notation->print(); }
+      }
+    select $old_select if( defined $old_select);
+    return $notation_list;
+  }
+
+sub text
+  { my ($notation_list)= @_;
+    return join "\n", map { $notation_list->{notations}->{$_}->text} sort keys %{$notation_list->{notations}};
+  }
+
+# return the list of notation names 
+sub notation_names
+  { my $notation_list= shift;
+    return (sort keys %{$notation_list->{notations}}) ;
+  }
+
+
+sub list
+  { my ($notation_list)= @_;
+    return map { $notation_list->{notations}->{$_} } sort keys %{$notation_list->{notations}};
+  }
+
+1;
+
+######################################################################
+package XML::Twig::Notation;
+######################################################################
+
+#*isa= *UNIVERSAL::isa;
+
+BEGIN 
+  { *sprint= *text;
+  }
+
+sub new
+  { my( $class, $name, $base, $sysid, $pubid)= @_;
+    $class= ref( $class) || $class;
+
+    my $self={};
+    
+    $self->{name}  = $name;
+    $self->{base}  = $base  if( defined $base  );
+    $self->{sysid} = $sysid if( defined $sysid);
+    $self->{pubid} = $pubid if( defined $pubid);
+
+    bless $self, $class;
+    return $self;
+  }
+
+
+sub name  { return $_[0]->{name};  }
+sub base  { return $_[0]->{base};  }
+sub sysid { return $_[0]->{sysid}; }
+sub pubid { return $_[0]->{pubid}; }
+
+
+sub print
+  { my ($notation, $fh)= @_;
+    my $text= $notation->text;
+    if( $fh) { print $fh $text . "\n"; }
+    else     { print $text . "\n"; }
+  }
+
+sub text
+  { my ($notation)= @_;
+    return '' if( !$notation->{name});
+    my @tokens;
+    push @tokens, '<!NOTATION';
+    push @tokens, $notation->{name};
+    push @tokens, ( 'PUBLIC', _quoted_val( $notation->{pubid} ) ) if $notation->{pubid};
+    push @tokens, ( 'SYSTEM')                                     if ! $notation->{pubid} && $notation->{sysid};
+    push @tokens, (_quoted_val( $notation->{sysid}) )             if $notation->{sysid};
+    
+    return join( ' ', @tokens) . '>';
+  }
+
+sub _quoted_val
+  { my $q= $_[0]=~ m{"} ? q{'} : q{"};
+    return qq{$q$_[0]$q};
+  }
+
+sub _dump
+  { my( $notation)= @_; return join( " - ", map { "$_ => '$notation->{$_}'" } grep { defined $notation->{$_} } sort keys %$notation); }
                 
 1;
 
@@ -8469,8 +8703,14 @@ sub safe_print_to_file
           # flush the children
           my @children= $elt->_children;
           foreach my $child (@children)
-            { $child->_flush( $pretty); }
-          unless( $elt->{end_tag_flushed}) { print $elt->end_tag; }
+            { $child->_flush( $pretty); 
+              $child->_set_flushed;
+            }
+          if( ! $elt->{end_tag_flushed}) 
+            { print $elt->end_tag; 
+              $elt->{end_tag_flushed}=1;
+              $elt->_set_flushed;
+            }
           $xml_space_preserve-- if $preserve;
           # used for pretty printing
           if( my $parent= $elt->parent) { $parent->{has_flushed_child}= 1; }
@@ -8531,10 +8771,23 @@ sub safe_print_to_file
     { my $elt= shift;
       my( $old_pretty, $old_empty_tag_style);
 
-      if( $_[0] && isa( $_[0], 'HASH'))
-        { my %args= XML::Twig::_normalize_args( %{shift()}); 
-          if( defined $args{PrettyPrint}) { $old_pretty          = set_pretty_print( $args{PrettyPrint});  }
-           if( defined $args{EmptyTags})  { $old_empty_tag_style = set_empty_tag_style( $args{EmptyTags}); }
+      if( $_[0])
+        { if( isa( $_[0], 'HASH'))
+            { # "proper way, using a hashref for options
+              my %args= XML::Twig::_normalize_args( %{shift()}); 
+              if( defined $args{PrettyPrint}) { $old_pretty          = set_pretty_print( $args{PrettyPrint});  }
+              if( defined $args{EmptyTags})   { $old_empty_tag_style = set_empty_tag_style( $args{EmptyTags}); }
+            }
+          else
+            { # "old" way, just using the option name
+              my @other_opt;
+              foreach my $opt (@_) 
+                { if( exists $pretty_print_style{$opt}) { $old_pretty = set_pretty_print( $opt);             }
+                  elsif( exists $empty_tag_style{$opt}) { $old_empty_tag_style = set_empty_tag_style( $opt); }
+                  else                                  { push @other_opt, $opt;                             }
+                }
+               @_= @other_opt;
+            }
         }
 
       $xml_space_preserve= 1 if( ($elt->inherit_att( 'xml:space') || '') eq 'preserve');
@@ -8738,20 +8991,22 @@ sub safe_print_to_file
     { my( $elt, @options)= @_;
 
       if( @options && grep { lc( $_) eq 'no_recurse' } @options) { return $elt->text_only; }
+      my $sep = (@options && grep { lc( $_) eq 'sep' } @options) ? ' ' : '';
  
       my $string;
   
-      if( $elt->is_pcdata)     { return  $elt->pcdata;   }
-      elsif( $elt->is_cdata)   { return  $elt->cdata;    }
-      elsif( $elt->is_pi)      { return  $elt->pi_string;}
-      elsif( $elt->is_comment) { return  $elt->comment;  }
-      elsif( $elt->is_ent)     { return  $elt->ent ;     }
+      if( $elt->is_pcdata)     { return  $elt->pcdata    . $sep;  }
+      elsif( $elt->is_cdata)   { return  $elt->cdata     . $sep;  }
+      elsif( $elt->is_pi)      { return  $elt->pi_string . $sep;  }
+      elsif( $elt->is_comment) { return  $elt->comment   . $sep;  }
+      elsif( $elt->is_ent)     { return  $elt->ent       . $sep ; }
+
   
       my $child= $elt->_first_child ||'';
       while( $child)
         {
-          my $child_text= $child->text;
-          $string.= defined( $child_text) ? $child_text : '';
+          my $child_text= $child->text( @options);
+          $string.= defined( $child_text) ? $sep . $child_text : '';
         } continue { $child= $child->_next_sibling; }
 
       unless( defined $string) { $string=''; }
@@ -10012,7 +10267,7 @@ they are not valid XML) are checked against the current twig.
 Handlers are triggered in fixed order, sorted by their type (xpath expressions
 first, then regexps, then level), then by whether they specify a full path 
 (starting at the root element) or
-not, then by number of steps in the expression , then number of
+not, then by number of steps in the expression, then number of
 predicates, then number of tests in predicates. Handlers where the last
 step does not specify a step (C<foo/bar/*>) are triggered after other XPath 
 handlers. Finally C<_all_> handlers are triggered last. 
@@ -10035,9 +10290,9 @@ It can really pay to have 1 instead of a long string returned.
 When the closing tag for an element is parsed the corresponding handler is
 called, with 2 arguments: the twig and the C<L<Element> >. The twig includes 
 the document tree that has been built so far, the element is the complete 
-sub-tree for the element. The fact that the handler is called only when the 
+sub-tree for the element. B<The fact that the handler is called only when the 
 closing tag for the element is found means that handlers for inner elements
-are called before handlers for outer elements.
+are called before handlers for outer elements>.
 
 C<$_> is also set to the element, so it is easy to write inline handlers like
 
@@ -10045,7 +10300,7 @@ C<$_> is also set to the element, so it is easy to write inline handlers like
 
 Text is stored in elements whose tag name is #PCDATA (due to mixed content, 
 text and sub-element in an element there is no way to store the text as just 
-an attribute of the enclosing element).
+an attribute of the enclosing element, this is similar to the DOM model).
 
 B<Warning>: if you have used purge or flush on the twig the element might not
 be complete, some of its children might have been entirely flushed or purged,
@@ -10153,13 +10408,10 @@ do it as soon as you find the open tag if you plan to C<flush> the twig at some
 point in the element, and to create temporary attributes that will be used
 when processing sub-element with C<twig_hanlders>. 
 
-You should also use it to change tags if you use C<flush>. If you change the tag 
-in a regular C<twig_handler> then the start tag might already have been flushed. 
-
 B<Note>: C<start_tag> handlers can be called outside of C<twig_roots> if this 
-argument is used, in this case handlers are called with the following arguments:
-C<$t> (the twig), C<$tag> (the tag of the element) and C<%att> (a hash of the 
-attributes of the element). 
+argument is used. Since the element object is not built, in this case handlers
+are called with the following arguments: C<$t> (the twig), C<$tag> (the tag of 
+the element) and C<%att> (a hash of the attributes of the element).  
 
 If the C<twig_print_outside_roots> argument is also used, if the last handler
 called returns  a C<true> value, then the start tag will be output as it
@@ -10188,7 +10440,7 @@ sections:
           start_tag_handlers => 
            { section => sub { $no[$#no]++; $no= join '.', @no; push @no, 0; } },
           twig_roots         => 
-           { title   => sub { $_[1]->prefix( $no); $_[1]->print; } },
+           { title   => sub { $_->prefix( $no); $_->print; } },
           end_tag_handlers   => { section => sub { pop @no;  } },
           twig_print_outside_roots => 1
                       );
@@ -10233,7 +10485,7 @@ A reference to a subroutine that will be called every time C<PCDATA> is found.
 
 The subroutine receives the string as argument, and returns the modified string:
 
-  # we want all strings in upper case
+  # WE WANT ALL STRINGS IN UPPER CASE
   sub my_char_handler
     { my( $text)= @_;
       $text= uc( $text);
@@ -10274,9 +10526,9 @@ which do not deal properly with multi-byte characters. You can specify an
 alternate function to parse the start tags with the C<parse_start_tag> option 
 (see below)
 
-B<WARNING>: this option is NOT used when parsing with the non-blocking parser 
-(C<parse_start>, C<parse_more>, parse_done methods) which you probably should 
-not use with XML::Twig anyway as they are totally untested!
+B<WARNING>: this option is NOT used when parsing with XML::Parser non-blocking
+parser (C<parse_start>, C<parse_more>, C<parse_done> methods) which you probably
+should not use with XML::Twig anyway as they are totally untested!
 
 =item output_encoding
 
@@ -10337,7 +10589,8 @@ Uses C<Encode>.
 this function is used to create a filter subroutine that will be used to 
 convert the characters to the target encoding using C<Text::Iconv> (which needs
 to be installed, look at the documentation for the module and for the
-C<iconv> library to find out which encodings are available on your system)
+C<iconv> library to find out which encodings are available on your system, 
+C<iconv -l> should give you a list of available encodings)
 
    my $conv = XML::Twig::iconv_convert( 'latin1');
    my $t = XML::Twig->new(output_filter => $conv);
@@ -10407,6 +10660,18 @@ the default parsing function. You should provide a coderef (a reference to a
 subroutine) as the argument, this subroutine takes the original tag (given
 by XML::Parser::Expat C<original_string()> method) and returns a tag and the
 attributes in a hash (or in a list attribute_name/attribute value).
+
+=item no_xxe
+
+prevents external entities to be parsed. 
+
+This is a security feature, in case the input XML cannot be trusted. With this
+option set to a true value defining external entities in the document will cause
+the parse to fail.  
+
+This prevents an entity like C<< <!ENTITY xxe PUBLIC "bar" "/etc/passwd"> >> to
+make the password fiel available in the document.
+
 
 =item expand_external_ents
 
@@ -11188,6 +11453,18 @@ Return the list of all defined entities
 =item entity ($entity_name)
 
 Return the entity 
+
+=item notation_list
+
+Return the notation list of a twig
+
+=item notation_names
+
+Return the list of all defined notations
+
+=item notation ($notation_name)
+
+Return the notation 
 
 =item change_gi      ($old_gi, $new_gi)
 
@@ -13621,6 +13898,73 @@ Return the entity declaration text.
 
 =back
 
+=head2 XML::Twig::Notation_list
+
+=over 4
+
+=item new
+
+Create an notation list.
+
+=item add         ($notation)
+
+Add an notation to an notation list.
+
+=item add_new_notation ($name, $base, $sysid, $pubid)
+
+Create a new notation and add it to the notation list
+
+=item delete     ($notation or $tag).
+
+Delete an notation (defined by its name or by the Notation object)
+from the list.
+
+=item print      ($optional_filehandle)
+
+Print the notation list.
+
+=item list
+
+Return the list as an array
+
+=back
+
+
+=head2 XML::Twig::Notation
+
+=over 4
+
+=item new        ($name, $base, $sysid, $pubid)
+
+Same argumnotations as the Notation handler for XML::Parser.
+
+=item print       ($optional_filehandle)
+
+Print an notation declaration.
+
+=item name 
+
+Return the name of the notation
+
+=item base 
+
+Return the base to be used for resolving a relative URI
+
+=item sysid
+
+Return the system id for the notation
+
+=item pubid
+
+Return the public id for the notation
+
+
+=item text
+
+Return the notation declaration text.
+
+=back
+ 
 
 =head1 EXAMPLES
 

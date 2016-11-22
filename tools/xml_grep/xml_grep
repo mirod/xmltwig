@@ -442,7 +442,7 @@ Allow HTML input, files are converted using HTML::Tidy
 
 <cond> is an XPath-like expression as allowed by XML::Twig to trigger handlers. 
  
-exemples: 
+examples: 
   'para'
   'para[@compact="compact"]'
   '*[@urgent]'
@@ -451,7 +451,7 @@ exemples:
 
 see XML::Twig for a more complete description of the <cond> syntax
 
-options are processedby Getopt::Long so they can start with '-' or '--'
+options are processed by Getopt::Long so they can start with '-' or '--'
 and can be abbreviated (C<-r> instead of C<--root> for example)
 
 =head1 DESCRIPTION

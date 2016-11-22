@@ -78,6 +78,8 @@ sub exists              { my( $t, $path)= @_; return $t->{twig_xp}->exists(     
 sub find                { my( $t, $path)= @_; return $t->{twig_xp}->find(                $path, $t); }
 sub matches             { my( $t, $path, $node)= @_; $node ||= $t; return $t->{twig_xp}->matches( $node, $path, $t) || 0; }
 
+sub getNamespaces { $_[0]->root->getNamespaces(); }
+
 #TODO: it would be nice to be able to pass in any object in this
 #distribution and cast it to the proper $XPATH class to use as a
 #variable (via 'nodes' argument or something)
@@ -119,6 +121,20 @@ sub getNamespace
       { return XML::Twig::XPath::Namespace->new( $prefix, $expanded); }
     else
       { return XML::Twig::XPath::Namespace->new( $prefix, ''); }
+  }
+
+# returns namespaces declared in the element
+sub getNamespaces #_get_namespaces
+  { my( $elt)= @_;
+    my @namespaces;
+    foreach my $att ($elt->att_names)
+          { if( $att=~ m{^xmlns(?::(\w+))?$})
+              { my $prefix= $1 || '';
+                my $expanded= $elt->att( $att); 
+                push @namespaces, XML::Twig::XPath::Namespace->new( $prefix, $expanded);
+              }
+          }
+    return wantarray() ? @namespaces : \@namespaces;
   }
 
 sub node_cmp($$)
@@ -227,6 +243,18 @@ sub getPrefix   { $_[0]->{prefix};   }
 sub getExpanded { $_[0]->{expanded}; }
 sub getValue    { $_[0]->{expanded}; }
 sub getData     { $_[0]->{expanded}; }
+
+sub node_cmp($$)
+  { my( $a, $b)= @_;
+    if( UNIVERSAL::isa( $b, 'XML::Twig::XPath::Namespace'))
+      { # 2 attributes, compare their elements, then their name
+        return $a->{prefix} cmp $b->{prefix};
+      }
+    else
+      { die "unknown node type ", ref( $b); }
+  }
+
+*cmp=*node_cmp;
 
 1
 

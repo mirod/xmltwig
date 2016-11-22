@@ -52,7 +52,7 @@ foreach my $wr (0..1)
   my $wrm='';
   if( $wr)
     { XML::Twig::_set_weakrefs( 0);
-      $wrm= " (no weak references)";
+      $wrm= " (no weak references, disregard unless running with a _really_ old perl, like pre 5.8)";
     }
 
     { my $xml= qq{<doc>$paras</doc>};

@@ -3212,7 +3212,7 @@ sub doctype
     elsif( $doctype)
       { if( my $internal= $doctype->{internal}) 
           { # add opening and closing brackets if not already there
-            # plus some spaces and newlines for a nice formating
+            # plus some spaces and newlines for a nice formatting
             # I test it here because I can't remember which version of
             # XML::Parser need it or not, nor guess which one will in the
             # future, so this about the best I can do
@@ -10001,7 +10001,7 @@ they are not valid XML) are checked against the current twig.
 Handlers are triggered in fixed order, sorted by their type (xpath expressions
 first, then regexps, then level), then by whether they specify a full path 
 (starting at the root element) or
-not, then by number of steps in the expression , then number of
+not, then by a number of steps in the expression, then number of
 predicates, then number of tests in predicates. Handlers where the last
 step does not specify a step (C<foo/bar/*>) are triggered after other XPath 
 handlers. Finally C<_all_> handlers are triggered last. 
@@ -10151,7 +10151,7 @@ C<$t> (the twig), C<$tag> (the tag of the element) and C<%att> (a hash of the
 attributes of the element). 
 
 If the C<twig_print_outside_roots> argument is also used, if the last handler
-called returns  a C<true> value, then the start tag will be output as it
+called returns a C<true> value, then the start tag will be output as it
 appeared in the original document, if the handler returns a C<false> value
 then the start tag will B<not> be printed (so you can print a modified string 
 yourself for example).

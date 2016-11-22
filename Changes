@@ -1,8 +1,32 @@
 CHANGES
 
-3.49
+3.50 - 2016-11-22  - minor maintenance release
 
-- added the DTD_base option to XML::Twig new, that forces XML::Twig to look
+- added: the no_xxe option to XML::Twig::new, which causes the parse 
+  to fail if external entities are used (to prevent malicious XML to
+  access the filesystem). 
+  See RT#118097 https://rt.cpan.org/Public/Bug/Display.html?id=118097
+
+- fixed: warning (and soon error) due to unescaped literal left braces
+  in regular expressions in the code generating Twig.pm
+  reported by trwyant
+  https://github.com/mirod/xmltwig/issues/26
+
+- fixed: (partial fix) implement getNamespaces in XML::Twig::XPath::Elt
+  the expression doesn't crash the code, but doesn't return anything
+  interesting (yet)
+  reported by Nathan Glenn
+  https://github.com/mirod/xmltwig/issues/12
+
+- fixed: various spelling mistakes
+  https://github.com/mirod/xmltwig/pull/24
+  thanks to James McCoy for the patch
+
+- git repo cleanup, thanks to mjg17
+
+3.49 - 2015-04-12  - minor maintenance release
+
+- added: the DTD_base option to XML::Twig new, that forces XML::Twig to look
   for the DTD in a given directory
   thanks to Arun lakhana for the idea
 
@@ -15,13 +39,13 @@ CHANGES
   keep_atts_order => 0 behaviour. Spotted by Dolmen
   https://rt.cpan.org/Public/Bug/Display.html?id=96009
 
-- fixed bug RT #97461 https://rt.cpan.org/Public/Bug/Display.html?id=97461
+- fixed: bug RT #97461 https://rt.cpan.org/Public/Bug/Display.html?id=97461
   wrong error message was returned calling parse on an invalid filehandle
   Thanks to Slaven Rezic for the bug report and test case  
 
 - COMPATIBILITY WARNING
-  fixed but RT #
-  iconsistency between simplify and XML::Simple for empty elements (including
+  fixed: bug RT #
+  inconsistency between simplify and XML::Simple for empty elements (including
   elements with start and end tags but no contents)
   the XML::Simple behaviour is to map them to an empty hash, not an 
   empty/undef scalar (depending of whether the element is a PCDATA or not)
@@ -70,7 +94,7 @@ CHANGES
 
 - fixed: RT #85933 https://rt.cpan.org/Ticket/Display.html?id=85933
   quotes in attributes were not properly escaped
-  dpotted by Arun Lakhana
+  spotted by Arun Lakhana
 
 - added: docs for tools and safe_print_to_file
 
