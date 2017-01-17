@@ -9,6 +9,7 @@ cover_db/
 cover_report.txt
 nytprof.out
 nytprof/
+/MYMETA.*
 patch.*
 pm_to_blib
 tata.txt
