@@ -10124,7 +10124,7 @@ C<twig_roots> elements will be output to this file handle:
 
 =item start_tag_handlers
 
-A hash C<{ expression => \&handler}>. Sets element handlers that are called when
+A hash C<<{ expression => \&handler}>>. Sets element handlers that are called when
 the element is open (at the end of the XML::Parser C<Start> handler). The handlers
 are called with 2 params: the twig and the element. The element is empty at 
 that point, its attributes are created though. 
@@ -10161,7 +10161,7 @@ Note that you can use the L<ignore> method in C<start_tag_handlers>
 
 =item end_tag_handlers
 
-A hash C<{ expression => \&handler}>. Sets element handlers that are called when
+A hash C<<{ expression => \&handler}>>. Sets element handlers that are called when
 the element is closed (at the end of the XML::Parser C<End> handler). The handlers
 are called with 2 params: the twig and the tag of the element. 
 
