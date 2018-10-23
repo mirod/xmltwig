@@ -10556,7 +10556,7 @@ same line as the preceding text
 Same as C<indented> except that the closing tag is also indented, to line up 
 with the tags within the element
 
-=item idented_a
+=item indented_a
 
 This formats XML files in a line-oriented version control friendly way. 
 The format is described in L<http://tinyurl.com/2kwscq> (that's an Oracle
@@ -10568,7 +10568,7 @@ you will need to use the C<L<keep_atts_order>> option.
 
 =item cvs
 
-Same as C<L<idented_a>>.
+Same as C<L<indented_a>>.
 
 =item wrapped
 
