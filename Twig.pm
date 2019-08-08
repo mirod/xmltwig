@@ -12391,8 +12391,13 @@ have these attributes.
 
 Returns the calling element.
 
-The $regexp_string includes tags, within pointy brackets, as in 
-C<< <title><para>+ >> and the usual Perl modifiers (+*?...). 
+The C<$regexp_string> includes tags, within pointy brackets, as in 
+C<< <title><para>+ >> and the usual Perl modifiers (+*?...). Inside tag brackets,
+only C<.> is treated as a special regex character for matching tag names.
+Outside tag brackets, the usual modifiers (C<+*?>...) work normally for matching
+tags, including lookaheads and lookbehinds.
+C<^> and C<$> are interpreted as the beginning and end of the children in the current twig.
+
 Tags can be further qualified with attributes:
 C<< <para type="warning" classif="cosmic_secret">+ >>. The values
 for attributes should be xml-escaped: C<< <candy type="M&amp;Ms">* >>
@@ -12401,69 +12406,59 @@ for attributes should be xml-escaped: C<< <candy type="M&amp;Ms">* >>
 Note that elements might get extra C<id> attributes in the process. See L<add_id>.
 Use L<strip_att> to remove unwanted id's. 
 
-Here is an example:
+For example, if the element C<$elt> has the following content:
 
-If the element C<$elt> has the following content:
+  <body>
+    <h1>Fruit</h1>
+    <p>content</p>
+    <h2>Apples</h2>
+    <p>content</p>
+    <h3>Apple Varieties</h3>
+    <p>content</p>
+    <h2>Oranges</h2>
+    <p>content</p>
+    <h1>Vegetables</h1>
+    <p>content</p>
+    <h2>Leafy Vegetables</h2>
+    <p>content</p>
+  </body>
 
-  <elt>
-   <p>para 1</p>
-   <l_l1_1>list 1 item 1 para 1</l_l1_1>
-     <l_l1>list 1 item 1 para 2</l_l1>
-   <l_l1_n>list 1 item 2 para 1 (only para)</l_l1_n>
-   <l_l1_n>list 1 item 3 para 1</l_l1_n>
-     <l_l1>list 1 item 3 para 2</l_l1>
-     <l_l1>list 1 item 3 para 3</l_l1>
-   <l_l1_1>list 2 item 1 para 1</l_l1_1>
-     <l_l1>list 2 item 1 para 2</l_l1>
-   <l_l1_n>list 2 item 2 para 1 (only para)</l_l1_n>
-   <l_l1_n>list 2 item 3 para 1</l_l1_n>
-     <l_l1>list 2 item 3 para 2</l_l1>
-     <l_l1>list 2 item 3 para 3</l_l1>
-  </elt>
+Then after running the code
 
-Then the code
+  $elt->wrap_children('<h3>.*?(?=(<h.>)|$)', 'topic');  # <h.> can match h1/h2/h3
+  $elt->wrap_children('<h2>.*?(?=(<h.>)|$)', 'topic');  # <h.> can match h1/h2
+  $elt->wrap_children('<h1>.*?(?=(<h.>)|$)', topic => {toplevel => 'true'});  # <h.> can match h1
 
-  $elt->wrap_children( q{<l_l1_1><l_l1>*} , li => { type => "ul1" });
-  $elt->wrap_children( q{<l_l1_n><l_l1>*} , li => { type => "ul" });
+  $elt->strip_att('id');
 
-  $elt->wrap_children( q{<li type="ul1"><li type="ul">+}, "ul");
-  $elt->strip_att( 'id');
-  $elt->strip_att( 'type');
-  $elt->print;
+C<$elt> will contain:
 
-will output:
-
-  <elt>
-     <p>para 1</p>
-     <ul>
-       <li>
-         <l_l1_1>list 1 item 1 para 1</l_l1_1>
-         <l_l1>list 1 item 1 para 2</l_l1>
-       </li>
-       <li>
-         <l_l1_n>list 1 item 2 para 1 (only para)</l_l1_n>
-       </li>
-       <li>
-         <l_l1_n>list 1 item 3 para 1</l_l1_n>
-         <l_l1>list 1 item 3 para 2</l_l1>
-         <l_l1>list 1 item 3 para 3</l_l1>
-       </li>
-     </ul>
-     <ul>
-       <li>
-         <l_l1_1>list 2 item 1 para 1</l_l1_1>
-         <l_l1>list 2 item 1 para 2</l_l1>
-       </li>
-       <li>
-         <l_l1_n>list 2 item 2 para 1 (only para)</l_l1_n>
-       </li>
-       <li>
-         <l_l1_n>list 2 item 3 para 1</l_l1_n>
-         <l_l1>list 2 item 3 para 2</l_l1>
-         <l_l1>list 2 item 3 para 3</l_l1>
-       </li>
-     </ul>
-  </elt>
+  <body>
+    <topic toplevel="true">
+      <h1>Fruit</h1>
+      <p>content</p>
+      <topic>
+        <h2>Apples</h2>
+        <p>content</p>
+        <topic>
+          <h3>Apple Varieties</h3>
+          <p>content</p>
+        </topic>
+      </topic>
+      <topic>
+        <h2>Oranges</h2>
+        <p>content</p>
+      </topic>
+    </topic>
+    <topic toplevel="true">
+      <h1>Vegetables</h1>
+      <p>content</p>
+      <topic>
+        <h2>Leafy Vegetables</h2>
+        <p>content</p>
+      </topic>
+    </topic>
+  </body>
 
 =item subs_text ($regexp, $replace)
 
