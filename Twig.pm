@@ -12395,7 +12395,10 @@ The C<$regexp_string> includes tags, within pointy brackets, as in
 C<< <title><para>+ >> and the usual Perl modifiers (+*?...). Inside tag brackets,
 only C<.> is treated as a special regex character for matching tag names.
 Outside tag brackets, the usual modifiers (C<+*?>...) work normally for matching
-tags, including lookaheads and lookbehinds.
+tags, including lookaheads.
+
+B<Note>: Currently, lookbehinds do not work because the C<< < >> in the lookbehind expression causes issues with tag recognition.
+
 C<^> and C<$> are interpreted as the beginning and end of the children in the current twig.
 
 Tags can be further qualified with attributes:
