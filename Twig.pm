@@ -9991,8 +9991,8 @@ Triggers the handler for each element that does NOT have any other handler.
 =back
 
 Handlers are evaluated and queued against the input document, then executed.
-Changes made by one handler (such as tag name changes, moving or wrapping the element)
-B<do not> affect subsequent queued handlers even if the modifications
+Changes made by one handler (such as tag name changes, moving or wrapping the element - even in start-tag handlers)
+<do not> affect subsequent queued handlers even if the modifications
 cause their trigger expression to no longer match.
 There is an exception to this: "private" attributes
 (whose names start with a '#' and can only be created during processing, as
