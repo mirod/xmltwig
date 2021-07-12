@@ -8,10 +8,11 @@ use Test::More tests => 18;
 
 use utf8;
 
-{
-use XML::Twig::XPath;
-ok( XML::Twig::XPath->new()->
-    parse('<xml xmlns:foo="www.bar.com"/>')->findnodes('//namespace::*'));
+SKIP: {
+if( XML::Twig::_use( 'XML::XPathEngine') && XML::Twig::_use( 'XML::Twig::XPath'))
+  { ok( XML::Twig::XPath->new()->parse('<xml xmlns:foo="www.bar.com"/>')->findnodes('//namespace::*'), '//namespace::* does not crash'); }
+else
+  { skip 'cannot use XML::Twig::XPath', 1; }
 }
 
 {

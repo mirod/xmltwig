@@ -146,7 +146,7 @@ my $SEP= qr/\s*(?:$|\|)/;
 
 BEGIN
 { 
-$VERSION = '3.50';
+$VERSION = '3.52';
 
 use XML::Parser;
 my $needVersion = '2.23';
@@ -6857,7 +6857,7 @@ sub descendants
                 last if( $subtree_root && ($elt == $subtree_root));
                
                 # backtrack until we find a parent with a next sibling
-                $next_elt= $elt->_parent || last undef;
+                $next_elt= $elt->_parent || last;
                 until( $next_elt->_next_sibling)
                   { last if( $subtree_root && ($subtree_root == $next_elt));
                     $next_elt= $next_elt->_parent || last;
