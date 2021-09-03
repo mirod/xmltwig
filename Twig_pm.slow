@@ -388,7 +388,7 @@ my %twig_noexpand_handlers= ( ExternEnt => undef, Default => \&_twig_default );
 my @saved_default_handler;
 
 my $ID= 'id';  # default value, set by the Id argument
-my $css_sel=0; # set through the css_sel option to allow .class selectors in triggers
+my $css_sel; # set through the css_sel option to allow .class selectors in triggers
 
 # all allowed options
 %valid_option=
@@ -469,7 +469,7 @@ sub new
     $self->{_twig_context_stack}= [];
 
     # allow tag.class selectors in handler triggers
-    $css_sel= $args{CssSel} || 0;
+    $css_sel= $args{CssSel};
 
 
     if( exists $args{TwigHandlers})
@@ -3802,6 +3802,17 @@ sub do_not_escape_gt
 sub elt_id
   { return $_[0]->{twig_id_list}->{$_[1]}; }
 
+# add a gi to the gi table, returns its index
+# if the gi already exists, just return it's index
+sub _add_gi
+  { my( $gi )= @_;
+    return $XML::Twig::gi2index{$gi} if exists $XML::Twig::gi2index{$gi};
+    push  @XML::Twig::index2gi, $gi;
+    my $new_index =  $#XML::Twig::index2gi;
+    $XML::Twig::gi2index{$gi}= $new_index;
+    return $new_index;
+}
+
 # change it in ALL twigs at the moment
 sub change_gi
   { my( $twig, $old_gi, $new_gi)= @_;
@@ -5316,12 +5327,7 @@ sub set_inner_html
 
 sub set_gi
   { my ($elt, $gi)= @_;
-    unless( defined $XML::Twig::gi2index{$gi})
-      { # new gi, create entries in %gi2index and @index2gi
-        push  @XML::Twig::index2gi, $gi;
-        $XML::Twig::gi2index{$gi}= $#XML::Twig::index2gi;
-      }
-    $elt->{gi}= $XML::Twig::gi2index{$gi};
+    $elt->{gi} = $XML::Twig::gi2index{$gi} || XML::Twig::_add_gi($gi);
     return $elt;
   }
 
@@ -5895,8 +5901,14 @@ sub reset_cond_cache { %cond_cache=(); }
 
       # optimize if the gi exists, including the case where the gi includes a dot
       my $index= $XML::Twig::gi2index{$full_gi};
-      if( $index) { return qq{\$_[0]->{gi} == $index}; }
 
+      if( $index)
+        { return qq{\$_[0]->{gi} == $index}; }
+      elsif( defined $css_sel && $css_sel == 0 ) {
+          # css_sel explicitely set to 0 forces treating names with dots as just plain tag names
+          my $new_index = XML::Twig::_add_gi( $full_gi );
+          return qq{(\$_[0]->{gi} == $new_index)};
+      }
       my( $gi, $class, $id)= $full_gi=~ m{^(.*?)(?:[.]([^.]*)|[#](.*))?$};
 
       my $gi_test='';
@@ -5911,25 +5923,29 @@ sub reset_cond_cache { %cond_cache=(); }
           else
           # end optimization
             { # it does not exist (but might be created later), compare the strings
-              $gi_test = qq{ \$_[0]->gi eq "$gi"};
+              $gi_test = qq{ (\$_[0]->{gi} == (\$XML::Twig::gi2index{$gi} || 0))};
             }
         }
       else
         { $gi_test= 1; }
 
       my $class_test='';
-      #warn "class: '$class'";
       if( $class)
-        { $class_test = qq{ defined( \$_[0]->{att}->{class}) && \$_[0]->{att}->{class}=~ m{\\b$class\\b} }; }
+        { $class_test = qq{(defined( \$_[0]->{att}->{class}) && \$_[0]->{att}->{class}=~ m{\\b$class\\b}) }; }
 
       my $id_test='';
-      #warn "id: '$id'";
       if( $id)
         { $id_test = qq{ defined( \$_[0]->{att}->{$ID}) && \$_[0]->{att}->{$ID} eq '$id' }; }
 
 
-      #warn "gi_test: '$gi_test' - class_test: '$class_test' returning ",  _and( $gi_test, $class_test);
-      return _and( $gi_test, $class_test, $id_test);
+      my $test = _and( $gi_test, $class_test, $id_test);
+      # account for the (unlikely) case where a tag.class condition is actually a tag.withdot condition
+      # but no tag.withdot element has yet been seen 
+      if( $class) { $test = qq{((\$_[0]->{full_gi} == (\$XML::Twig::gi2index{$gi} || 0)) || $test)}; }
+      #warn "test is: [$test]";
+
+      return $test;
+
   }
 
 
@@ -9845,7 +9861,6 @@ sub _short_text
     return substr( $string, 0, $l1) . ' ... ' . substr( $string, -$l2);
   }
 
-
 sub _and { return _join_defined( ' && ',  @_); }
 sub _join_defined { return join( shift(), grep { $_ } @_); }
 
@@ -10513,6 +10528,21 @@ The subroutine receives the string as argument, and returns the modified string:
       $text= uc( $text);
       return $text;
     }
+
+=item css_sel
+
+When set to a true value, allows selectors C<tag.class> in handlers.
+
+The dot is a valid character in element names, eg C<div.header> is a
+completely valid XML name.
+
+But since XML::Twig is used quite a bit to process XHTML, and HTML based
+dialects, it is quite convenient to be able to use C<div.header> to
+trigger on a C<div> element with a class C<header>, instead of the more
+cumbersome C<div[@class=~/\bheader\b/]>.
+
+Note that the C<tag.class> syntax is supported in navigation expressions,
+unless C<css_sel> is explicitely set to 0.
 
 =item elt_class
 
@@ -11847,7 +11877,7 @@ form: 'C</root/tag1/../tag>'
 
 =item get_xpath  ( $optional_array_ref, $xpath, $optional_offset)
 
-Performs a C<get_xpath> on the document root (see <Elt|"Elt">)
+Performs a C<get_xpath> on the document root (see C<L<Elt|"Elt">>)
 
 If the C<$optional_array_ref> argument is used the array must contain
 elements. The C<$xpath> expression is applied to each element in turn
