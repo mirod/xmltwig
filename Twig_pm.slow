@@ -5909,7 +5909,7 @@ sub reset_cond_cache { %cond_cache=(); }
           my $new_index = XML::Twig::_add_gi( $full_gi );
           return qq{(\$_[0]->{gi} == $new_index)};
       }
-      my( $gi, $class, $id)= $full_gi=~ m{^(.*?)(?:[.]([^.]*)|[#](.*))?$};
+      my( $gi, $class, $id)= $full_gi=~ m{^(.*?)(?:[.](.*)|[#](.*))?$};
 
       my $gi_test='';
       if( $gi && $gi ne '*' )
@@ -5931,7 +5931,9 @@ sub reset_cond_cache { %cond_cache=(); }
 
       my $class_test='';
       if( $class)
-        { $class_test = qq{(defined( \$_[0]->{att}->{class}) && \$_[0]->{att}->{class}=~ m{\\b$class\\b}) }; }
+        { my @classes = grep { $_ } split /\./, $class;
+          $class_test = join ' && ', qq{(defined( \$_[0]->{att}->{class}))}, map { qq{(\$_[0]->{att}->{class}=~ m{\\b$_\\b})} } @classes;
+        }
 
       my $id_test='';
       if( $id)
@@ -5941,8 +5943,8 @@ sub reset_cond_cache { %cond_cache=(); }
       my $test = _and( $gi_test, $class_test, $id_test);
       # account for the (unlikely) case where a tag.class condition is actually a tag.withdot condition
       # but no tag.withdot element has yet been seen 
-      if( $class) { $test = qq{((\$_[0]->{full_gi} == (\$XML::Twig::gi2index{$gi} || 0)) || $test)}; }
-      #warn "test is: [$test]";
+      if( $gi && $gi ne '*' && $class) { $test = qq{((\$_[0]->{full_gi} == (\$XML::Twig::gi2index{$gi} || 0)) || $test)}; }
+      #warn " full_gi is [$full_gi], test is: [$test]";
 
       return $test;
 
@@ -9861,7 +9863,7 @@ sub _short_text
     return substr( $string, 0, $l1) . ' ... ' . substr( $string, -$l2);
   }
 
-sub _and { return _join_defined( ' && ',  @_); }
+sub _and { return _join_defined( ' && ',  map { $_ } @_); }
 sub _join_defined { return join( shift(), grep { $_ } @_); }
 
 1;
