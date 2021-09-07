@@ -1,4 +1,22 @@
 CHANGES
+3.53 - 2021-07-13 - minor maintenance release
+
+- added multiclass selectors in navigation and handler triggers
+  (css style, eg elt.class1.class2)
+
+- fixed bug with dots in element names confusing navigation
+  conditions in some cases
+
+- fixed output when a CDATA section includes a CDATA end marker
+  spotted by Djibril
+
+3.52 - 2016-11-23  - minor maintenance release
+
+- fixed: the previous fix was buggy...
+
+3.51 - 2016-11-23  - minor maintenance release
+
+- fixed: failing tests when XML::XPathEngine and XML::XPath not available
 
 3.50 - 2016-11-22  - minor maintenance release
 

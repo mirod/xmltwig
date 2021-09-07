@@ -73,7 +73,7 @@ my $REG_CLASS = $REG_NTOKEN;
 my $REG_ID    = $REG_NTOKEN;
 
 # allow <tag> #<tag> (private elt) * <tag>.<class> *.<class> <tag>#<id> *#<id>
-my $REG_TAG_PART= qq{(?:$REG_NAME_W(?:[.]$REG_CLASS|[#]$REG_ID)?|[.]$REG_CLASS)};
+my $REG_TAG_PART= qq{(?:$REG_NAME_W(?:(?:[.]$REG_CLASS)+|[#]$REG_ID)?|(?:[.]$REG_CLASS)+)};
 
 my $REG_REGEXP     = q{(?:/(?:[^\\/]|\\.)*/[eimsox]*)};               # regexp
 my $REG_MATCH      = q{[!=]~};                                        # match (or not)
@@ -1693,7 +1693,7 @@ sub _parse_xpath_handler
        my $tag_cond=  _tag_cond( $tag);
        my $cond= join( " && ", grep { $_ } $tag_cond, $predicate) || 1;
 
-       if( $css_sel && $tag=~ m{\.}) { $tag=~s{\.[^.]*$}{}; $tag ||='*'; }
+       if( $css_sel && $tag=~ m{\.}) { $tag=~s{\..*$}{}; $tag ||='*'; }
        $tag=~ s{(.)#.+$}{$1};
 
        $last_tag ||= $tag;
@@ -1765,13 +1765,20 @@ sub _tag_cond
     if( $full_tag=~ m{^(.+)#(.+)$})
       { ($tag, $id)= ($1, $2); } # <tag>#<id>
     else
-      { ( $tag, $class)= $css_sel ? $full_tag=~ m{^(.*?)(?:\.([^.]*))?$} : ($full_tag, undef); }
+      { ( $tag, $class)= $css_sel ? $full_tag=~ m{^(.*?)(?:\.(.*))?$} : ($full_tag, undef); }
 
     my $tag_cond   = $tag && $tag ne '*' ? qq#(\$elt->{'$ST_TAG'} eq "$tag")# : '';
     my $id_cond    = defined $id         ? qq#(\$elt->{id} eq "$id")#  : '';
-    my $class_cond = defined $class      ? qq#(\$elt->{class}=~ m{(^| )$class( |\$)})# : '';
+
+    my $class_cond;
+    if( defined $class ) {
+        my @classes = split /\./, $class;
+        $class_cond = '(' . join( ' && ', map { qq#(\$elt->{class}=~ m{(^| )$_( |\$)})# } @classes) . ')';
+    }
 
     my $full_cond= join( ' && ', grep { $_ } ( $tag_cond, $class_cond, $id_cond));
+
+#        warn "full_cond: [$full_cond]\n";
 
     return $full_cond;
   }
@@ -5909,7 +5916,7 @@ sub reset_cond_cache { %cond_cache=(); }
           my $new_index = XML::Twig::_add_gi( $full_gi );
           return qq{(\$_[0]->{gi} == $new_index)};
       }
-      my( $gi, $class, $id)= $full_gi=~ m{^(.*?)(?:[.]([^.]*)|[#](.*))?$};
+      my( $gi, $class, $id)= $full_gi=~ m{^(.*?)(?:[.](.*)|[#](.*))?$};
 
       my $gi_test='';
       if( $gi && $gi ne '*' )
@@ -5931,7 +5938,9 @@ sub reset_cond_cache { %cond_cache=(); }
 
       my $class_test='';
       if( $class)
-        { $class_test = qq{(defined( \$_[0]->{att}->{class}) && \$_[0]->{att}->{class}=~ m{\\b$class\\b}) }; }
+        { my @classes = grep { $_ } split /\./, $class;
+          $class_test = join ' && ', qq{(defined( \$_[0]->{att}->{class}))}, map { qq{(\$_[0]->{att}->{class}=~ m{\\b$_\\b})} } @classes;
+        }
 
       my $id_test='';
       if( $id)
@@ -5941,8 +5950,8 @@ sub reset_cond_cache { %cond_cache=(); }
       my $test = _and( $gi_test, $class_test, $id_test);
       # account for the (unlikely) case where a tag.class condition is actually a tag.withdot condition
       # but no tag.withdot element has yet been seen 
-      if( $class) { $test = qq{((\$_[0]->{full_gi} == (\$XML::Twig::gi2index{$gi} || 0)) || $test)}; }
-      #warn "test is: [$test]";
+      if( $gi && $gi ne '*' && $class) { $test = qq{((\$_[0]->{full_gi} == (\$XML::Twig::gi2index{$gi} || 0)) || $test)}; }
+      #warn " full_gi is [$full_gi], test is: [$test]";
 
       return $test;
 
@@ -9861,7 +9870,7 @@ sub _short_text
     return substr( $string, 0, $l1) . ' ... ' . substr( $string, -$l2);
   }
 
-sub _and { return _join_defined( ' && ',  @_); }
+sub _and { return _join_defined( ' && ',  map { $_ } @_); }
 sub _join_defined { return join( shift(), grep { $_ } @_); }
 
 1;
