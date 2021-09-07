@@ -69,9 +69,23 @@ my $doc_with_dots = q{
     is( $t->first_elt('e.c1.c2')->id, 'e2', 'selector using chained classes' );
 }
 
+{   my $res='';
+    my $t = XML::Twig->new( twig_handlers => { 'e.c1' => sub { $res.= $_->id; } } )->parse('<d><e class="c1" id="e1">e1</e><e class="c1 c2" id="e2">e2</e></d>');
+    is( $res, '', 'handler trigger using chained classes does not trigger when not using css_sel' );
+}
+{   my $res;
+    my $t = XML::Twig->new( css_sel => 1, twig_handlers => { 'e.c1' => sub { $res.= $_->id; } } )->parse('<d><e class="c1" id="e1">e1</e><e class="c1 c2" id="e2">e2</e></d>');
+    is( $res, 'e1e2', 'handler trigger using chained classes' );
+}
+
+{   my $res;
+    my $t = XML::Twig->new( css_sel => 1, twig_handlers => { 'e.c1.c2' => sub { $res.= $_->id; } } )->parse('<d><e class="c1" id="e1">e1</e><e class="c1 c2" id="e2">e2</e></d>');
+    is( $res, 'e2', 'handler trigger using multi chained classes' );
+}
+
 done_testing();
 
-# we need different tags otherwise the tag tables are reused
+# sometimes we need different tags otherwise the tag tables are reused
 sub _doc {
     my ( $root, $doc ) = @_;
     $doc =~ s{(</?)}{$1$root}g;
