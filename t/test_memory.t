@@ -49,6 +49,12 @@ my $test_nb=1;
 foreach my $wr (0..1)
 {
   # first pass if with weakrefs, second without
+
+  if( $wr && $] > 5.008 ) {
+      skip( 3, 'not a real ancient perl, no need to test without weakrefs');
+      next;
+  }
+
   my $wrm='';
   if( $wr)
     { XML::Twig::_set_weakrefs( 0);
