@@ -268,7 +268,7 @@ ok( !$t->root->att_exists( 'a5'), 'att_exists, non existent att');
 1;
 
 sub make_tmp_file
-  { my $tmp_file= 'tmp_file';
+  { my $tmp_file= 'tmp-t33';
     open( TMP, ">$tmp_file") or die "cannot create temp file $tmp_file: $!"; 
     print TMP @_;
     close TMP;

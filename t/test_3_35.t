@@ -37,7 +37,7 @@ is( XML::Twig->parse( '<d/>')->root->insert_new_elt( '#COMMENT' => '- -- -')->tw
 }
 
 { my $doc= q{<d id="i1"><e id="i2"><f id="i3"/></e><g><f id="i4">fi4</f></g></d>};
-  open( my $fh, '>', 'tmp_file'); 
+  open( my $fh, '>', 'tmp-t35'); 
   my $t= XML::Twig->new( twig_handlers => { e => sub { $_->flush( $fh); },
                                             g => sub { is( $_[0]->elt_id( 'i4')->text, 'fi4', 'elt_id, id exists'); 
                                                        nok(  $_[0]->elt_id( 'i3'), 'elt_id, id flushed');

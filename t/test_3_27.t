@@ -386,7 +386,7 @@ if ( _use( 'HTML::TreeBuilder', 4.00 ) ) {    # first alternative is pre-3.23_1,
 }
 
 {
-    my $tmp = "tmp";
+    my $tmp = "tmp-t27";
     foreach my $doc (
         qq{<!DOCTYPE d [<!ENTITY e SYSTEM "e.jpeg" NDATA JPEG>]><d/>},
         qq{<!DOCTYPE d><d/>},
