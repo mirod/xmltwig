@@ -402,9 +402,14 @@ if ( _use( 'HTML::TreeBuilder', 4.00 ) ) {    # first alternative is pre-3.23_1,
                 twig_print_outside_roots => \*MYOUT,
                 keep_encoding            => $keep_encoding,
             )->parse($doc);
-            close MYOUT or die "error closing temp file $tmp after writing the twig: $!";
-            is_like( slurp($tmp), $doc, "file with no DTD but entities (keep_encoding: $keep_encoding)" );
-            unlink $tmp;
+            close MYOUT;
+            if ( -f $tmp ) {
+                is_like( slurp($tmp), $doc, "file with no DTD but entities (keep_encoding: $keep_encoding)" );
+                unlink $tmp;
+            } else {
+                skip( 1,
+                    "problem with writing $tmp, likely linked to missing write permission on the current directory" );
+            }
         }
     }
 }
