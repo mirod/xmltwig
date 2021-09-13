@@ -12,7 +12,7 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=10;
+my $TMAX=11;
 print "1..$TMAX\n";
 
 # escape_gt option
@@ -37,23 +37,26 @@ is( XML::Twig->parse( '<d/>')->root->insert_new_elt( '#COMMENT' => '- -- -')->tw
 }
 
 { my $doc= q{<d id="i1"><e id="i2"><f id="i3"/></e><g><f id="i4">fi4</f></g></d>};
-  open( my $fh, '>', 'tmp-t35'); 
+  my $tmp = 'tmp-t35';
+  open( my $fh, '>', $tmp );
   my $t= XML::Twig->new( twig_handlers => { e => sub { $_->flush( $fh); },
-                                            g => sub { is( $_[0]->elt_id( 'i4')->text, 'fi4', 'elt_id, id exists'); 
+                                            g => sub { is( $_[0]->elt_id( 'i4')->text, 'fi4', 'elt_id, id exists');
                                                        nok(  $_[0]->elt_id( 'i3'), 'elt_id, id flushed');
                                                      },
-                                          }
+                                          },
                        )
                   ->parse( $doc);
+  close $fh;
+  is(slurp_trimmed( $tmp ), $doc, 'flush on element still outputs the entire document');
 }
 
 { my $xpath='';
-  XML::Twig->parse( map_xmlns => { "http://foo.com" => 'bar' }, 
+  XML::Twig->parse( map_xmlns => { "http://foo.com" => 'bar' },
                     twig_handlers => { "bar:e" => sub { $xpath= $_[0]->path( $_->gi);}, },
                     q{<foo:d xmlns:foo="http://foo.com"><foo:e/></foo:d>}
                   );
   is( $xpath, '/bar:d/bar:e');
-  XML::Twig->parse( map_xmlns => { "http://foo.com" => 'bar' }, 
+  XML::Twig->parse( map_xmlns => { "http://foo.com" => 'bar' },
                     twig_handlers => { "bar:e" => sub { $xpath= $_[0]->path( $_->local_name);}, },
                     q{<d xmlns="http://foo.com"><e/></d>}
                   );

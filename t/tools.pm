@@ -312,6 +312,13 @@ sub slurp
     return $content;
   }
 
+sub slurp_trimmed
+  { my $content = slurp( @_ );
+    $content =~ s{\s+<}{<}sg;
+    $content =~ s{>\s}{>}sg;
+    return $content;
+  }
+
 sub spit
   { my( $file, $content)= @_;
     open( FH, ">$file") or die "cannot spit '$file': $!\n";
