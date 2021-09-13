@@ -58,7 +58,6 @@ my $doc_with_dots = q{
       );
 }
 
-
 {
     my $t = XML::Twig->new()->parse('<d><e class="c1-dash" id="e1">e1</e><e class="c1" id="e2">e2</e></d>');
     is( $t->first_elt('e.c1-dash')->id, 'e1', 'selector using class with dash' );
@@ -69,18 +68,51 @@ my $doc_with_dots = q{
     is( $t->first_elt('e.c1.c2')->id, 'e2', 'selector using chained classes' );
 }
 
-{   my $res='';
-    my $t = XML::Twig->new( twig_handlers => { 'e.c1' => sub { $res.= $_->id; } } )->parse('<d><e class="c1" id="e1">e1</e><e class="c1 c2" id="e2">e2</e></d>');
+{
+    my $res = '';
+    my $t   = XML::Twig->new(
+        twig_handlers => {
+            'e.c1' => sub { $res .= $_->id; }
+        }
+    )->parse('<d><e class="c1" id="e1">e1</e><e class="c1 c2" id="e2">e2</e></d>');
     is( $res, '', 'handler trigger using chained classes does not trigger when not using css_sel' );
 }
-{   my $res;
-    my $t = XML::Twig->new( css_sel => 1, twig_handlers => { 'e.c1' => sub { $res.= $_->id; } } )->parse('<d><e class="c1" id="e1">e1</e><e class="c1 c2" id="e2">e2</e></d>');
+{
+    my $res;
+    my $t = XML::Twig->new(
+        css_sel       => 1,
+        twig_handlers => {
+            'e.c1' => sub { $res .= $_->id; }
+        }
+    )->parse('<d><e class="c1" id="e1">e1</e><e class="c1 c2" id="e2">e2</e></d>');
     is( $res, 'e1e2', 'handler trigger using chained classes' );
 }
 
-{   my $res;
-    my $t = XML::Twig->new( css_sel => 1, twig_handlers => { 'e.c1.c2' => sub { $res.= $_->id; } } )->parse('<d><e class="c1" id="e1">e1</e><e class="c1 c2" id="e2">e2</e></d>');
+{
+    my $res;
+    my $t = XML::Twig->new(
+        css_sel       => 1,
+        twig_handlers => {
+            'e.c1.c2' => sub { $res .= $_->id; }
+        }
+    )->parse('<d><e class="c1" id="e1">e1</e><e class="c1 c2" id="e2">e2</e></d>');
     is( $res, 'e2', 'handler trigger using multi chained classes' );
+}
+
+{ # check whether the no_xxe option actually prevents loading an external entity
+    my $tmp = 'tmp-3-53.ent';
+    open( my $ent, '>', $tmp ) or die "cannot create temp file $tmp: $!";
+    my $ent_text = 'text of ent';
+    print {$ent} $ent_text;
+    close $ent;
+
+    my $doc
+        = qq{<?xml version="1.0" standalone="no"?><!DOCTYPE doc [ <!ELEMENT doc (#PCDATA)> <!ENTITY e SYSTEM "$tmp">]><doc>&e;</doc>};
+    my $t = XML::Twig->new()->parse($doc);
+    is( $t->root->text, $ent_text, 'include external entity' );
+
+    $t = XML::Twig->new( no_xxe => 1 )->safe_parse($doc);
+    is( $t, undef, 'no_xxe' );
 }
 
 done_testing();
