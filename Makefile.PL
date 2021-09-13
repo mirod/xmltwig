@@ -57,7 +57,6 @@ MyWriteMakefile(
               'Test'                     =>    '1.25_02',
               'IO::Scalar'               =>    '2.110',
               'IO::CaptureOutput'        =>    '1.1102',
-      
             },
             suggests => {
               'Test::Pod'                =>    '1.45',
@@ -67,7 +66,6 @@ MyWriteMakefile(
               'XML::Filter::BufferText'  =>    '1.01',
             },
           },
-          
           runtime => {
             requires => {
               'XML::Parser'              =>    '2.23',
@@ -97,7 +95,7 @@ MyWriteMakefile(
     AUTHOR       => 'Michel Rodriguez <mirod@cpan.org>',
     LICENSE      => 'perl',
     EXE_FILES    => [ map {"tools/$_/$_"} @programs],
-    VERSION_FROM => 'Twig.pm', 
+    VERSION_FROM => 'Twig.pm',
     PREREQ_PM    => { 'XML::Parser' => '2.23' },
     dist         => { COMPRESS    => 'gzip -9f',
                       SUFFIX	     => 'gz',
@@ -152,7 +150,6 @@ sub add_prereqs_to_mymeta
       }
 
   }
-
 
 sub slurp
   { my( $file)= @_;
