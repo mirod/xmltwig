@@ -4653,6 +4653,7 @@ sub _XmlUtf8Decode
     return $char;
   }
 
+# deprecated, was used for unicode processing pre perl 5.8.0
 sub unicode_convert
   { my $enc= $_[1] ? $_[1] : $_[0]; # so the method can be called on the twig or directly
     _use( 'Unicode::Map8') or croak "Unicode::Map8 not available, needed for encoding filter: $!";
@@ -4947,14 +4948,21 @@ sub delete
 sub print
   { my ($notation_list, $fh)= @_;
     my $old_select= defined $fh ? select $fh : undef;
+    print {$fh} $notation_list->sprint;
+    select $old_select if( defined $old_select);
+    return $notation_list;
+  }
 
+sub sprint
+  { my ($notation_list)= @_;
+
+    my $notations='';
     foreach my $notation_name ( sort keys %{$notation_list->{notations}})
       { my $notation= $notation_list->{notations}->{$notation_name};
         # we have to test what the notation is or un-defined notations can creep in
-        if( isa( $notation, 'XML::Twig::Notation')) { $notation->print(); }
+        if( isa( $notation, 'XML::Twig::Notation')) {  $notations .= $notation->text() . "\n"; }
       }
-    select $old_select if( defined $old_select);
-    return $notation_list;
+    return $notations;
   }
 
 sub text
@@ -13793,6 +13801,10 @@ Create a new notation and add it to the notation list
 
 Delete an notation (defined by its name or by the Notation object)
 from the list.
+
+=item sprint
+
+Return the notation list as a string.
 
 =item print      ($optional_filehandle)
 
