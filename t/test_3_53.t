@@ -99,7 +99,7 @@ my $doc_with_dots = q{
     is( $res, 'e2', 'handler trigger using multi chained classes' );
 }
 
-{ # check whether the no_xxe option actually prevents loading an external entity
+{    # check whether the no_xxe option actually prevents loading an external entity
     my $tmp = 'tmp-3-53.ent';
     open( my $ent, '>', $tmp ) or die "cannot create temp file $tmp: $!";
     my $ent_text = 'text of ent';
@@ -113,6 +113,43 @@ my $doc_with_dots = q{
 
     $t = XML::Twig->new( no_xxe => 1 )->safe_parse($doc);
     is( $t, undef, 'no_xxe' );
+}
+
+{
+    my $notation_public
+        = qq{<!NOTATION gif89a PUBLIC "-//CompuServe//NOTATION Graphics Interchange Format 89a//EN" "gif">};
+    my $notation_system = qq{<!NOTATION mif SYSTEM "MIF">};
+    my $notations       = $notation_public . "\n" . $notation_system ."\n";
+    my $doc
+        = qq{<?xml version="1.0" standalone="no"?><!DOCTYPE doc [ <!ELEMENT doc (#PCDATA)> $notations ]><doc>foo</doc>};
+    my $t = XML::Twig->new()->parse($doc);
+    is( $t->notation_list->sprint, $notations, 'sprint notation list' );
+
+    {
+        my $out;
+        open( my $out_fh, '>', \$out ) or die "cannot open fh to string: $!";
+        $t->notation_list->print($out_fh);
+        close $out_fh;
+        is( $out, $notations, 'print notation list' );
+    }
+    is( $t->notation('mif')->sprint,    $notation_system, 'sprint system notation' );
+    is( $t->notation('gif89a')->sprint, $notation_public, 'sprint public notation' );
+
+    {
+        my $out;
+        open( my $out_fh, '>', \$out ) or die "cannot open fh to string: $!";
+        $t->notation('mif')->print($out_fh);
+        is( $out, $notation_system ."\n", 'print system notation' );
+        close $out_fh;
+    }
+
+    {
+        my $out;
+        open( my $out_fh, '>', \$out ) or die "cannot open fh to string: $!";
+        $t->notation('gif89a')->print($out_fh);
+        is( $out, $notation_public ."\n", 'print public notation' );
+        close $out_fh;
+    }
 }
 
 done_testing();
