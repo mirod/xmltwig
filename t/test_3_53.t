@@ -150,6 +150,8 @@ my $doc_with_dots = q{
         is( $out, $notation_public ."\n", 'print public notation' );
         close $out_fh;
     }
+    is( $t->notation('gif89a')->_dump, q{name => 'gif89a' - pubid => '-//CompuServe//NOTATION Graphics Interchange Format 89a//EN' - sysid => 'gif'}, 'testing internal _dump method' );
+
 }
 
 done_testing();
