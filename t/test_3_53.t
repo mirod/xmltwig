@@ -154,6 +154,18 @@ my $doc_with_dots = q{
 
 }
 
+{ eval "use HTML::Tidy";
+  if( ! $@ ) {
+      my $doc= q{<html><head><title>foo</title></head><body><h1>bar</h1><p id="id1">foobar</p></body></html>};
+      my $t = XML::Twig->new( use_tidy => 1, tidy_options => { tidy_mark => 1 } );
+      my $got = $t->parse_html($doc)->sprint;
+      like( $got, qr/tidyp for Linux/, "HTML::Tidy option tidy_mark ");
+      $t = XML::Twig->new( use_tidy => 1, tidy_options => { tidy_mark => 0 } );
+      $got = $t->parse_html($doc)->sprint;
+      unlike( $got, qr/tidyp for Linux/, "HTML::Tidy option no tidy_mark");
+  }
+}
+
 done_testing();
 
 # sometimes we need different tags otherwise the tag tables are reused
