@@ -2662,7 +2662,7 @@ sub _twig_pi_comment
             $t->{extra_data}='';
           }
 
-        unless( $t->root)
+        if( ! $t->root)
           { $t->_add_cpi_outside_of_root( leading_cpi => $elt);
           }
         elsif( $t->{twig_in_pcdata})
