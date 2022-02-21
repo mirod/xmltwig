@@ -1197,7 +1197,6 @@ sub _xml_escape
 sub _check_xml
   { my( $xml)= @_; # $xml is a ref to the xml string
     my $ok= eval { XML::Parser->new->parse( $$xml); };
-    #if( $ok) { warn "  parse OK\n"; }
     return $ok;
   }
 
@@ -2261,7 +2260,6 @@ sub _parse_start_tag
     my( $gi, @atts);
 
     # get the gi (between < and the first space, / or > character)
-    #if( $string=~ s{^<\s*([^\s>/]*)[\s>/]*}{}s)
     if( $string=~ s{^<\s*($REG_TAG_NAME)\s*[\s>/]}{}s)
       { $gi= $1; }
     else
@@ -3064,10 +3062,6 @@ sub _twig_insert_ent
         if( $twig_current) { $twig_current->set_last_child( $ent); }
       }
 
-    # meant to trigger entity handler, does not seem to be activated at this time
-    #if( my $handler= $t->{twig_handlers}->{gi}->{$ENT})
-    #  { local $_= $ent; $handler->( $t, $ent); }
-
     return $ent;
   }
 
@@ -3262,11 +3256,6 @@ sub doctype
             $internal=~ s{^\s*(\[\s*)?}{ [\n};
             $internal=~ s{\s*(\]\s*(>\s*)?)?\s*$}{\n]>\n};
 
-            # XML::Parser does not include the NOTATION declarations in the DTD
-            # at least in the current version. So put them back
-            #if( $t->notation_list && $internal !~ m{<!\s*NOTATION})
-            #  { $internal=~ s{(\n]>\n)$}{ "\n" . $t->notation_list->text . $1}es; }
-
             $doctype_text .=  $internal;
           }
       }
@@ -3275,7 +3264,7 @@ sub doctype
       {
         # terrible hack, as I can't figure out in which case the darn prolog
         # should get an extra > (depends on XML::Parser and expat versions)
-        $doctype_text=~ s/(>\s*)*$/>\n/; # if($doctype_text);
+        $doctype_text=~ s/(>\s*)*$/>\n/;
 
         my $output_filter= XML::Twig::Elt::output_filter();
         return $output_filter ? $output_filter->( $doctype_text) : $doctype_text;
@@ -3335,8 +3324,6 @@ sub print
     my $old_select    = defined $fh                  ? select $fh                                 : undef;
     my $old_pretty    = defined ($args{PrettyPrint}) ? $t->set_pretty_print( $args{PrettyPrint})  : undef;
     my $old_empty_tag = defined ($args{EmptyTags})   ? $t->set_empty_tag_style( $args{EmptyTags}) : undef;
-
-    #if( !$t->{encoding} || lc( $t->{encoding}) eq 'utf-8') { my $out= $fh || \*STDOUT; binmode $out, ':utf8'; }
 
     ## no critic (RequireEncodingWithUTF8Layer)
     if( $perl_version > 5.006 && ! $t->{twig_keep_encoding} && _use_perlio() ) { binmode( $fh || \*STDOUT, ":utf8" ); } 
@@ -4184,10 +4171,6 @@ sub _twig_end_check_roots
         my $last_handler_res=1;
         foreach my $handler ( @handlers)
           { $last_handler_res= $handler->($t, $gi) || last; }
-        #if( ! $last_handler_res)
-        #  { pop @{$t->{_twig_context_stack}}; warn "tested";
-        #    return;
-        #  }
       }
     {
       ## no critic (TestingAndDebugging::ProhibitNoStrict);
@@ -9281,8 +9264,6 @@ sub insert_new_elt
 
     my $new_elt= $elt->new( @_);
     $new_elt->paste( $position, $elt);
-
-    #if( defined $new_elt->id) { $new_elt->set_id( $new_elt->id); }
 
     return $new_elt;
   }
