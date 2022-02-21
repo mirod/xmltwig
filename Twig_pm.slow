@@ -164,6 +164,7 @@ if( $perl_version >= 5.008)
 # test whether we can use weak references
 # set local empty signal handler to trap error messages
 { local $SIG{__DIE__};
+  ## no critic (ProhibitStringyEval)
   if( eval( 'require Scalar::Util') && defined( \&Scalar::Util::weaken))
     { import Scalar::Util( 'weaken'); $weakrefs= 1; }
   elsif( eval( 'require WeakRef'))
@@ -824,7 +825,7 @@ sub _parse_inplace
 
     # we can only use binmode :utf8 if perl was compiled with useperlio
     # might be a problem if keep_encoding used but the file is already in utf8
-    if( $perl_version > 5.006 && !$t->{twig_keep_encoding} && _use_perlio()) {  binmode( $tmpfh, ":utf8" ); }
+    if( $perl_version > 5.006 && !$t->{twig_keep_encoding} && _use_perlio()) {  binmode( $tmpfh, ":utf8" ); } ## no critic (RequireEncodingWithUTF8Layer)
 
     $t->$method( $file);
 
@@ -1298,7 +1299,7 @@ sub add_stylesheet
       $version ||= 0;
       if( $disallowed{$module})   { return 0; }
       if( $used{$module})         { return 1; }
-      if( eval "require $module") { import $module; $used{$module}= 1;  # no critic ProhibitStringyEval
+      if( eval "require $module") { import $module; $used{$module}= 1;  ## no critic ProhibitStringyEval
                                     if( $version)
                                       {
                                         ## no critic (TestingAndDebugging::ProhibitNoStrict);
@@ -1721,7 +1722,7 @@ sub _parse_xpath_handler
     $perlfunc.= qq{warn "handler for '$xpath_to_display' triggered\\n";\n} if( $DEBUG_HANDLER >=2);
     $perlfunc.= qq{return q{$xpath_original};\n};
     _warn_debug_handler( "\nperlfunc:\n$perlfunc\n") if( $DEBUG_HANDLER>=1);
-    my $s= eval "sub { $perlfunc }";
+    my $s= eval "sub { $perlfunc }"; ## no critic (ProhibitStringyEval)
       if( $@)
         { croak "wrong handler condition '$xpath' ($@);" }
 
@@ -3316,7 +3317,7 @@ sub print_to_file
 # to the original file permissions (or to the current umask)
 sub safe_print_to_file
   { my( $t, $filename)= (shift, shift);
-    my $perm= -f $filename ? (stat $filename)[2] & 07777 : ~umask() ;
+    my $perm= -f $filename ? (stat $filename)[2] & 07777 : ~umask() ; ## no critic (ProhibitLeadingZeros)
     XML::Twig::_use( 'File::Temp') || croak "need File::Temp to use safe_print_to_file\n";
     my $tmpdir= dirname( $filename);
     my( $fh, $tmpfilename) = File::Temp::tempfile( DIR => $tmpdir);
@@ -3337,7 +3338,8 @@ sub print
 
     #if( !$t->{encoding} || lc( $t->{encoding}) eq 'utf-8') { my $out= $fh || \*STDOUT; binmode $out, ':utf8'; }
 
-    if( $perl_version > 5.006 && ! $t->{twig_keep_encoding} && _use_perlio() ) { binmode( $fh || \*STDOUT, ":utf8" ); }
+    ## no critic (RequireEncodingWithUTF8Layer)
+    if( $perl_version > 5.006 && ! $t->{twig_keep_encoding} && _use_perlio() ) { binmode( $fh || \*STDOUT, ":utf8" ); } 
 
      print  $t->prolog( %args) . $t->_leading_cpi( %args);
      $t->{twig_root}->print;
@@ -4659,6 +4661,7 @@ sub unicode_convert
     _use( 'Unicode::Map8') or croak "Unicode::Map8 not available, needed for encoding filter: $!";
     _use( 'Unicode::String') or croak "Unicode::String not available, needed for encoding filter: $!";
     import Unicode::String qw(utf8);
+    ## no critic (ProhibitStringyEval)
     my $sub= eval qq{ { $NO_WARNINGS;
                         my \$cnv;
                         BEGIN {  \$cnv= Unicode::Map8->new(\$enc)
@@ -4674,6 +4677,7 @@ sub unicode_convert
 sub iconv_convert
   { my $enc= $_[1] ? $_[1] : $_[0]; # so the method can be called on the twig or directly
     _use( 'Text::Iconv') or croak "Text::Iconv not available, needed for encoding filter: $!";
+    ## no critic (ProhibitStringyEval)
     my $sub= eval qq{ { $NO_WARNINGS;
                         my \$cnv;
                         BEGIN { \$cnv = Text::Iconv->new( 'utf8', \$enc)
@@ -4694,7 +4698,7 @@ sub iconv_convert
 
 sub encode_convert
   { my $enc= $_[1] ? $_[1] : $_[0]; # so the method can be called on the twig or directly
-    my $sub=  eval qq{sub { $NO_WARNINGS; return encode( "$enc", \$_[0]); } };
+    my $sub=  eval qq{sub { $NO_WARNINGS; return encode( "$enc", \$_[0]); } }; ## no critic (ProhibitStringyEval)
     croak "can't create Encode-based filter: $@" unless( $sub);
     return $sub;
   }
@@ -5121,6 +5125,7 @@ BEGIN
     # try using weak references
     # test whether we can use weak references
     { local $SIG{__DIE__};
+    ## no critic (ProhibitStringyEval)
       if( eval 'require Scalar::Util' && defined( &Scalar::Util::weaken) )
         { import Scalar::Util qw(weaken); }
       elsif( eval 'require WeakRef')
@@ -5817,7 +5822,7 @@ sub reset_cond_cache { %cond_cache=(); }
       #warn "init: '$init' - test: '$test'\n";
 
       my $sub= qq{sub { $NO_WARNINGS; $init; return $not($test) ? \$_[0] : undef; } };
-      my $s= eval $sub;
+      my $s= eval $sub; ## no critic (ProhibitStringyEval)
       #warn "cond: $cond\n$sub\n";
       if( $@)
         { croak "wrong navigation condition '$original_cond' ($@);" }
@@ -7053,7 +7058,7 @@ sub next_siblings
 
       $sub .= q{return XML::Twig::_unique_elts( @results); };
       #warn "generated: '$sub'\n";
-      my $s= eval "sub { $NO_WARNINGS; $sub }";
+      my $s= eval "sub { $NO_WARNINGS; $sub }"; ## no critic (ProhibitStringyEval)
       if( $@)
         { _croak_and_doublecheck_xpath( $original_exp, "error in xpath expression $original_exp ($@);") }
       return( $s);
@@ -7899,7 +7904,7 @@ sub _repl_match
         }
       $sub .= q{ $match->delete; };
       #$sub=~ s/;/;\n/g; warn "subs: $sub";
-      my $coderef= eval "sub { $NO_WARNINGS; $sub }";
+      my $coderef= eval "sub { $NO_WARNINGS; $sub }"; ## no critic (ProhibitStringyEval)
       if( $@) { croak( "invalid replacement expression $replace_exp: ",$@); }
       return $coderef;
     }
@@ -8561,7 +8566,7 @@ sub print_to_file
 # to the original file permissions (or to the current umask)
 sub safe_print_to_file
   { my( $elt, $filename)= (shift, shift);
-    my $perm= -f $filename ? (stat $filename)[2] & 07777 : ~umask() ;
+    my $perm= -f $filename ? (stat $filename)[2] & 07777 : ~umask() ; ## no critic (ProhibitLeadingZeros)
     XML::Twig::_use( 'File::Temp') || croak "need File::Temp to use safe_print_to_file\n";
     XML::Twig::_use( 'File::Basename') || croak "need File::Basename to use safe_print_to_file\n";
     my $tmpdir= File::Basename::dirname( $filename);
