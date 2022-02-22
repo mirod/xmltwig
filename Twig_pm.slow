@@ -3721,14 +3721,7 @@ sub descendants
 
 sub simplify  { my $t= shift; $t->root->simplify( @_);  }
 sub subs_text { my $t= shift; $t->root->subs_text( @_); }
-sub trim      { my $t= shift; $t->root->trim( @_); $t->root->trim; return $t;
-                my $e= $t->root;
-                while( $e)
-                  { $e->trim if $e->first_child( '#TEXT');
-                   $e= $e->next_elt( '#ELT');
-                  }
-                return $t;
-              }
+sub trim      { my $t= shift; $t->root->trim( @_); $t->root->trim; return $t; }
 
 sub set_keep_encoding
   { my( $t, $keep)= @_;
