@@ -62,16 +62,6 @@ sub elt
     return qq{<e id="e$nb">element $nb</e>};
   } 
 
-# slurp and remove spaces from the file 
-sub slurp_trimmed
-  { my( $file)= @_;
-    local undef $/;
-    open( FHSLURP, "<$file") or return "$file not found:$!";
-    my $content=<FHSLURP>;
-    $content=~ s{\s}{}g;
-    return $content;
-  }
-
 sub systemq 
   { warn "$_[0]\n" if( !$DEBUG);
     system $_[0];
