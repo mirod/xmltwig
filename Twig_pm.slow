@@ -3746,11 +3746,11 @@ sub elt_id
 # if the gi already exists, just return it's index
 sub _add_gi
   { my( $gi )= @_;
-    return $XML::Twig::gi2index{$gi} if exists $XML::Twig::gi2index{$gi};
-    push  @XML::Twig::index2gi, $gi;
-    my $new_index =  $#XML::Twig::index2gi;
-    $XML::Twig::gi2index{$gi}= $new_index;
-    return $new_index;
+    if ( ! exists $XML::Twig::gi2index{$gi} )
+      { push  @XML::Twig::index2gi, $gi;
+        $XML::Twig::gi2index{$gi}= $#XML::Twig::index2gi;
+      }
+    return $XML::Twig::gi2index{$gi};
 }
 
 # change it in ALL twigs at the moment
@@ -4030,28 +4030,22 @@ sub _twig_print_original
 
 sub _twig_print_original_doctype
    { # warn " in _twig_print_original_doctype...\n"; # DEBUG handler
-
     my(  $p, $name, $sysid, $pubid, $internal)= @_;
-    if( $name)
-      { # with recent versions of XML::Parser original_string does not work,
-        # hence we need to rebuild the doctype declaration
-        my $doctype='';
-        $doctype .= qq{<!DOCTYPE $name}    if( $name);
-        $doctype .=  qq{ PUBLIC  "$pubid"}  if( $pubid);
-        $doctype .=  qq{ SYSTEM}            if( $sysid && !$pubid);
-        $doctype .=  qq{ "$sysid"}          if( $sysid);
-        $doctype .=  ' [' if( $internal && !$expat_1_95_2) ;
-        $doctype .=  qq{>} unless( $internal || $expat_1_95_2);
-        $p->{twig}->{twig_doctype}->{has_internal}=$internal;
-        print $doctype;
-      }
+    _print_doctype(@_);
     $p->setHandlers( Default => \&_twig_print_original);
     return;
   }
 
 sub _twig_print_doctype
-   { # warn " in _twig_print_doctype...\n"; # DEBUG handler
+  { # warn " in _twig_print_doctype...\n"; # DEBUG handler
     my(  $p, $name, $sysid, $pubid, $internal)= @_;
+    _print_doctype(@_);
+    $p->setHandlers( Default => \&_twig_print);
+    return;
+  }
+
+sub _print_doctype
+  { my(  $p, $name, $sysid, $pubid, $internal)= @_;
     if( $name)
       { # with recent versions of XML::Parser original_string does not work,
         # hence we need to rebuild the doctype declaration
@@ -4065,9 +4059,8 @@ sub _twig_print_doctype
         $p->{twig}->{twig_doctype}->{has_internal}=$internal;
         print $doctype;
       }
-    $p->setHandlers( Default => \&_twig_print);
     return;
-  }
+}
 
 sub _twig_print_original_default
    { # warn " in _twig_print_original_default...\n"; # DEBUG handler
