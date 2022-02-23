@@ -4895,16 +4895,16 @@ sub notation
     return $notation_list->{notations}->{$notation_name};
   }
 
-# can be called with an notation or with an notation name
+# can be called with a notation or with a notation name
 sub delete
   { my $notation_list= shift;
     if( isa( ref $_[0], 'XML::Twig::Notation'))
-      { # the second arg is an notation
+      { # the second arg is a notation
         my $notation= shift;
         delete $notation_list->{notations}->{$notation->{name}};
       }
     else
-      { # the second arg was not notation, must be a string then
+      { # the second arg was not a notation, must be a string then
         my $name= shift;
         delete $notation_list->{notations}->{$name};
       }
@@ -13751,11 +13751,11 @@ Return the entity declaration text.
 
 =item new
 
-Create an notation list.
+Create a notation list.
 
 =item add         ($notation)
 
-Add an notation to an notation list.
+Add a notation to a notation list.
 
 =item add_new_notation ($name, $base, $sysid, $pubid)
 
@@ -13763,7 +13763,7 @@ Create a new notation and add it to the notation list
 
 =item delete     ($notation or $tag).
 
-Delete an notation (defined by its name or by the Notation object)
+Delete a notation (defined by its name or by the Notation object)
 from the list.
 
 =item sprint
@@ -13790,7 +13790,7 @@ Same argumnotations as the Notation handler for XML::Parser.
 
 =item print       ($optional_filehandle)
 
-Print an notation declaration.
+Print a notation declaration.
 
 =item name
 
