@@ -173,10 +173,6 @@ if( $perl_version >= 5.008)
     { $weakrefs= 0;                                 }
 }
 
-import XML::Twig::Elt;
-import XML::Twig::Entity;
-import XML::Twig::Entity_list;
-
 # used to store the gi's
 # should be set for each twig really, at least when there are several
 # the init ensures that special gi's are always the same
@@ -4788,8 +4784,6 @@ sub list
 package XML::Twig::Entity;
 ######################################################################
 
-#*isa= *UNIVERSAL::isa;
-
 sub new
   { my( $class, $name, $val, $sysid, $pubid, $ndata, $param)= @_;
     $class= ref( $class) || $class;
@@ -4959,8 +4953,6 @@ sub list
 ######################################################################
 package XML::Twig::Notation;
 ######################################################################
-
-#*isa= *UNIVERSAL::isa;
 
 BEGIN
   { *sprint= *text;
