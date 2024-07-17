@@ -12,7 +12,7 @@ my( $help, $man, @roots, @paths, $files,
     $count, $nb_results, $nb_results_per_file,
     $encoding, @exclude,
     $wrap, $nowrap, $descr, $group, $pretty_print, $version, $text_only, $date, 
-    $html, $tidy, 
+    $html, $tidy, $css_sel,
     $add_ns,
     $verbose, $strict
   );
@@ -37,6 +37,7 @@ GetOptions( 'help'            => \$help,
             'nb_results=i'    => \$nb_results,
             'by_file=i'       => \$nb_results_per_file,
             'encoding=s'      => \$encoding,
+            'css_sel'         => \$css_sel,
             'wrap:s'          => \$wrap,
             'nowrap'          => \$nowrap,
             'descr:s'         => \$descr,
@@ -122,6 +123,7 @@ if( $tidy) { $html= 1; $options{use_tidy}= 1; }
 
 $options{pretty_print}    = $pretty_print if( $pretty_print);
 $options{output_encoding} = $encoding     if( $encoding); 
+$options{css_sel}         = $css_sel      if( $css_sel); 
      
 my $t= create_twig( %options);
 
