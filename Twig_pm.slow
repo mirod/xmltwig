@@ -5784,7 +5784,7 @@ sub reset_cond_cache { %cond_cache=(); }
 
       my $sub= qq{sub { $NO_WARNINGS; $init; return $not($test) ? \$_[0] : undef; } };
       my $s= eval $sub; ## no critic (ProhibitStringyEval)
-      #warn "cond: $cond\n$sub\n";
+      # warn "cond: $cond\n$sub\n";
       if( $@)
         { croak "wrong navigation condition '$original_cond' ($@);" }
       return $s;
@@ -5817,7 +5817,7 @@ sub reset_cond_cache { %cond_cache=(); }
           else
           # end optimization
             { # it does not exist (but might be created later), compare the strings
-              $gi_test = qq{ (\$_[0]->{gi} == (\$XML::Twig::gi2index{$gi} || 0))};
+              $gi_test = qq{ (\$_[0]->{gi} == (\$XML::Twig::gi2index{'$gi'} || 0))};
             }
         }
       else
@@ -5836,7 +5836,7 @@ sub reset_cond_cache { %cond_cache=(); }
       my $test = _and( $gi_test, $class_test, $id_test);
       # account for the (unlikely) case where a tag.class condition is actually a tag.withdot condition
       # but no tag.withdot element has yet been seen 
-      if( $gi && $gi ne '*' && $class) { $test = qq{((\$_[0]->{full_gi} == (\$XML::Twig::gi2index{$gi} || 0)) || $test)}; }
+      if( $gi && $gi ne '*' && $class) { $test = qq{((\$_[0]->{full_gi} == (\$XML::Twig::gi2index{'$gi'} || 0)) || $test)}; }
       #warn " full_gi is [$full_gi], test is: [$test]";
 
       return $test;
