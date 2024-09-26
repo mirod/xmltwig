@@ -2344,7 +2344,7 @@ sub _twig_end
       { if( $t->{twig_default_print})
           { # select the proper fh (and store the currently selected one)
             $t->_set_fh_to_twig_output_fh();
-            if( !$p->depth==1) { $t->{twig_right_after_root}=1; } #XX
+            if( !($p->depth==1)) { $t->{twig_right_after_root}=1; } #XX
             if( $t->{twig_keep_encoding})
               { $p->setHandlers( %twig_handlers_roots_print_original); }
             else
