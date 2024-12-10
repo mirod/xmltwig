@@ -29,7 +29,8 @@ while( <>)
     if( $] <= 5.005) { s{qr/(.*?)/}{"$1"} };
 
     $in_pod = 1 if m{^__END__};
-    if ($in_pod) {
+    # do not fix the pod EXCEPT for the =encoding line
+    if ($in_pod && ! m{^=encoding}) {
         print $_;
         next;
     }
@@ -39,7 +40,7 @@ while( <>)
       { $v= sprintf( "5%03d%03d", $v, $mv || 0);
         my $comp=  "$version $op $v";
         if( ! eval $comp) { print "#$_"; next; }
-        else              { s{#[^#]*\n}{\n} if m{^=encoding}; }
+        else              { s{\s*#[^#]*\n}{\n} if m{^=encoding}; }
       }
 
     if( /=/)
