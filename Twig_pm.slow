@@ -6067,19 +6067,18 @@ sub set_atts
 
 sub atts      { return $_[0]->{att};                }
 sub att_names { return (sort keys %{$_[0]->{att}}); }
-sub del_atts  { $_[0]->{att}={}; return $_[0];      }
+sub del_atts  { delete $_[0]->{att}; return $_[0];  }
 
 # get or set a single attribute (set works for several atts)
 sub set_att
   { my $elt= shift;
-
     if( $_[0] && ref( $_[0]) && !$_[1])
       { croak "improper call to set_att, usage is \$elt->set_att( att1 => 'val1', att2 => 'val2',...)"; }
 
-    unless( $elt->{att})
-      { $elt->{att}={};
-        tie %{$elt->{att}}, 'Tie::IxHash' if( keep_atts_order());
-      }
+    $elt->{att} ||= {};
+    # need to test on keys because the att hash is created, empty, by some methods,
+    # like sprint (through autovivification)
+    tie %{$elt->{att}}, 'Tie::IxHash' if keep_atts_order() && ! keys %{$elt->{att}};
 
     while(@_)
       { my( $att, $val)= (shift, shift);

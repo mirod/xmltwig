@@ -1,4 +1,9 @@
 CHANGES
+3.54
+
+- fixed del_atts/set_att broke keep_atts_order
+    see https://stackoverflow.com/questions/79369132
+
 3.53 - 2024-12-10 - minor maintenance release
 
 - fixed warning from recent perl version
