@@ -9,7 +9,7 @@ use File::Spec;
 use lib File::Spec->catdir(File::Spec->curdir,"t");
 use tools;
 
-my $TMAX=6;
+my $TMAX=8;
 print "1..$TMAX\n";
 
 # test that del_atts/set_att keeps the attribute hash tied
@@ -55,6 +55,22 @@ if( _use( 'Tie::IxHash')) {
 }
 else {
     skip( 6, "Tie::IxHash not available, skipping del_atts test with the keep_atts_order option");
+}
+
+# test that twig handlers on #TEXT are correctly called when set using setTwigHandlers
+# see https://github.com/mirod/xmltwig/issues/36
+{
+my $doc = '<d>text</d>';
+my $handler_triggered = 0;
+my $t1                = XML::Twig->new( twig_handlers => { '#TEXT' => sub { $handler_triggered=1; } } )->parse($doc);
+ok( $handler_triggered, 'handler on #TEXT' );
+my $t2 = XML::Twig->new();
+$handler_triggered = 0;
+$t2->setTwigHandlers( { '#TEXT' => sub { $handler_triggered=1; } } );
+$t2->parse($doc);
+
+ok( $handler_triggered, 'setTwigHandlers on #TEXT' );
+
 }
 
 exit;

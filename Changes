@@ -4,6 +4,9 @@ CHANGES
 - fixed del_atts/set_att broke keep_atts_order
     see https://stackoverflow.com/questions/79369132
 
+- fixed #TEXT handlers not being called when set using setTwigHandlers
+    see https://github.com/mirod/xmltwig/issues/36
+
 3.53 - 2024-12-10 - minor maintenance release
 
 - fixed warning from recent perl version

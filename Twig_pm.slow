@@ -2281,7 +2281,7 @@ sub _twig_end
 
     my $t=$p->{twig};
 
-    if( $t->{twig_in_pcdata} && (my $text_handler= $t->{TwigHandlers}->{$TEXT}) )
+    if( $t->{twig_in_pcdata} && (my $text_handler= $t->{twig_handlers}->{handlers}->{$TEXT}) )
       { local $_= $t->{twig_current}; $text_handler->( $t, $_) if $_;
       }
 
