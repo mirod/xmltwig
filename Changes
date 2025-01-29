@@ -11,6 +11,9 @@ CHANGES
     S and A in the variable
     see https://github.com/mirod/xmltwig/issues/32
 
+- fixed docs for comment processing
+    see https://github.com/mirod/xmltwig/issues/31
+
 3.53 - 2024-12-10 - minor maintenance release
 
 - fixed warning from recent perl version

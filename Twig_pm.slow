@@ -10755,7 +10755,7 @@ mandated by the XML spec. With this option on, > will be replaced by C<&gt;>
 
 =item comments
 
-Set the way comments are processed: 'C<drop>' (default), 'C<keep>' or
+Set the way comments are processed: 'C<drop>', 'C<keep>' (default) or
 'C<process>'
 
 Comments processing options:
@@ -10781,7 +10781,8 @@ methods like C<print> or C<sprint> will return the comments in the
 text. Using C<text> or C<field> on the other hand will not.
 
 Any use of C<set_pcdata> on the C<#PCDATA> element (directly or
-through other methods like C<set_content>) will delete the comment(s).
+through other methods like C<set_content>) will delete comment(s)
+in the middle of a text element.
 
 =item process
 
