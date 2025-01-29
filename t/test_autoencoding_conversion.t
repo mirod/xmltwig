@@ -8,9 +8,9 @@ use tools;
 
 print "1..2\n";
 
-if( $] < 5.008) 
+if( $] < 5.008)
   { skip( 2, "needs perl 5.8 or above to test auto conversion"); }
-elsif( $ENV{PERL_UNICODE} && $ENV{PERL_UNICODE}=~ m{SA})
+elsif( $ENV{PERL_UNICODE} && ($ENV{PERL_UNICODE}=~ m{S} && $ENV{PERL_UNICODE}=~ m{A}))
   { skip( 2, 'auto conversion does not happen when $PERL_UNICODE set to SA'); }
 else
   { _use( 'Encode');

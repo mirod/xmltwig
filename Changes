@@ -7,6 +7,10 @@ CHANGES
 - fixed #TEXT handlers not being called when set using setTwigHandlers
     see https://github.com/mirod/xmltwig/issues/36
 
+- fixed test special casing "SA" PERL_UNICODE instead of looking for 
+    S and A in the variable
+    see https://github.com/mirod/xmltwig/issues/32
+
 3.53 - 2024-12-10 - minor maintenance release
 
 - fixed warning from recent perl version
