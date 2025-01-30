@@ -17,6 +17,9 @@ CHANGES
 - documentation cleanup
     thanks to chrispitude for the massive cleanup in
     https://github.com/mirod/xmltwig/pull/34
+
+- improved strip_att to allow more than 1 attribute to be stripped
+    thanks to chrispitude for https://github.com/mirod/xmltwig/pull/37
     
 
 3.53 - 2024-12-10 - minor maintenance release
