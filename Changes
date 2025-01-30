@@ -17,6 +17,9 @@ CHANGES
 - documentation cleanup
     thanks to chrispitude for the massive cleanup in
     https://github.com/mirod/xmltwig/pull/34
+    and to zostay and asb-capfan for finding typos in
+    https://github.com/mirod/xmltwig/pull/29 and
+    https://github.com/mirod/xmltwig/pull/33
 
 - improved strip_att to allow more than 1 attribute to be stripped
     thanks to chrispitude for https://github.com/mirod/xmltwig/pull/37

@@ -8026,8 +8026,8 @@ BEGIN {
       # below this line styles are UNSAFE (the generated XML can be well-formed but invalid)
       nice       => $NICE,      # \n after open/close tags except when the
                                 # element starts with text
-      indented   => $INDENTED,  # nice plus idented
-      indented_close_tag   => $INDENTEDCT,  # nice plus idented
+      indented   => $INDENTED,  # nice plus indented
+      indented_close_tag   => $INDENTEDCT,  # nice plus indented
       indented_c => $INDENTEDC, # slightly more compact than indented (closing
                                 # tags are on the same line)
       wrapped    => $WRAPPED,   # text is wrapped at column
@@ -10707,7 +10707,7 @@ same line as the preceding text.
 Same as C<indented>, except that the closing tag is also indented, to line up
 with the tags within the element.
 
-=item idented_a
+=item indented_a
 
 This formats XML files in a line-oriented version control friendly way.
 The format is described in L<http://tinyurl.com/2kwscq> (that's an Oracle
@@ -10719,7 +10719,7 @@ you will need to use the C<L<keep_atts_order>> option.
 
 =item cvs
 
-Same as C<L<idented_a>>
+Same as C<L<indented_a>>
 
 =item wrapped
 
