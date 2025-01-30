@@ -30,6 +30,9 @@ CHANGES
     beforeend for last_child
     afterend for after
 
+- improved insert_new_elt to allow for the element to insert to be 
+    a well-formed XML string
+
 3.53 - 2024-12-10 - minor maintenance release
 
 - fixed warning from recent perl version

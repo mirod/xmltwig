@@ -9,7 +9,7 @@ use File::Spec;
 use lib File::Spec->catdir( File::Spec->curdir, "t" );
 use tools;
 
-my $TMAX = 11;
+my $TMAX = 17;
 print "1..$TMAX\n";
 
 # test that del_atts/set_att keeps the attribute hash tied
@@ -85,26 +85,55 @@ if ( _use('Tie::IxHash') ) {
 
 # test DOM style positions like beforebegin...
 {
-    my $doc = q{<d><e/></d>};
+    my $doc          = q{<d><e/></d>};
     my $expected_doc = q{<d><bb/><e><ab/><be/></e><ae/></d>};
 
-    my $t   = XML::Twig->new->parse($doc);
-    my $e   = $t->first_elt('e');
+    my $t = XML::Twig->new->parse($doc);
+    my $e = $t->first_elt('e');
     $e->insert_new_elt( beforebegin => 'bb' );
     $e->insert_new_elt( afterbegin  => 'ab' );
     $e->insert_new_elt( beforeend   => 'be' );
     $e->insert_new_elt( afterend    => 'ae' );
     is( $t->sprint, $expected_doc, 'insert_new_elt using HTML style position' );
 
-    $t   = XML::Twig->new->parse($doc);
-    $e   = $t->first_elt('e');
-    XML::Twig::Elt->new( 'bb' )->paste(beforebegin => $e);
-    XML::Twig::Elt->new( 'ab' )->paste(afterbegin => $e);
-    XML::Twig::Elt->new( 'be' )->paste(beforeend => $e);
-    XML::Twig::Elt->new( 'ae' )->paste(afterend => $e);
+    $t = XML::Twig->new->parse($doc);
+    $e = $t->first_elt('e');
+    XML::Twig::Elt->new('bb')->paste( beforebegin => $e );
+    XML::Twig::Elt->new('ab')->paste( afterbegin  => $e );
+    XML::Twig::Elt->new('be')->paste( beforeend   => $e );
+    XML::Twig::Elt->new('ae')->paste( afterend    => $e );
     is( $t->sprint, $expected_doc, 'paste using HTML style position' );
 
 }
 
+# test insert_new_elt with a string argument
+{
+    my $doc = q{<d><e/></d>};
+    my $t   = XML::Twig->new->parse($doc);
+
+    my $root = $t->root;
+    $root->insert_new_elt( afterbegin => '<ne/>' );
+    is( $t->sprint, '<d><ne/><e/></d>', 'insert_new_elt with string (afterbegin)' );
+    $root->insert_new_elt( beforeend => '<ne/>' );
+    is( $t->sprint, '<d><ne/><e/><ne/></d>', 'insert_new_elt with string (beforeend)' );
+    $root->first_child('e')->insert_new_elt( afterbegin => '<ne/>' );
+    is( $t->sprint, '<d><ne/><e><ne/></e><ne/></d>', 'insert_new_elt with string (afterbegin)' );
+    $root->first_child('e')->insert_new_elt( afterend => '<ne2/>' );
+    is( $t->sprint, '<d><ne/><e><ne/></e><ne2/><ne/></d>', 'insert_new_elt with string (afterend)' );
+
+}
+
+# test the error message for wrong positions
+{
+    my $t   = XML::Twig->new->parse('<d/>');
+    my $elt = XML::Twig::Elt->parse('<e/>');
+    my $res = eval { $elt->paste( beforebefore => $t->root ); };
+    nok( $res, 'wrong position argument causes an error' );
+    matches(
+        $@,
+        qr/wrong position.*after.*before.*first_child.*last_child/,
+        'wrong position argument error message includes allowed values'
+    );
+}
 exit;
 

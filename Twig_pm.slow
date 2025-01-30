@@ -5031,6 +5031,8 @@ my %POSITION_ALIAS = (
     afterend    => 'after',
 );
 
+my %OP_POSITION = reverse %POSITION_ALIAS;
+
 BEGIN
   { # set some aliases for methods
     *tag           = *gi;
@@ -5946,6 +5948,11 @@ sub _prev_siblings { my $elt= shift; my @siblings; while( $elt= $elt->{prev_sibl
 sub _op_position {
     my ($position) = @_;
     return $POSITION_ALIAS{$position} // $position;
+}
+
+# builds a message with allowed position
+sub _allowed_positions {
+    return join ', ', map { "$_ (or $OP_POSITION{$_})" } sort keys %OP_POSITION;
 }
 
 # sets a field
@@ -7292,9 +7299,8 @@ BEGIN
             $elt->$method( @_);
           }
         else
-          { croak "tried to paste in wrong position '$pos', allowed positions " .
-              " are 'first_child', 'last_child', 'before', 'after' and "    .
-              "'within'";
+          { croak "tried to paste in wrong position '$pos', allowed positions  are "
+            . _allowed_positions() . ".\n";
           }
         if( (my $ids= $elt->{twig_id_list}) && (my $t= $ref->twig) )
           { $t->{twig_id_list}||={};
@@ -9243,20 +9249,20 @@ sub insert
 # $elt->insert_new_element( $opt_position, $gi, $opt_atts_hash, @opt_content);
 # the element is created with the same syntax as new
 # position is the same as in paste, first_child by default
-sub insert_new_elt
-  { my $elt= shift;
+sub insert_new_elt {
+    my $elt= shift;
     my $position= _op_position($_[0]);
-    if(     ($position eq 'before') || ($position eq 'after')
-         || ($position eq 'first_child') || ($position eq 'last_child'))
+    if( $OP_POSITION{$position} )
       { shift; }
     else
       { $position= 'first_child'; }
 
-    my $new_elt= $elt->new( @_);
-    $new_elt->paste( $position, $elt);
+    my $new_elt =  !ref( $_[0] ) && $_[0] =~ m{^\s*<}
+        ? $elt->parse( $_[0], elt_class => ref($elt) ) # arg is an xml string
+        : $elt->new( @_);                              # args are tag/atts/conten
 
-    return $new_elt;
-  }
+    $new_elt->paste( $position, $elt);
+}
 
 # wraps an element in elements which gi's are given as arguments
 # $elt->wrap_in( 'td', 'tr', 'table') wraps the element as a single
@@ -12941,12 +12947,22 @@ set on the wrapping element:
 
   $elt->wrap_in( p => { class => "advisory" }, div => { class => "intro", id => "div_intro" });
 
-=item insert_new_elt ($opt_position, $tag, $opt_atts_hashref, @opt_content)
+=item insert_new_elt ($opt_position, @args)
 
-Combines a C<L<new> > and a C<L<paste> >: creates a new element using
-C<$tag>, C<$opt_atts_hashref >and C<@opt_content> which are arguments similar
-to those for C<new>, then paste it, using C<$opt_position> or C<'first_child'>,
-relative to C<$elt>.
+Combines a C<L<new> > and a C<L<paste> >: creates a new element and pastes it,
+using C<$opt_position> or C<'first_child'>, relative to C<$elt>
+
+C<@args> can be either a string (which must be well-formed XML), or the same
+arguments as for the C<new> method: C<$tag>, C<$opt_atts_hashref>
+and C<@opt_content>.
+
+Examples:
+
+    $elt->insert_new_elt( first_child => p => { class => 'new_p' }, 'the new element' );
+
+or
+    $elt->insert_new_elt( first_child => '<p class="new_p">the new element</p>' );
+
 
 Returns the newly created element.
 
