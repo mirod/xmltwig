@@ -9726,7 +9726,7 @@ XML::Twig - A perl module for processing huge XML documents in tree mode.
 Note that this documentation is intended as a reference to the module.
 
 Complete docs, including a tutorial, examples, an easier to use HTML version,
-a quick reference card and a FAQ are available at L<http://www.xmltwig.org/xmltwig>
+a quick reference card and a FAQ are available at L<http://www.xmltwig.org/xmltwig>.
 
 Small documents (loaded in memory as a tree):
 
@@ -9842,11 +9842,11 @@ attribute to the C<bar> value,
 L<next_sibling>: C<< $elt->next_sibling >> return the next sibling
 in the document (in the example C<< $title->next_sibling >> is the first
 C<para>, you can also (and actually should) use
-C<< $elt->next_sibling( 'para') >> to get it
+C<< $elt->next_sibling( 'para') >> to get it.
 
 The document can also be transformed through the use of the L<cut>,
 L<copy>, L<paste> and L<move> methods:
-C<< $title->cut; $title->paste( after => $p); >> for example
+C<< $title->cut; $title->paste( after => $p); >> for example.
 
 And much, much more, see L<XML::Twig::Elt|/XML::Twig::Elt>.
 
@@ -9965,26 +9965,26 @@ XML::Parser and expat than to the OS, so this should cover some
 reasonable configurations.
 
 The "recommended configuration" is perl 5.8.3+ (for good Unicode
-support), XML::Parser 2.31+, and expat 1.95.5+
+support), XML::Parser 2.31+, and expat 1.95.5+.
 
 See L<http://testers.cpan.org/search?request=dist&dist=XML-Twig> for the
 CPAN testers reports on XML::Twig, which list all tested configurations.
 
 An Atom feed of the CPAN Testers results is available at
-L<http://xmltwig.org/rss/twig_testers.rss>
+L<http://xmltwig.org/rss/twig_testers.rss>.
 
 Finally:
 
 =over 4
 
-=item XML::Twig does B<NOT> work with expat 1.95.4
+=item XML::Twig does B<NOT> work with expat 1.95.4.
 
-=item  XML::Twig only works with XML::Parser 2.27 in perl 5.6.*
+=item  XML::Twig only works with XML::Parser 2.27 in perl 5.6.*.
 
 Note that I can't compile XML::Parser 2.27 anymore, so I can't guarantee
 that it still works.
 
-=item XML::Parser 2.28 does not really work
+=item XML::Parser 2.28 does not really work.
 
 =back
 
@@ -9992,7 +9992,7 @@ When in doubt, upgrade expat, XML::Parser, and Scalar::Util.
 
 Finally, for some optional features, XML::Twig depends on some additional
 modules. The complete list, which depends somewhat on the version of Perl
-that you are running, is given by running C<t/zz_dump_config.t>
+that you are running, is given by running C<t/zz_dump_config.t>.
 
 =head1 Simplifying XML processing
 
@@ -10129,11 +10129,11 @@ instruction with the given target( ex: C<'#PI xml-stylesheet'>).
 
 =item level(<level>)
 
-Triggers the handler on any element at that level in the tree (root is level 1)
+Triggers the handler on any element at that level in the tree (root is level 1).
 
 =item _all_
 
-Triggers the handler for B<all> elements in the tree
+Triggers the handler for B<all> elements in the tree.
 
 =item _default_
 
@@ -10181,7 +10181,7 @@ sub-tree for the element.
 Because handlers are called only when the closing tag for the element is found,
 this means that handlers for inner elements are called before handlers for outer elements.
 
-C<$_> is also set to the element, so it is easy to write inline handlers like
+C<$_> is also set to the element, so it is easy to write inline handlers like:
 
   para => sub { $_->set_tag( 'p'); }
 
@@ -10204,7 +10204,6 @@ interested in.
            my $t= XML::Twig->new( twig_roots => { 'section/title' => 1});
            $t->parsefile( file);
 
-
 returns a twig containing a document including only C<title> and C<subtitle>
 elements, as children of the root element.
 
@@ -10220,7 +10219,7 @@ is used, they will be checked against the full document tree, not the virtual
 tree created by XML::Twig.
 
 B<WARNING>: twig_roots elements should NOT be nested, that would hopelessly
-confuse XML::Twig ;--(
+confuse XML::Twig.
 
 Note: You can set handlers (twig_handlers) using twig_roots
   Example: my $t= XML::Twig->new( twig_roots =>
@@ -10423,7 +10422,7 @@ B<WARNING>: If the original encoding is multi-byte then attribute parsing will
 be EXTREMELY unsafe under any Perl before 5.6, as it uses regular expressions
 which do not deal properly with multi-byte characters. You can specify an
 alternate function to parse the start tags with the C<parse_start_tag> option
-(see below)
+(see below).
 
 B<WARNING>: This option is NOT used when parsing with the non-blocking parser
 (C<parse_start>, C<parse_more>, parse_done methods) which you probably should
@@ -10615,7 +10614,7 @@ Does not output a prolog (XML declaration and DTD).
 This optional argument gives the name of an attribute that can be used as
 an ID in the document. Elements whose ID is known can be accessed through
 the elt_id method. id defaults to 'id'.
-See C<L<BUGS> >
+See C<L<BUGS> >.
 
 =item discard_spaces
 
@@ -10670,7 +10669,7 @@ space that was previously discarded might end up in a new text element.
 
 Sets the pretty print method. Values are 'C<none>' (default), 'C<nsgmls>',
 'C<nice>', 'C<indented>', 'C<indented_c>', 'C<indented_a>',
-'C<indented_close_tag>', 'C<cvs>', 'C<wrapped>', 'C<record>' and 'C<record_c>'
+'C<indented_close_tag>', 'C<cvs>', 'C<wrapped>', 'C<record>' and 'C<record_c>'.
 
 pretty_print formats:
 
@@ -10697,11 +10696,11 @@ This option inserts line breaks before any tag that does not contain text (so
 elements with textual content are not broken as the \n is the significant).
 
 B<WARNING>: This option leaves the document well-formed but might make it
-invalid (not conformant to its DTD). If you have elements declared as
+invalid (not conformant to its DTD). If you have elements declared as:
 
   <!ELEMENT foo (#PCDATA|bar)>
 
-then a C<foo> element including a C<bar> one will be printed as
+then a C<foo> element including a C<bar> one will be printed as:
 
   <foo>
   <bar>bar is just pcdata</bar>
@@ -10738,7 +10737,7 @@ you will need to use the C<L<keep_atts_order> > option.
 
 =item cvs
 
-Same as C<L<indented_a> >
+Same as C<L<indented_a> >.
 
 =item wrapped
 
@@ -10749,7 +10748,7 @@ be changed by changing that variable.
 =item record
 
 This is a record-oriented pretty print that display data in records, one field
-per line (which looks a LOT like C<indented>)
+per line (which looks a LOT like C<indented>).
 
 =item record_c
 
@@ -10763,7 +10762,7 @@ Sets the empty tag display style ('C<normal>', 'C<html>' or 'C<expand>').
 
 C<normal> outputs an empty tag 'C<< <tag/> >>', C<html> adds a space
 'C<< <tag /> >>' for elements that can be empty in XHTML and C<expand> outputs
-'C<< <tag></tag> >>'
+'C<< <tag></tag> >>'.
 
 =item quote
 
@@ -10793,7 +10792,7 @@ Comments are loaded and will appear on the output; they are not
 accessible within the twig and will not interfere with processing
 though.
 
-B<Note>: Comments in the middle of a text element such as
+B<Note>: Comments in the middle of a text element such as:
 
   <p>text <!-- comment --> more text --></p>
 
@@ -10933,7 +10932,7 @@ Creates methods that give direct access to the first child element (in scalar co
 or the list of elements (in list context):
 
 The list of accessors to create can be given in two different ways: in an array,
-or in a hash alias => expression
+or in a hash alias => expression.
 
   my $t=  XML::Twig->new( elt_accessors => [ 'head'])
                   ->parsefile( $file);
@@ -10961,7 +10960,7 @@ Set this option to use HTML::Tidy instead of HTML::TreeBuilder to convert
 HTML to XML. For HTML, especially real (real "crap") HTML found in the wild,
 one module or the other does a better job at
 the conversion. Also, HTML::Tidy can be a bit difficult to install, so
-XML::Twig offers both option. TIMTOWTDI
+XML::Twig offers both option. TIMTOWTDI.
 
 =item output_html_doctype
 
@@ -11003,7 +11002,7 @@ is actually recommended to use C<parsefile> on the file name, instead of
 
 =item parsestring
 
-Same as C<parse> (for backwards compatibility)
+Same as C<parse> (for backwards compatibility).
 
 =item parsefile (FILE [, OPT => OPT_VALUE [...]])
 
@@ -11035,14 +11034,14 @@ chunks the size of the XML::Parser::Expat buffer, so memory consumption and
 hopefully speed are optimal.
 
 For most (read "small") XML it is probably as efficient (and easier to debug)
-to just C<get> the XML file and then parse it as a string.
+to just C<get> the XML file and then parse it as a string:
 
   use XML::Twig;
   use LWP::Simple;
   my $twig= XML::Twig->new();
   $twig->parse( LWP::Simple::get( $URL ));
 
-or
+or:
 
   use XML::Twig;
   my $twig= XML::Twig->nparse( $URL);
@@ -11063,7 +11062,7 @@ no way to keep going after an error.
 
 This method is similar to C<parsefile> except that it wraps the parsing in an
 C<eval> block. It returns the twig on success and 0 on failure (the twig object
-also contains the parsed twig) . C<$@> contains the error message on failure
+also contains the parsed twig) . C<$@> contains the error message on failure.
 
 Note that the parsing still stops as soon as an error is detected; there is
 no way to keep going after an error.
@@ -11072,7 +11071,7 @@ no way to keep going after an error.
 
 Same as C<parseurl> except that it wraps the parsing in an C<eval> block. It
 returns the twig on success and 0 on failure (the twig object also contains
-the parsed twig) . C<$@> contains the error message on failure
+the parsed twig) . C<$@> contains the error message on failure.
 
 =item parse_html ($string_or_fh)
 
@@ -11082,7 +11081,7 @@ HTML::TreeBuilder, which needs to be available).
 This works nicely, but some information gets lost in the process:
 newlines are removed, and (at least on the version I use) comments
 get an extra CDATA section inside ( <!-- foo --> becomes
-<!-- <![CDATA[ foo ]]> -->
+<!-- <![CDATA[ foo ]]> -->.
 
 =item parsefile_html ($file)
 
@@ -11193,7 +11192,7 @@ reference to the previous handler is returned.
 
 =item setTwigRoots ($handlers)
 
-Same as using the C<L<twig_roots> > option when creating the twig
+Same as using the C<L<twig_roots> > option when creating the twig.
 
 =item setCharHandler ($exp $handler)
 
@@ -11272,7 +11271,7 @@ Returns the element whose C<id> attribute is $id.
 
 =item getEltById
 
-Same as C<L<elt_id> >
+Same as C<L<elt_id> >.
 
 =item index ($index_name, $optional_index)
 
@@ -11343,15 +11342,15 @@ Returns the entity.
 
 =item notation_list
 
-Return the notation list of a twig
+Returns the notation list of a twig.
 
 =item notation_names
 
-Return the list of all defined notations
+Returns the list of all defined notations.
 
 =item notation ($notation_name)
 
-Return the notation
+Returns the notation.
 
 =item change_gi ($old_gi, $new_gi)
 
@@ -11475,7 +11474,7 @@ not be built anymore for it and what has already been built will be deleted).
 
 Set the pretty print method, amongst 'C<none>' (default), 'C<nsgmls>',
 'C<nice>', 'C<indented>', C<indented_c>, 'C<wrapped>', 'C<record>' and
-'C<record_c>'
+'C<record_c>'.
 
 B<WARNING:> The pretty print style is a B<GLOBAL> variable, so once set it
 applies to B<ALL> C<print>'s (and C<sprint>'s). Same goes if you use XML::Twig
@@ -11534,23 +11533,23 @@ C<finish_now> is called are considered closed).
 
 =item set_expand_external_entities
 
-Same as using the C<L<expand_external_ents> > option when creating the twig
+Same as using the C<L<expand_external_ents> > option when creating the twig.
 
 =item set_input_filter
 
-Same as using the C<L<input_filter> > option when creating the twig
+Same as using the C<L<input_filter> > option when creating the twig.
 
 =item set_keep_atts_order
 
-Same as using the C<L<keep_atts_order> > option when creating the twig
+Same as using the C<L<keep_atts_order> > option when creating the twig.
 
 =item set_keep_encoding
 
-Same as using the C<L<keep_encoding> > option when creating the twig
+Same as using the C<L<keep_encoding> > option when creating the twig.
 
 =item escape_gt
 
-Same as using the C<L<escape_gt> > option when creating the twig
+Same as using the C<L<escape_gt> > option when creating the twig.
 
 =item do_not_escape_gt
 
@@ -11558,11 +11557,11 @@ Reverts XML::Twig behavior to its default of not escaping > in its output.
 
 =item set_output_filter
 
-Same as using the C<L<output_filter> > option when creating the twig
+Same as using the C<L<output_filter> > option when creating the twig.
 
 =item set_output_text_filter
 
-Same as using the C<L<output_text_filter> > option when creating the twig
+Same as using the C<L<output_text_filter> > option when creating the twig.
 
 =item add_stylesheet ($type, @options)
 
@@ -11574,7 +11573,7 @@ Supported types and options are:
 
 =item xsl
 
-option: the url of the stylesheet
+Option: the url of the stylesheet.
 
 Example:
 
@@ -11586,7 +11585,7 @@ will generate the following PI at the beginning of the document:
 
 =item css
 
-option: the url of the stylesheet
+Option: the url of the stylesheet.
 
 =item active_twig
 
@@ -11719,11 +11718,11 @@ refined in further steps.
 
 =item find_nodes ( $optional_array_ref, $xpath, $optional_offset)
 
-Same as C<get_xpath>
+Same as C<get_xpath>.
 
 =item findnodes ( $optional_array_ref, $xpath, $optional_offset)
 
-Same as C<get_xpath> (similar to the XML::LibXML method)
+Same as C<get_xpath> (similar to the XML::LibXML method).
 
 =item findvalue ( $optional_array_ref, $xpath, $optional_offset)
 
@@ -11759,11 +11758,11 @@ that can be called on elements:
   $elt->foo( 'bar'); # equivalent to $elt->set_att( foo => 'bar');
 
 The methods are l-valued only under those perl's that support this
-feature (5.6 and above)
+feature (5.6 and above).
 
 =item create_accessors (list_of_attribute_names)
 
-Same as att_accessors
+Same as att_accessors.
 
 =item elt_accessors (list_of_attribute_names)
 
@@ -11799,7 +11798,7 @@ Returns the newly created element.
 The C<tag> is optional (but then you can't have content!), the C<$optional_atts>
 argument is a reference to a hash of attributes, the content can be just a
 string or a list of strings and element. A content of 'C<#EMPTY>' creates an empty
-element;
+element.
 
  Examples: my $elt= XML::Twig::Elt->new();
            my $elt= XML::Twig::Elt->new( para => { align => 'center' });
@@ -11827,7 +11826,7 @@ An attribute of '#CDATA', when set, creates the content of the element as CDATA:
 
   my $elt= XML::Twig::Elt->new( 'p' => { '#CDATA' => 1}, 'foo < bar');
 
-creates an element
+creates an element.
 
   <p><![CDATA[foo < bar]]></>
 
@@ -11899,11 +11898,11 @@ C<tag> and C<name> are synonyms of C<gi>.
 
 =item tag
 
-Same as C<L<gi> >
+Same as C<L<gi> >.
 
 =item name
 
-Same as C<L<gi> >
+Same as C<L<gi> >.
 
 =item set_gi ($tag)
 
@@ -11913,11 +11912,11 @@ Returns the calling element.
 
 =item set_tag ($tag)
 
-Same as C<L<set_gi> >
+Same as C<L<set_gi> >.
 
 =item set_name ($name)
 
-Same as C<L<set_gi> >
+Same as C<L<set_gi> >.
 
 =item root
 
@@ -11939,11 +11938,11 @@ C<$optional_condition>.
 
 =item has_child ($optional_condition)
 
-Same as L<first_child>
+Same as L<first_child>.
 
 =item has_children ($optional_condition)
 
-Same as L<first_child>
+Same as L<first_child>.
 
 =item first_child_text ($optional_condition)
 
@@ -11996,7 +11995,7 @@ All these methods also exist in "trimmed" variants:
 
 =item field ($condition)
 
-Same as C<first_child_text>
+Same as C<first_child_text>.
 
 =item fields ($condition_list)
 
@@ -12005,7 +12004,7 @@ Missing fields are returned as empty strings.
 
 =item trimmed_field ($optional_condition)
 
-Same as C<first_child_trimmed_text>
+Same as C<first_child_trimmed_text>.
 
 =item set_field ($condition, $optional_atts, @list_of_elt_and_strings)
 
@@ -12025,7 +12024,7 @@ the C<$optional_condition>, C<undef> otherwise.
 
   if( $elt->first_child_matches( 'title')) ...
 
-is equivalent to
+is equivalent to:
 
   if( $elt->{first_child} && $elt->{first_child}->passes( 'title'))
 
@@ -12050,7 +12049,7 @@ Similar methods are available for the other navigation methods:
 =back
 
 =item first_child_is ($optional_condition)
-Same as C<first_child_matches>
+Same as C<first_child_matches>.
 
 =item is_first_child ($optional_condition)
 
@@ -12099,23 +12098,23 @@ simply the parent.
 
 =item next_n_elt ($offset, $optional_condition)
 
-Returns the C<$offset>-th element that matches the C<$optional_condition>
+Returns the C<$offset>-th element that matches the C<$optional_condition>.
 
 =item following_elt
 
-Returns the following element (as per the XPath following axis)
+Returns the following element (as per the XPath following axis).
 
 =item preceding_elt
 
-Returns the preceding element (as per the XPath preceding axis)
+Returns the preceding element (as per the XPath preceding axis).
 
 =item following_elts
 
-Returns the list of following elements (as per the XPath following axis)
+Returns the list of following elements (as per the XPath following axis).
 
 =item preceding_elts
 
-Returns the list of preceding elements (as per the XPath preceding axis)
+Returns the list of preceding elements (as per the XPath preceding axis).
 
 =item children ($optional_condition)
 
@@ -12125,7 +12124,7 @@ the element. The list is in document order.
 =item children_count ($optional_condition)
 
 Returns the number of children of the element (optionally which matches
-C<$optional_condition>)
+C<$optional_condition>).
 
 =item children_text ($optional_condition)
 
@@ -12145,7 +12144,7 @@ matching children (and their descendants).
 =item children_copy ($optional_condition)
 
 Returns a list of elements that are copies of the children of the element,
-optionally only those which match C<$optional_condition>
+optionally only those which match C<$optional_condition>.
 
 =item descendants ($optional_condition)
 
@@ -12155,41 +12154,41 @@ C<getElementsByTagName> of the DOM. (By the way, if you are really a DOM
 addict, you can use C<getElementsByTagName> instead.)
 
 NOTE: The element itself is not part of the list; to include it,
-use C<L<descendants_or_self> >
+use C<L<descendants_or_self> >.
 
 =item getElementsByTagName ($optional_condition)
 
-Same as C<L<descendants> >
+Same as C<L<descendants> >.
 
 =item find_by_tag_name ($optional_condition)
 
-Same as C<L<descendants> >
+Same as C<L<descendants> >.
 
 =item descendants_or_self ($optional_condition)
 
 Same as C<L<descendants> > except that the element itself is included in the list
-if it matches the C<$optional_condition>
+if it matches the C<$optional_condition>.
 
 =item first_descendant ($optional_condition)
 
-Returns the first descendant of the element that matches the condition
+Returns the first descendant of the element that matches the condition.
 
 =item last_descendant ($optional_condition)
 
-Returns the last descendant of the element that matches the condition
+Returns the last descendant of the element that matches the condition.
 
 =item ancestors ($optional_condition)
 
 Returns the list of ancestors (optionally matching C<$optional_condition>) of the
-element. The list is ordered from the innermost ancestor to the outermost one
+element. The list is ordered from the innermost ancestor to the outermost one.
 
 NOTE: The element itself is not part of the list; to include it,
-use C<L<ancestors_or_self> >
+use C<L<ancestors_or_self> >.
 
 =item ancestors_or_self ($optional_condition)
 
 Same as C<L<ancestors> > except that the element itself is included in the list
-if it matches the C<$optional_condition>
+if it matches the C<$optional_condition>.
 
 =item passes ($condition)
 
@@ -12197,21 +12196,21 @@ Returns the calling element if it passes the C<$condition>, else C<undef>.
 
 =item att ($att)
 
-Returns the value of attribute C<$att> or C<undef>
+Returns the value of attribute C<$att> or C<undef>.
 
 =item latt ($att)
 
-Returns the value of attribute C<$att> or C<undef>
+Returns the value of attribute C<$att> or C<undef>.
 
 This method is an lvalue, so you can do C<< $elt->latt( 'foo') = 'bar' >> or
-C<< $elt->latt( 'foo')++; >>
+C<< $elt->latt( 'foo')++; >>.
 
 If you are working with ID values, use C<id> or C<set_id> instead so that the internal
 ID hash is updated.
 
 =item set_att ($att, $att_value)
 
-Sets the attribute of the element to the given value
+Sets the attribute of the element to the given value.
 
 You can set several attributes at once:
 
@@ -12231,7 +12230,7 @@ Returns the calling element.
 
 =item att_exists ($att)
 
-Returns true (1) if the attribute C<$att> exists for the element, false ('') otherwise
+Returns true (1) if the attribute C<$att> exists for the element, false ('') otherwise.
 
 =item cut
 
@@ -12243,7 +12242,7 @@ still be accessed using the former_* methods.
 
 =item former_next_sibling
 
-Returns the former next sibling of a cut node (or C<undef> if the node has not been cut)
+Returns the former next sibling of a cut node (or C<undef> if the node has not been cut).
 
 This makes it easier to write loops where you cut elements:
 
@@ -12253,11 +12252,11 @@ This makes it easier to write loops where you cut elements:
 
 =item former_prev_sibling
 
-Returns the former previous sibling of a cut node (or C<undef> if the node has not been cut)
+Returns the former previous sibling of a cut node (or C<undef> if the node has not been cut).
 
 =item former_parent
 
-Returns the former parent of a cut node (or C<undef> if the node has not been cut)
+Returns the former parent of a cut node (or C<undef> if the node has not been cut).
 
 =item cut_children ($optional_condition)
 
@@ -12290,7 +12289,7 @@ Note that the calling element is pasted, not the reference element:
   $child->paste( first_child => $existing_parent);
   $new_sibling->paste( after => $this_sibling_is_already_in_the_tree);
 
-or
+or:
 
   my $new_elt= XML::Twig::Elt->new( tag => $content);
   $new_elt->paste( $position => $existing_elt);
@@ -12312,13 +12311,13 @@ Position options:
 
 =item first_child (default)
 
-The element is pasted as the first child of C<$ref>
+The element is pasted as the first child of C<$ref>.
 
 The DOM style position <afterbegin> can be used as an alias to C<first_child>.
 
 =item last_child
 
-The element is pasted as the last child of C<$ref>
+The element is pasted as the last child of C<$ref>.
 
 The DOM style position <beforeend> can be used as an alias to C<last_child>.
 
@@ -12376,7 +12375,7 @@ Returns the provided replacement element.
 
 =item replace_with (@elts)
 
-Replaces the calling element with one or more elements
+Replaces the calling element with one or more elements.
 
 Returns the first element in the provided list.
 
@@ -12429,7 +12428,7 @@ split between several elements:
 
   <doc>  text <b>  hah! </b>  yep</doc>
 
-gets trimmed to
+gets trimmed to:
 
   <doc>text <b> hah! </b> yep</doc>
 
@@ -12467,11 +12466,11 @@ the XML::Twig 101 section at the top of the docs for more information.
 
 =item normalize_space
 
-aka normalise_space
+aka normalise_space.
 
 =item variables (%var_hash)
 
-%var_hash is a hash { name => value }
+%var_hash is a hash { name => value }.
 
 This option allows variables in the XML to be expanded when the file is read. (there is no facility for putting the variable names back if you regenerate XML using XMLout).
 
@@ -12538,10 +12537,10 @@ A YAML dump of the structure:
 
 Splits a text (C<#PCDATA> or C<#CDATA>) element in 2 at C<$offset>, the original
 element now holds the first part of the string and a new element holds the
-right part. The new element is returned
+right part. The new element is returned.
 
 If the element is not a text element then the first text child of the element
-is split
+is split.
 
 =item split ( $optional_regexp, $tag1, $atts1, $tag2, $atts2...)
 
@@ -12550,11 +12549,11 @@ the C<$regexp>, if the regexp includes () then the matched separators will be
 wrapped in elements.  C<$1> is wrapped in $tag1, with attributes C<$atts1> if
 C<$atts1> is given (as a hashref), C<$2> is wrapped in $tag2...
 
-if $elt is C<< <p>tati tata <b>tutu tati titi</b> tata tati tata</p> >>
+if C<$elt> is C<< <p>tati tata <b>tutu tati titi</b> tata tati tata</p> >>:
 
   $elt->split( qr/(ta)ti/, 'foo', {type => 'toto'} )
 
-will change $elt to
+will change C<$elt> to:
 
   <p><foo type="toto">ta</foo> tata <b>tutu <foo type="toto">ta</foo>
       titi</b> tata <foo type="toto">ta</foo> tata</p>
@@ -12617,7 +12616,7 @@ For example, if the element C<$elt> has the following content:
     <p>content</p>
   </body>
 
-Then after running the code
+Then after running the code:
 
   $elt->wrap_children('<h3>.*?(?=(<h.>)|$)', 'topic');  # <h.> can match h1/h2/h3
   $elt->wrap_children('<h2>.*?(?=(<h.>)|$)', 'topic');  # <h.> can match h1/h2
@@ -12691,7 +12690,7 @@ in a perl substitution, and that it is performed on all text descendants
 of the element.
 
 B<Bug>: in the C<$regexp>, you can only use C<\1>, C<\2>... if the replacement
-expression does not include elements or attributes. eg
+expression does not include elements or attributes. eg:
 
   $t->subs_text( qr/((t[aiou])\2)/, '$2');             # ok, replaces toto, tata, titi, tutu by to, ta, ti, tu
   $t->subs_text( qr/((t[aiou])\2)/, '&elt(p => $1)' ); # NOK, does not find toto...
@@ -12746,17 +12745,17 @@ All children are sorted.
 
 Returns the calling element, with its children sorted.
 
-C<%options> are
+C<%options> are:
 
   type  : numeric |  alpha     (default: alpha)
   order : normal  |  reverse   (default: normal)
 
-Return the element, with its children sorted
+Returns the element, with its children sorted.
 
 =item sort_children_on_att ($att, %options)
 
 Sorts the children of the element in place according to attribute C<$att>.
-C<%options> are the same as for C<sort_children_on_value>
+C<%options> are the same as for C<sort_children_on_value>.
 
 Returns the calling element, with its children sorted.
 
@@ -12880,11 +12879,11 @@ XPath engine with full coverage of the spec.
 
 =item find_nodes
 
-Same as C<get_xpath>
+Same as C<get_xpath>.
 
 =item findnodes
 
-Same as C<get_xpath>
+Same as C<get_xpath>.
 
 =item text @optional_options
 
@@ -12950,7 +12949,7 @@ set on the wrapping element:
 =item insert_new_elt ($opt_position, @args)
 
 Combines a C<L<new> > and a C<L<paste> >: creates a new element and pastes it,
-using C<$opt_position> or C<'first_child'>, relative to C<$elt>
+using C<$opt_position> or C<'first_child'>, relative to C<$elt>.
 
 C<@args> can be either a string (which must be well-formed XML), or the same
 arguments as for the C<new> method: C<$tag>, C<$opt_atts_hashref>
@@ -12960,9 +12959,9 @@ Examples:
 
     $elt->insert_new_elt( first_child => p => { class => 'new_p' }, 'the new element' );
 
-or
-    $elt->insert_new_elt( first_child => '<p class="new_p">the new element</p>' );
+or:
 
+    $elt->insert_new_elt( first_child => '<p class="new_p">the new element</p>' );
 
 Returns the newly created element.
 
@@ -13049,7 +13048,7 @@ C<#PCDATA>.
 =item pcdata_xml_string
 
 Returns the text of a C<#PCDATA> element or C<undef> if the element is not C<#PCDATA>.
-The text is "XML-escaped" ('&' and '<' are replaced by '&amp;' and '&lt;')
+The text is "XML-escaped" ('&' and '<' are replaced by '&amp;' and '&lt;').
 
 =item set_pcdata ($text)
 
@@ -13136,7 +13135,7 @@ element is completely loaded or not.
 =item get_type
 
 Returns the type of the element: 'C<#ELT>' for "real" elements, or 'C<#PCDATA>',
-'C<#CDATA>', 'C<#COMMENT>', 'C<#ENT>', 'C<#PI>'
+'C<#CDATA>', 'C<#COMMENT>', 'C<#ENT>', 'C<#PI>'.
 
 =item is_elt
 
@@ -13160,7 +13159,7 @@ otherwise returns false (0).
 
 =item is_field
 
-Same as C<contains_only_text>
+Same as C<contains_only_text>.
 
 =item is_pcdata
 
@@ -13251,14 +13250,14 @@ Note that an XML comment cannot start or end with a '-', or include '--'
 if that is the case (because you have created the comment yourself presumably,
 as it could not be in the input XML), then a space will be inserted before
 an initial '-', after a trailing one or between two '-' in the comment
-(which could presumably mangle javascript "hidden" in an XHTML comment);
+(which could presumably mangle javascript "hidden" in an XHTML comment).
 
 The element must be a valid comment element.
 
 =item set_ent ($entity)
 
 Sets an (non-expanded) entity (C<#ENT>). C<$entity>) is the entity
-text (C<&ent;>)
+text (C<&ent;>).
 
 Returns the calling element.
 
@@ -13341,7 +13340,7 @@ are counted. If the element itself does not match the condition, then
 
 =item atts
 
-Returns a hash ref containing the element attributes
+Returns a hash ref containing the element attributes.
 
 =item set_atts ({ att1=>$att1_val, att2=> $att2_val... })
 
@@ -13349,7 +13348,7 @@ Set the element attributes with the hash ref supplied as the argument. The previ
 attributes are lost (ie the attributes set by C<set_atts> replace all of the
 attributes of the element).
 
-You can also pass a list instead of a hashref: C<< $elt->set_atts( att1 => 'val1',...) >>
+You can also pass a list instead of a hashref: C<< $elt->set_atts( att1 => 'val1',...) >>.
 
 =item del_atts
 
@@ -13379,7 +13378,7 @@ Returns the attribute value, where '&', '<' and quote (" or the value of the quo
 at twig creation) are XML-escaped.
 
 The options are passed as a hashref. Setting C<escape_gt> to a true value will also escape
-'>' ($elt( 'myatt', { escape_gt => 1 });
+'>'.
 
 =item set_id ($id)
 
@@ -13408,7 +13407,7 @@ will eventually be displayed using CSS).
 =item lclass
 
 Same as C<L<class> >, except that
-this method is an lvalue, so you can do C<< $elt->lclass= "foo" >>
+this method is an lvalue, so you can do C<< $elt->lclass= "foo" >>.
 
 =item set_class ($class)
 
@@ -13431,13 +13430,13 @@ Returns the calling element.
 Remove C<$class> from the element C<class> attribute.
 
 Note that classes are then sorted alphabetically, so the C<class> attribute can be
-changed even if the class is already there
+changed even if the class is already there.
 
 Returns the calling element.
 
 =item add_to_class ($class)
 
-Same as add_class
+Same as add_class.
 
 =item att_to_class ($att)
 
@@ -13515,11 +13514,11 @@ of any included sub-elements (same as C<L<xml_text_only> >).
 
 =item inner_xml
 
-Same as xml_string
+Same as xml_string.
 
 =item outer_xml
 
-Same as sprint
+Same as sprint.
 
 =item xml_text
 
@@ -13534,7 +13533,7 @@ the text of sub-elements.
 =item set_pretty_print ($style)
 
 Sets the pretty print method, amongst 'C<none>' (default), 'C<nsgmls>',
-'C<nice>', 'C<indented>', 'C<record>' and 'C<record_c>'
+'C<nice>', 'C<indented>', 'C<record>' and 'C<record_c>'.
 
 pretty_print styles:
 
@@ -13542,27 +13541,27 @@ pretty_print styles:
 
 =item none
 
-the default, no C<\n> is used
+the default, no C<\n> is used.
 
 =item nsgmls
 
-nsgmls style, with C<\n> added within tags
+nsgmls style, with C<\n> added within tags.
 
 =item nice
 
-adds C<\n> wherever possible (NOT SAFE, can lead to invalid XML)
+adds C<\n> wherever possible (NOT SAFE, can lead to invalid XML).
 
 =item indented
 
-Same as C<nice> plus indents elements (NOT SAFE, can lead to invalid XML)
+Same as C<nice> plus indents elements (NOT SAFE, can lead to invalid XML).
 
 =item record
 
-table-oriented pretty print, one field per line
+table-oriented pretty print, one field per line.
 
 =item record_c
 
-table-oriented pretty print, more compact than C<record>, one record per line
+table-oriented pretty print, more compact than C<record>, one record per line.
 
 =back
 
@@ -13575,7 +13574,7 @@ and 'C<expand>'.
 
 C<normal> outputs an empty tag 'C<< <tag/> >>', C<html> adds a space
 'C<< <tag /> >>' for elements that can be empty in XHTML and C<expand> outputs
-'C<< <tag></tag> >>'
+'C<< <tag></tag> >>'.
 
 Returns the previous setting.
 
@@ -13643,7 +13642,7 @@ are not in the same twig then return C<undef>.
 =item path
 
 Returns the element context in a form similar to XPath's short
-form: 'C</root/tag1/../tag>'
+form: 'C</root/tag1/../tag>'.
 
 =item xpath
 
@@ -13698,7 +13697,7 @@ C<L<ancestors> >) that passes the condition is returned.
 The condition is a single step of an XPath expression using the XPath subset
 defined by C<L<get_xpath> >. Additional conditions are:
 
-The condition can be
+The condition can be:
 
 =over 4
 
@@ -13757,7 +13756,7 @@ Returns the concatenation of the text content of the result nodes.
 In order for C<XML::XPathEngine> to be used as the XPath engine, the following methods
 are included in C<XML::Twig>:
 
-in XML::Twig
+in XML::Twig:
 
 =over 4
 
@@ -13769,7 +13768,7 @@ in XML::Twig
 
 =back
 
-in XML::Twig::Elt
+in XML::Twig::Elt:
 
 =over 4
 
@@ -13973,7 +13972,7 @@ Returns the notation declaration text.
 =head1 EXAMPLES
 
 Additional examples (and a complete tutorial) can be found on the
-F<XML::Twig PageL<http://www.xmltwig.org/xmltwig/>>
+F<XML::Twig PageL<http://www.xmltwig.org/xmltwig/>>.
 
 To figure out what flush does, call the following script with an
 XML file and an element name as arguments:
@@ -14032,7 +14031,7 @@ as is (if they have not been modified) or as reconstructed (poorly, comments
 are lost, order is not kept, due to it's content this DTD should not be viewed
 by anyone) if they have been modified. You can also modify them directly by
 changing the C<< $twig->{twig_doctype}->{internal} >> field (straight from
-XML::Parser, see the C<Doctype> handler doc)
+XML::Parser, see the C<Doctype> handler doc).
 
 =item External DTD
 
@@ -14076,14 +14075,14 @@ tool to manage several installations of perl on the same machine).
 
 An other, NOT RECOMMENDED, way of fixing the problem, is to switch off weak
 references by writing C<XML::Twig::_set_weakrefs( 0);> at the top of the code.
-This is totally unsupported, and may lead to other problems though,
+This is totally unsupported, and may lead to other problems though.
 
 =item entity handling
 
 Due to XML::Parser behaviour, non-base entities in attribute values disappear if
 they are not declared in the document:
 C<att="val&ent;"> will be turned into C<< att => val >>, unless you use the
-C<keep_encoding> argument to C<< XML::Twig->new >>
+C<keep_encoding> argument to C<< XML::Twig->new >>.
 
 =item DTD handling
 
@@ -14145,7 +14144,7 @@ elements with mixed content that start with an embedded element:
   <elt>
     <b>b</b>toto<b>bold</b></elt>
 
-if you flush the twig when you find the C<< <b> >> element
+if you flush the twig when you find the C<< <b> >> element.
 
 =back
 
@@ -14159,7 +14158,7 @@ They might also cause problem under mod_perl.
 =item Exported constants
 
 Whether you want them or not you get them! These are subroutines to use
-as constant when creating or testing elements
+as constant when creating or testing elements:
 
   PCDATA  return '#PCDATA'
   CDATA   return '#CDATA'
@@ -14182,11 +14181,11 @@ these should cause no trouble:
   COMMENT_START = "<!--";
   COMMENT_END   = "-->";
 
-pretty print styles
+pretty print styles:
 
   ( $NSGMLS, $NICE, $INDENTED, $INDENTED_C, $WRAPPED, $RECORD1, $RECORD2)= (1..7);
 
-empty tag output style
+empty tag output style:
 
   ( $HTML, $EXPAND)= (1..2);
 
@@ -14229,7 +14228,7 @@ Returns a hashref with all the global variables used by XML::Twig.
 
 The hash has the following fields:  C<pretty>, C<quote>, C<indent>,
 C<empty_tag_style>, C<keep_encoding>, C<expand_external_entities>,
-C<output_filter>, C<output_text_filter>, C<keep_atts_order>
+C<output_filter>, C<output_text_filter>, C<keep_atts_order>.
 
 =item set_global_state ($state)
 
@@ -14251,7 +14250,7 @@ Restores the previously saved (using C<Lsave_global_state>> state.
 
 =item SAX handlers
 
-Allowing XML::Twig to work on top of any SAX parser
+Allowing XML::Twig to work on top of any SAX parser.
 
 =item multiple twigs are not well supported
 
@@ -14266,7 +14265,7 @@ hard on performance (at least when a single twig is used!).
 
 =head1 AUTHOR
 
-Michel Rodriguez <mirod@cpan.org>
+Michel Rodriguez <mirod@cpan.org>.
 
 =head1 LICENSE
 
@@ -14274,26 +14273,26 @@ This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
 
 Bug reports should be sent using:
-F<RT L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=XML-Twig>>
+F<RT L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=XML-Twig>>.
 
-Comments can be sent to mirod@cpan.org
+Comments can be sent to mirod@cpan.org.
 
 The XML::Twig page is at L<http://www.xmltwig.org/xmltwig/>
 It includes the development version of the module, a slightly better version
 of the documentation, examples, a tutorial and a:
 F<Processing XML efficiently with Perl and XML::Twig:
-L<http://www.xmltwig.org/xmltwig/tutorial/index.html>>
+L<http://www.xmltwig.org/xmltwig/tutorial/index.ht.ml>>.
 
 =head1 SEE ALSO
 
 Complete docs, including a tutorial, examples, an easier to use HTML version of
 the docs, a quick reference card and a FAQ are available at
-L<http://www.xmltwig.org/xmltwig/>
+L<http://www.xmltwig.org/xmltwig/>.
 
-git repository at L<http://github.com/mirod/xmltwig>
+git repository at L<http://github.com/mirod/xmltwig>.
 
 L<XML::Parser>, L<XML::Parser::Expat>, L<XML::XPath>, L<Encode>,
-L<Text::Iconv>, L<Scalar::Utils>
+L<Text::Iconv>, L<Scalar::Utils>.
 
 =head2 Alternative Modules
 
