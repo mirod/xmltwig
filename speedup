@@ -56,7 +56,6 @@ while( <>)
 
     s/$var->set_($SET_FIELD)\(([^)]*)\)/$1\->\{$2\}= $3/g;
     s/$var->($FIELD)\b(?!\()/$1\->\{$2\}/g;
-    #s/$var->_($PRIVATE)\b(?!\()/$1\->\{$2\}/g;
     s/$var->_($PRIVATE)\b(\s*\(\s*\))?(?!\s*\()/$1\->\{$2\}/g;
 
     s{($elt)->former_($FORMER)}{($1\->{former} && $1\->{former}\->{$2})}g;
@@ -87,15 +86,12 @@ while( <>)
     s/$var->is_empty/$1\->{'empty'}/g;
     s/$var->set_empty(?:\(([^)]*)\))?(?!_)/"$1\->{empty}= " . ($2 || 1)/ge;
     s/$var->set_not_empty/delete $1\->{empty}/g;
-    #s/$var->set_not_empty/delete $1\->{empty}/g;
 
     s/$var->_is_private/( (substr( \$XML::Twig::index2gi\[$1\->{'gi'}\], 0, 1) eq '#') && (substr( \$XML::Twig::index2gi\[$1\->{'gi'}\], 0, 9) ne '#default:') )/g;
-    #s/_is_private_name\(\s*$var\s*\)/( (substr( $1, 0, 1) eq '#') && (substr( $1, 0, 9) ne '#default:') )/g;
     s/_is_private_name\(\s*$var\s*\)/( $1=~ m{^#(?!default:)} )/g;
 
     s{_is_fh\(\s*$var\)}{isa( $1, 'GLOB') || isa( $1, 'IO::Scalar')}g;
 
-    # $var->set_gi( $gi): set the gi, but if it doesn't exist, call the original set_gi
     s/$var->set_gi\s*\(\s*([^)]*)\s*\)/$1\->{gi}=\$XML::Twig::gi2index{$2} or $1->set_gi( $2)/g;
 
     s/$var->xml_string/$1->sprint( 1)/g;
