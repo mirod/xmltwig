@@ -5024,6 +5024,13 @@ my $COMMENT_END    = "-->";
 
 my $XMLNS_URI      = 'http://www.w3.org/2000/xmlns/';
 
+my %POSITION_ALIAS = (
+    beforebegin => 'before',
+    afterbegin  => 'first_child',
+    beforeend   => 'last_child',
+    afterend    => 'after',
+);
+
 BEGIN
   { # set some aliases for methods
     *tag           = *gi;
@@ -5934,6 +5941,12 @@ sub _prev_sibling  { return $_[0]->{prev_sibling}; }
 sub _parent        { return $_[0]->{parent};       }
 sub _next_siblings { my $elt= shift; my @siblings; while( $elt= $elt->{next_sibling}) { push @siblings, $elt; } return @siblings; }
 sub _prev_siblings { my $elt= shift; my @siblings; while( $elt= $elt->{prev_sibling}) { push @siblings, $elt; } return @siblings; }
+
+# converts HTML style positions like 'beforebegin' to twig style positions like 'first_child'
+sub _op_position {
+    my ($position) = @_;
+    return $POSITION_ALIAS{$position} // $position;
+}
 
 # sets a field
 # arguments $record, $cond, @content
@@ -7258,7 +7271,7 @@ BEGIN
             croak "wrong argument order in paste, should be $_[1] first" if($_[1]);
           }
         else
-          { $pos= shift; }
+          { $pos= _op_position(shift); }
 
         if( my $method= $method{$pos})
           {
@@ -9232,7 +9245,7 @@ sub insert
 # position is the same as in paste, first_child by default
 sub insert_new_elt
   { my $elt= shift;
-    my $position= $_[0];
+    my $position= _op_position($_[0]);
     if(     ($position eq 'before') || ($position eq 'after')
          || ($position eq 'first_child') || ($position eq 'last_child'))
       { shift; }
@@ -12295,17 +12308,25 @@ Position options:
 
 The element is pasted as the first child of C<$ref>
 
+The DOM style position <afterbegin> can be used as an alias to C<first_child>.
+
 =item last_child
 
 The element is pasted as the last child of C<$ref>
+
+The DOM style position <beforeend> can be used as an alias to C<last_child>.
 
 =item before
 
 The element is pasted before C<$ref>, as its previous sibling.
 
+The DOM style position <beforebegin> can be used as an alias to C<before>.
+
 =item after
 
 The element is pasted after C<$ref>, as its next sibling.
+
+The DOM style position <afterend> can be used as an alias to C<after>.
 
 =item within
 

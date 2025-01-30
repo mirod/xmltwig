@@ -9,7 +9,7 @@ use File::Spec;
 use lib File::Spec->catdir( File::Spec->curdir, "t" );
 use tools;
 
-my $TMAX = 9;
+my $TMAX = 11;
 print "1..$TMAX\n";
 
 # test that del_atts/set_att keeps the attribute hash tied
@@ -80,6 +80,29 @@ if ( _use('Tie::IxHash') ) {
     my $t = XML::Twig->new->parse($doc);
     $t->root->strip_att( 'a_strip', 'b_strip', 'c_strip' );
     is( $t->sprint, $expected_doc, 'strip_att with a list of attributes' );
+
+}
+
+# test DOM style positions like beforebegin...
+{
+    my $doc = q{<d><e/></d>};
+    my $expected_doc = q{<d><bb/><e><ab/><be/></e><ae/></d>};
+
+    my $t   = XML::Twig->new->parse($doc);
+    my $e   = $t->first_elt('e');
+    $e->insert_new_elt( beforebegin => 'bb' );
+    $e->insert_new_elt( afterbegin  => 'ab' );
+    $e->insert_new_elt( beforeend   => 'be' );
+    $e->insert_new_elt( afterend    => 'ae' );
+    is( $t->sprint, $expected_doc, 'insert_new_elt using HTML style position' );
+
+    $t   = XML::Twig->new->parse($doc);
+    $e   = $t->first_elt('e');
+    XML::Twig::Elt->new( 'bb' )->paste(beforebegin => $e);
+    XML::Twig::Elt->new( 'ab' )->paste(afterbegin => $e);
+    XML::Twig::Elt->new( 'be' )->paste(beforeend => $e);
+    XML::Twig::Elt->new( 'ae' )->paste(afterend => $e);
+    is( $t->sprint, $expected_doc, 'paste using HTML style position' );
 
 }
 
