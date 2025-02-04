@@ -7053,7 +7053,11 @@ sub _croak_and_doublecheck_xpath
         if( eval { $check_twig->{twig_xp}->_parse( $xpath_expression) })
           { $mess .= "\nthe expression is a valid XPath statement, and you are using XML::Twig::XPath, but"
                    . "\nyou are using either 'find_nodes' or 'get_xpath' where the method you likely wanted"
-                   . "\nto use is 'findnodes', which is the only one that uses the full XPath engine\n";
+                   . "\nto use is 'findnodes', which is the only one that uses the full XPath engine"
+                   . "\nalternatively, check that the main twig is an XML::Twig::XPath object,"
+                   . "\n and not just an XML::Twig object"
+                   . "\n"
+                ;
           }
       }
     croak $mess;
