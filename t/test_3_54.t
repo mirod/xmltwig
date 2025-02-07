@@ -9,7 +9,7 @@ use File::Spec;
 use lib File::Spec->catdir( File::Spec->curdir, "t" );
 use tools;
 
-my $TMAX = 17;
+my $TMAX = 19;
 print "1..$TMAX\n";
 
 # test that del_atts/set_att keeps the attribute hash tied
@@ -135,5 +135,22 @@ if ( _use('Tie::IxHash') ) {
         'wrong position argument error message includes allowed values'
     );
 }
+
+# test triggering TEXT handler in mixed content
+{
+    my $doc = '<d>foo<e/>bar</d>';
+    my @seen;
+    XML::Twig->new( twig_handlers => { '#TEXT' => sub { push @seen, $_->text; } } )->parse($doc);
+    is( join('-', @seen), 'foo-bar', 'triggering TEXT handler in mixed content');
+}
+
+# test triggering TEXT handler in mixed content with a PI
+{
+    my $doc = '<d>foo<?target duh?>bar</d>';
+    my @seen;
+    XML::Twig->new( twig_handlers => { '#TEXT' => sub { push @seen, $_->text; } } )->parse($doc);
+    is( join('-', @seen), 'foo-bar', 'triggering TEXT handler in mixed content');
+}
+
 exit;
 

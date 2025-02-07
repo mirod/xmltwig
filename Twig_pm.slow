@@ -2038,6 +2038,10 @@ sub _twig_start
     # if we were parsing PCDATA then we exit the pcdata
     if( $t->{twig_in_pcdata})
       { $t->{twig_in_pcdata}= 0;
+
+        if( my $text_handler= $t->{twig_handlers}->{handlers}->{$TEXT} )
+          { local $_= $t->{twig_current}; $text_handler->( $t, $_) if $_; }
+
         $parent->del_twig_current;
         $parent= $parent->_parent;
       }
@@ -2616,6 +2620,12 @@ sub _twig_pi
 
     my( $p, $target, $data)= @_;
     my $t=$p->{twig};
+
+    if( $t->{twig_in_pcdata})
+      { 
+        if( my $text_handler= $t->{twig_handlers}->{handlers}->{$TEXT} )
+            { local $_= $t->{twig_current}; $text_handler->( $t, $_) if $_; }
+      }
 
     if( $t->{twig_keep_encoding})
       { my $pi_text= substr( $p->original_string(), 2, -2);
