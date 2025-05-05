@@ -2622,7 +2622,7 @@ sub _twig_pi
     my $t=$p->{twig};
 
     if( $t->{twig_in_pcdata})
-      { 
+      {
         if( my $text_handler= $t->{twig_handlers}->{handlers}->{$TEXT} )
             { local $_= $t->{twig_current}; $text_handler->( $t, $_) if $_; }
       }
@@ -7898,7 +7898,23 @@ sub _repl_match
       $sub .= q{ $match->delete; };
       #$sub=~ s/;/;\n/g; warn "subs: $sub";
       my $coderef= eval "sub { $NO_WARNINGS; $sub }"; ## no critic (ProhibitStringyEval)
-      if( $@) { croak( "invalid replacement expression $replace_exp: ",$@); }
+      if( $@) {
+          my $msg = "invalid replacement expression $replace_exp: " . $@;
+          if( $@ =~ m{Global symbol .* requires explicit package name} )
+            { my $suggested = $replace_exp;
+              $suggested =~ s{\$(\d)}{\\\$$1}g;
+              $msg = join "\n    ",
+                  $msg,
+                  "the problem seems to be that the replacement expression is a single-quoted string".
+                  "that includes variables. Those need to be expanded.",
+                  "ie replace the following:",
+                  "    '$replace_exp'",
+                  "with:",
+                  "    qq{$suggested}",
+                  ;
+            }
+          croak $msg;
+        }
       return $coderef;
     }
 
