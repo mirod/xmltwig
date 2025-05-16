@@ -95,7 +95,7 @@ MyWriteMakefile(
     AUTHOR       => 'Michel Rodriguez <mirod@cpan.org>',
     LICENSE      => 'perl',
     EXE_FILES    => [ map {"tools/$_/$_"} @programs],
-    VERSION_FROM => 'Twig.pm',
+    VERSION_FROM => 'Twig_pm.slow',
     PREREQ_PM    => { 'XML::Parser' => '2.23' },
     dist         => { COMPRESS    => 'gzip -9f',
                       SUFFIX	     => 'gz',
