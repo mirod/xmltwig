@@ -9,7 +9,7 @@ use File::Spec;
 use lib File::Spec->catdir( File::Spec->curdir, "t" );
 use tools;
 
-my $TMAX = 19;
+my $TMAX = 30;
 print "1..$TMAX\n";
 
 # test that del_atts/set_att keeps the attribute hash tied
@@ -136,7 +136,7 @@ if ( _use('Tie::IxHash') ) {
     );
 }
 
-# test triggering TEXT handler in mixed content
+# test triggering TEXT handler with PI/comments in the content
 {
     my $doc = '<d>foo<e/>bar</d>';
     my @seen;
@@ -144,12 +144,53 @@ if ( _use('Tie::IxHash') ) {
     is( join('-', @seen), 'foo-bar', 'triggering TEXT handler in mixed content');
 }
 
-# test triggering TEXT handler in mixed content with a PI
 {
-    my $doc = '<d>foo<?target duh?>bar</d>';
     my @seen;
-    XML::Twig->new( twig_handlers => { '#TEXT' => sub { push @seen, $_->text; } } )->parse($doc);
-    is( join('-', @seen), 'foo-bar', 'triggering TEXT handler in mixed content');
+    my @thandlers = ( twig_handlers => { '#TEXT' => sub { push @seen, $_->text; } } );
+
+    my $doc='<d>foo<!-- comment -->bar</d>';
+    XML::Twig->new( comments => 'keep', @thandlers )->parse($doc);
+    is( join('-', @seen), 'foo-bar', 'triggering TEXT handler in content with comment (keep comments)');
+    @seen=();
+    XML::Twig->new( comments => 'process', @thandlers )->parse($doc);
+    is( join('-', @seen), 'foo-bar', 'triggering TEXT handler in content with comment (process comments)');
+    @seen=();
+    XML::Twig->new( comments => 'drop', @thandlers )->parse($doc);
+    is( join('-', @seen), 'foo-bar', 'triggering TEXT handler in content with comment (drop comments)');
+
+    $doc = '<d>foo<?target duh?>bar</d>';
+    @seen=();
+    XML::Twig->new( pi => 'keep', @thandlers )->parse($doc);
+    is( join('-', @seen), 'foo-bar', 'triggering TEXT handler in content with PI (keep PIs)');
+    @seen=();
+    XML::Twig->new( pi => 'drop', @thandlers )->parse($doc);
+    is( join('-', @seen), 'foo-bar', 'triggering TEXT handler in content with PI (drop PIs)');
+    @seen=();
+    XML::Twig->new( pi => 'process', @thandlers )->parse($doc);
+    is( join('-', @seen), 'foo-bar', 'triggering TEXT handler in content with PI (process PIs)');
+
+    my $doc='<d>foo<!-- comment -->bar<!-- comment 2 -->baz</d>';
+    @seen=();
+    XML::Twig->new( comments => 'keep', @thandlers )->parse($doc);
+    is( join('-', @seen), 'foo-bar-baz', 'triggering TEXT handler in content with 2 comments (keep)');
+    @seen=();
+    XML::Twig->new( comments => 'process', @thandlers )->parse($doc);
+    is( join('-', @seen), 'foo-bar-baz', 'triggering TEXT handler in content with 2 comments (process)');
+    @seen=();
+    XML::Twig->new( comments => 'drop', @thandlers )->parse($doc);
+    is( join('-', @seen), 'foo-bar-baz', 'triggering TEXT handler in content with 2 comments (drop)');
+
+    my $doc='<d>foo<!-- comment -->bar<?target pi ?>baz</d>';
+    @seen=();
+    XML::Twig->new( comments => 'keep', @thandlers )->parse($doc);
+    is( join('-', @seen), 'foo-bar-baz', 'triggering TEXT handler in content with comment + pi (keep)');
+    @seen=();
+    XML::Twig->new( comments => 'process', @thandlers )->parse($doc);
+    is( join('-', @seen), 'foo-bar-baz', 'triggering TEXT handler in content with comment + pi (process)');
+    @seen=();
+    XML::Twig->new( comments => 'drop', @thandlers )->parse($doc);
+    is( join('-', @seen), 'foo-bar-baz', 'triggering TEXT handler in content with comment + pi (drop)');
+
 }
 
 exit;

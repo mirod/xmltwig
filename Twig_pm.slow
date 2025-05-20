@@ -2038,9 +2038,7 @@ sub _twig_start
     # if we were parsing PCDATA then we exit the pcdata
     if( $t->{twig_in_pcdata})
       { $t->{twig_in_pcdata}= 0;
-
-        if( my $text_handler= $t->{twig_handlers}->{handlers}->{$TEXT} )
-          { local $_= $t->{twig_current}; $text_handler->( $t, $_) if $_; }
+        $t->_trigger_text_handler();
 
         $parent->del_twig_current;
         $parent= $parent->_parent;
@@ -2285,9 +2283,8 @@ sub _twig_end
 
     my $t=$p->{twig};
 
-    if( $t->{twig_in_pcdata} && (my $text_handler= $t->{twig_handlers}->{handlers}->{$TEXT}) )
-      { local $_= $t->{twig_current}; $text_handler->( $t, $_) if $_;
-      }
+    if( $t->{twig_in_pcdata} )
+      { $t->_trigger_text_handler(); }
 
     if( $t->{twig_map_xmlns}) { $gi= $t->_replace_prefix( $gi); }
 
@@ -2603,9 +2600,13 @@ sub _comment_text_handler
 
 sub _twig_comment
    { # warn " in _twig_comment...\n"; # DEBUG handler
-
     my( $p, $comment_text)= @_;
     my $t=$p->{twig};
+
+    if( $t->{twig_in_pcdata})
+      { $t->_trigger_text_handler();
+        $t->{twig_in_pcdata}=0;
+      }
 
     if( $t->{twig_keep_encoding}) { $comment_text= substr( $p->original_string(), 4, -3); }
 
@@ -2622,9 +2623,8 @@ sub _twig_pi
     my $t=$p->{twig};
 
     if( $t->{twig_in_pcdata})
-      {
-        if( my $text_handler= $t->{twig_handlers}->{handlers}->{$TEXT} )
-            { local $_= $t->{twig_current}; $text_handler->( $t, $_) if $_; }
+      { $t->_trigger_text_handler();
+        $t->{twig_in_pcdata}=0;
       }
 
     if( $t->{twig_keep_encoding})
@@ -2671,7 +2671,8 @@ sub _twig_pi_comment
           { $t->_add_cpi_outside_of_root( leading_cpi => $elt);
           }
         elsif( $t->{twig_in_pcdata})
-          { # create the node as a sibling of the PCDATA
+          { $t->_trigger_text_handler();
+            # create the node as a sibling of the PCDATA
             $elt->paste_after( $twig_current);
             $t->{twig_in_pcdata}=0;
           }
@@ -2696,6 +2697,15 @@ sub _twig_pi_comment
         $t->$elt_handler( $elt);
       }
 
+  }
+
+sub _trigger_text_handler
+  { my ($t) = @_;
+    if( my $text_handler= $t->{twig_handlers}->{handlers}->{$TEXT} )
+      { local $_= $t->{twig_current};
+        my ($package, $filename, $line, $caller_sub) = caller(1);
+        $text_handler->( $t, $_) if $_;
+      }
   }
 
 # add a comment or pi before the first element
