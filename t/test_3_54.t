@@ -169,7 +169,7 @@ if ( _use('Tie::IxHash') ) {
     XML::Twig->new( pi => 'process', @thandlers )->parse($doc);
     is( join('-', @seen), 'foo-bar', 'triggering TEXT handler in content with PI (process PIs)');
 
-    my $doc='<d>foo<!-- comment -->bar<!-- comment 2 -->baz</d>';
+    $doc='<d>foo<!-- comment -->bar<!-- comment 2 -->baz</d>';
     @seen=();
     XML::Twig->new( comments => 'keep', @thandlers )->parse($doc);
     is( join('-', @seen), 'foo-bar-baz', 'triggering TEXT handler in content with 2 comments (keep)');
@@ -180,7 +180,7 @@ if ( _use('Tie::IxHash') ) {
     XML::Twig->new( comments => 'drop', @thandlers )->parse($doc);
     is( join('-', @seen), 'foo-bar-baz', 'triggering TEXT handler in content with 2 comments (drop)');
 
-    my $doc='<d>foo<!-- comment -->bar<?target pi ?>baz</d>';
+    $doc='<d>foo<!-- comment -->bar<?target pi ?>baz</d>';
     @seen=();
     XML::Twig->new( comments => 'keep', @thandlers )->parse($doc);
     is( join('-', @seen), 'foo-bar-baz', 'triggering TEXT handler in content with comment + pi (keep)');
