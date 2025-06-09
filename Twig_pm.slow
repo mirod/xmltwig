@@ -2603,11 +2603,6 @@ sub _twig_comment
     my( $p, $comment_text)= @_;
     my $t=$p->{twig};
 
-    if( $t->{twig_in_pcdata})
-      { $t->_trigger_text_handler();
-        $t->{twig_in_pcdata}=0;
-      }
-
     if( $t->{twig_keep_encoding}) { $comment_text= substr( $p->original_string(), 4, -3); }
 
     $t->_twig_pi_comment( $p, $COMMENT, $t->{twig_keep_comments}, $t->{twig_process_comments},
@@ -2621,11 +2616,6 @@ sub _twig_pi
 
     my( $p, $target, $data)= @_;
     my $t=$p->{twig};
-
-    if( $t->{twig_in_pcdata})
-      { $t->_trigger_text_handler();
-        $t->{twig_in_pcdata}=0;
-      }
 
     if( $t->{twig_keep_encoding})
       { my $pi_text= substr( $p->original_string(), 2, -2);
@@ -2703,7 +2693,6 @@ sub _trigger_text_handler
   { my ($t) = @_;
     if( my $text_handler= $t->{twig_handlers}->{handlers}->{$TEXT} )
       { local $_= $t->{twig_current};
-        my ($package, $filename, $line, $caller_sub) = caller(1);
         $text_handler->( $t, $_) if $_;
       }
   }
