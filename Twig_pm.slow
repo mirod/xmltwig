@@ -3957,9 +3957,8 @@ sub DESTROY
 # return true if perl was compiled using perlio
 # if perl is not available return true, these days perlio should be used
 sub _use_perlio
-  { my $perl= _this_perl();
-    return $perl ? grep /useperlio=define/, `"$perl" -V` : 1;
-  }
+  { return $Config{useperlio} eq 'define'; }
+
 
 # returns the parth to the perl executable (if available)
 sub _this_perl
