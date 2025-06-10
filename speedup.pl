@@ -1,5 +1,7 @@
 #!/usr/bin/perl 
 
+use 5.010;
+
 my $FIELD     = join( '|', qw( parent first_child last_child prev_sibling next_sibling pcdata cdata ent data target cdata pcdata comment flushed));
 my $PRIVATE   = join( '|', qw( parent first_child last_child prev_sibling next_sibling pcdata cdata comment 
                                extra_data_in_pcdata extra_data_before_end_tag
@@ -8,9 +10,6 @@ my $PRIVATE   = join( '|', qw( parent first_child last_child prev_sibling next_s
 my $FORMER    = join( '|', qw( parent prev_sibling next_sibling)); # former_$former is inlined
 my $SET_FIELD = join( '|', qw( first_child next_sibling ent data pctarget comment flushed));
 my $SET_NOT_EMPTY= join( '|', qw( pcdata cdata comment)); # set the field
-
-# depending on the version of perl use either qr or ""
-print STDERR "perl version is $]\n";
 
 my $var= '(\$[a-z_]+(?:\[\d\])?|\$t(?:wig)?->root|\$t(?:wig)?->twig_current|\$t(?:wig)?->\{\'?twig_root\'?\}|\$t(?:wig)?->\{\'?twig_current\'?\})';
 
@@ -26,22 +25,12 @@ my $in_pod = 0; # do not change the POD!
 
 while( <>)
   {
-    if( $] <= 5.005) { s{qr/(.*?)/}{"$1"} };
-
     $in_pod = 1 if m{^__END__};
-    # do not fix the pod EXCEPT for the =encoding line
-    if ($in_pod && ! m{^=encoding}) {
+    # do not fix the pod
+    if ($in_pod) {
         print $_;
         next;
     }
-
-    # when finding a comment # perl > 5.8 or # perl < 5.5, process accordingly
-    if( my( $op, $v, $mv)= m{#\s*(>|<|>=|<=)\s*perl\s*5\.(\d+)(?:\.(\d+))?\s*})
-      { $v= sprintf( "5%03d%03d", $v, $mv || 0);
-        my $comp=  "$version $op $v";
-        if( ! eval $comp) { print "#$_"; next; }
-        else              { s{\s*#[^#]*\n}{\n} if m{^=encoding}; }
-      }
 
     if( /=/)
       { s/$var->_children/do { my \$elt= $1; my \@children=(); my \$child= \$elt->_first_child; while( \$child) { push \@children, \$child; \$child= \$child->_next_sibling; } \@children; }/; }
@@ -95,7 +84,6 @@ while( <>)
     s/$var->set_gi\s*\(\s*([^)]*)\s*\)/$1\->{gi}=\$XML::Twig::gi2index{$2} or $1->set_gi( $2)/g;
 
     s/$var->xml_string/$1->sprint( 1)/g;
-
 
     print $_ ;
   }

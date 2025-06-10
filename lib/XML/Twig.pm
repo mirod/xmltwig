@@ -5961,7 +5961,7 @@ sub set_field
 
 sub set_last_child
   { $_[0]->{'last_child'}= $_[1];
-    delete $_->[0]->{empty};
+    delete $_[0]->{empty};
     if( $XML::Twig::weakrefs) { weaken( $_[0]->{'last_child'}); }
   }
 
