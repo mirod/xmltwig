@@ -3,11 +3,10 @@ NAME
     XML::Twig - Tree interface to XML documents allowing processing chunk
                 by chunk of huge documents.
 
-                
 
 SUMMARY (see perldoc XML::Twig for full details)
 
-XML::Twig is (yet another!) XML transformation module. 
+XML::Twig is (yet another!) XML transformation module.
 
 Its strong points: can be used to process huge documents while still
 being in tree mode; not bound by DOM or SAX, so it is very perlish and
@@ -34,33 +33,33 @@ XML::Twig comes with a few tools built on top of it:
   xml_merge        merge back files created by xml_split
   xml_spellcheck   spellcheck XML files skipping tags
 
-Running perl Makefile.PL will prompt you for each tool installation. 
+Running perl Makefile.PL will prompt you for each tool installation.
   perl Makefile.PL -y     will install all of the tools without prompt
   perl Makefile.PL -n     will skip the installation of the tools
 
 
 SYNOPSYS
 
-  single-tree mode    
+  single-tree mode
     my $t= XML::Twig->new();
     $t->parsefile( 'doc.xml');
     $t->print;
 
-  chunk mode 
+  chunk mode
     # print the document, at most one full section is loaded in memory
     my $t= XML::Twig->new( twig_handlers => { section => \&flush});
     $t->parsefile( 'doc.xml');
     $t->flush;
     sub flush { (my $twig, $section)= @_; $twig->flush; }
-    
-  sub-tree mode 
+
+  sub-tree mode
     # print all section title's in the document,
     # all other elements are ignored (and not stored)
-    my $t= XML::Twig->new( 
+    my $t= XML::Twig->new(
             twig_roots => { 'section/title' => sub { $_->print, "\n" } }
-                         );
+           );
     $t->parsefile( 'doc.xml');
-    
+
 INSTALLATION
 
     perl Makefile.PL
@@ -71,18 +70,16 @@ INSTALLATION
 DEPENDENCIES
 
     XML::Twig needs XML::Parser (and the expat library) installed
-   
+ 
     Modules that can enhance XML::Twig are:
 
-    Scalar::Util or WeakRef 
+    Scalar::Util or WeakRef
       to avoid memory leaks
-    Encode or Text::Iconv or Unicode::Map8 and Unicode::Strings 
-      to do encoding conversions
     Tie::IxHash 
       to use the keep_atts_order option
-    XML::XPathEngine 
+    XML::XPathEngine
       to use XML::Twig::XPath
-    LWP 
+    LWP
       to use parseurl
     HTML::Entities
       to use the html_encode filter
@@ -91,7 +88,7 @@ DEPENDENCIES
 
 CHANGES
 
-    See the Changes file    
+    See the Changes file
 
 AUTHOR
 
@@ -102,6 +99,6 @@ AUTHOR
 
 COPYRIGHT
 
-       Copyright (c) 1999-2012, Michel Rodriguez. All Rights Reserved.
+       Copyright (c) 1999-2025, Michel Rodriguez. All Rights Reserved.
        This library is free software; you can redistribute it and/or modify
        it under the same terms as Perl itself.
