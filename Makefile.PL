@@ -151,7 +151,7 @@ sub add_prereqs_to_mymeta
 sub slurp
   { my( $file)= @_;
     my $in;
-    open( $in, "<$file") or return '';
+    open( $in, '<', $file) or return '';
     local undef $/;
     return <$in>;
   }
@@ -159,6 +159,6 @@ sub slurp
 sub spit
   { my $file= shift;
     my $out;
-    open( $out, ">$file") or ( warn "cannot update $file: $!" && return);
+    open( $out, '>', $file) or ( warn "cannot update $file: $!" && return);
     print {$out} @_;
   }
