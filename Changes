@@ -1,11 +1,23 @@
 CHANGES
-3.54
+
+3.54 2025-06-11  minor maintenance release
+
+- changed the minimum version of Perl to 5.10
+    That should be old enough: "On December 18, 2007, the 20th
+    anniversary of Perl 1.0, Perl 5.10. 0 was released."
+
+- fixed the "build" system
+    moved .pm files in the usual place for CPAN modules (lib/)
+    used PM_FILTER in Makefile.PL to inline some method calls
+    thanks to Daniel Macks for having a look at this and suggesting most
+    of the improvements 
 
 - fixed del_atts/set_att broke keep_atts_order
     see https://stackoverflow.com/questions/79369132
 
 - fixed #TEXT handlers not being called when set using setTwigHandlers
     see https://github.com/mirod/xmltwig/issues/36
+    and fixed bugs in triggering #TEXT handlers in mixed content
 
 - fixed test special casing "SA" PERL_UNICODE instead of looking for 
     S and A in the variable
@@ -31,7 +43,7 @@ CHANGES
     afterend for after
 
 - improved insert_new_elt to allow for the element to insert to be 
-    a well-formed XML string
+    a well-formed XML string, similar to insertAdjacentHTML in js
 
 3.53 - 2024-12-10 - minor maintenance release
 

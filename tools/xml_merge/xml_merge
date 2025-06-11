@@ -6,7 +6,6 @@ use XML::Twig;
 use FindBin qw( $RealBin $RealScript);
 use Getopt::Std;
 
-$Getopt::Std::STANDARD_HELP_VERSION=1; # twice to prevent warning with 5.6.1 (I know it's dumb!)
 $Getopt::Std::STANDARD_HELP_VERSION=1; # to stop processing after --help or --version
 
 use vars qw( $VERSION $USAGE);

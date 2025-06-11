@@ -2,11 +2,9 @@ MANIFEST
 Makefile.PL
 README
 Changes
-Twig_pm.slow
-Twig.pm
-Twig/XPath.pm
-speedup
-filter_for_5.005
+lib/XML/Twig.pm
+lib/XML/Twig/XPath.pm
+speedup.pl
 check_optional_modules
 tools/xml_pp/xml_pp
 tools/xml_grep/xml_grep

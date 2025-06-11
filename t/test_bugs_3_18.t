@@ -12,7 +12,7 @@ my $DEBUG=0;
 
 use XML::Twig;
 
-my $TMAX=158;
+my $TMAX=156;
 print "1..$TMAX\n";
 
 {
@@ -569,22 +569,6 @@ sub fid { my $elt= $_[0]->elt_id( $_[1]) or return "unknown";
   XML::Twig::_set_weakrefs( $save);
 }
 
-{ # test _keep_encoding even with perl > 5.8.0
-  if( $] < 5.008)
-    { skip( 2 => "testing utf8 flag mongering only needed in perl 5.8.0+"); }
-  else
-    { require Encode; import Encode;
-      my $s="a";
-      Encode::_utf8_off( $s);
-      nok( Encode::is_utf8( $s), "utf8 flag off");
-      XML::Twig::Elt::_utf8_ify( $s);
-      if( $] >= 5.008 and $] < 5.010)
-        { ok( Encode::is_utf8( $s), "utf8 flag back on"); }
-      else
-        { nok( Encode::is_utf8( $s), "_utf8_ify is a noop"); }
-    }
-}
-
 { # test keep_encoding
   is( XML::Twig::Elt::_keep_encoding(), 0, "_keep_encoding not initialized");
   XML::Twig->new( keep_encoding => 0);
@@ -594,6 +578,3 @@ sub fid { my $elt= $_[0]->elt_id( $_[1]) or return "unknown";
   XML::Twig->new( keep_encoding => 0);
   is( XML::Twig::Elt::_keep_encoding(), 0, "_keep_encoding initialized (0)");
 }
-      
-      
-      

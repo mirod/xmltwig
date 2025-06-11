@@ -1,5 +1,5 @@
 use strict;
-use warnings; # > perl 5.5
+use warnings;
 
 # This is created in the caller's space
 # I realize (now!) that it's not clean, but it's been there for 10+ years...
@@ -20,9 +20,9 @@ my $parser_version;
 package XML::Twig;
 ######################################################################
 
-require 5.004;
+require 5.010;
 
-use utf8; # > perl 5.5
+use utf8;
 
 use vars qw($VERSION @ISA %valid_option);
 
@@ -43,8 +43,7 @@ my $expat_1_95_2=0;
 
 # a slight non-xml mod: # is allowed as a first character
 my $REG_TAG_FIRST_LETTER;
-$REG_TAG_FIRST_LETTER= q{(?:[^\W\d]|[:#_])};  # < perl 5.6 - does not work for leading non-ascii letters
-$REG_TAG_FIRST_LETTER= q{(?:[[:alpha:]:#_])}; # >= perl 5.6
+$REG_TAG_FIRST_LETTER= q{(?:[[:alpha:]:#_])};
 
 my $REG_TAG_LETTER= q{(?:[\w_.-]*)};
 
@@ -55,7 +54,6 @@ my $REG_NAME_TOKEN= qq{(?:$REG_TAG_FIRST_LETTER$REG_TAG_LETTER*)};
 my $REG_NAME= qq{(?:(?:$REG_NAME_TOKEN:)?$REG_NAME_TOKEN)};
 
 # tag name (leading # allowed)
-# first line is for perl 5.005, second line for modern perl, that accept character classes
 my $REG_TAG_NAME=$REG_NAME;
 
 # name or wildcard (* or '') (leading # allowed)
@@ -63,8 +61,7 @@ my $REG_NAME_W = qq{(?:$REG_NAME|[*])};
 
 # class and ids are deliberately permissive
 my $REG_NTOKEN_FIRST_LETTER;
-$REG_NTOKEN_FIRST_LETTER= q{(?:[^\W\d]|[:_])};  # < perl 5.6 - does not work for leading non-ascii letters
-$REG_NTOKEN_FIRST_LETTER= q{(?:[[:alpha:]:_])}; # >= perl 5.6
+$REG_NTOKEN_FIRST_LETTER= q{(?:[[:alpha:]:_])};
 
 my $REG_NTOKEN_LETTER= q{(?:[\w_:.-]*)};
 
@@ -110,7 +107,7 @@ my %PERL_ALPHA_TEST= ( '=' => ' eq ', '!=' => ' ne ', '>' => ' gt ', '>=' => ' g
 
 my( $FB_HTMLCREF, $FB_XMLCREF); # Encode flags
 
-my $NO_WARNINGS= $perl_version >= 5.006 ? 'no warnings' : 'local $^W=0';
+my $NO_WARNINGS= 'no warnings';
 
 # default namespaces, both ways
 my %DEFAULT_NS= ( xml   => "http://www.w3.org/XML/1998/namespace",
@@ -155,11 +152,9 @@ croak "need at least XML::Parser version $needVersion" unless $parser_version >=
 
 ($perl_version= $])=~ s{_\d+}{};
 
-if( $perl_version >= 5.008)
-  { eval "use Encode qw( :all)"; ## no critic ProhibitStringyEval
-    $FB_XMLCREF  = 0x0400; # Encode::FB_XMLCREF;
-    $FB_HTMLCREF = 0x0200; # Encode::FB_HTMLCREF;
-  }
+eval "use Encode qw( :all)"; ## no critic ProhibitStringyEval
+$FB_XMLCREF  = 0x0400; # Encode::FB_XMLCREF;
+$FB_HTMLCREF = 0x0200; # Encode::FB_HTMLCREF;
 
 # test whether we can use weak references
 # set local empty signal handler to trap error messages
@@ -748,14 +743,13 @@ sub parse
     # if called as a class method, calls nparse, which creates the twig then parses it
     if( !ref( $t) || !isa( $t, 'XML::Twig')) { return $t->nparse( @_); }
 
-    # requires 5.006 at least (or the ${^UNICODE} causes a problem)                                       # > perl 5.5
-    # trap underlying bug in IO::Handle (see RT #17500)                                                   # > perl 5.5
-    # croak if perl 5.8+, -CD (or PERL_UNICODE set to D) and parsing a pipe                               # > perl 5.5
-    if( $perl_version>=5.008 && ${^UNICODE} && (${^UNICODE} & 24) && isa( $_[0], 'GLOB') && -p $_[0] )               # > perl 5.5
-      { croak   "cannot parse the output of a pipe when perl is set to use the UTF8 perlIO layer\n"       # > perl 5.5
-              . "set the environment variable PERL_UNICODE or use the -C option (see perldoc perlrun)\n"  # > perl 5.5
-              . "not to include 'D'";                                                                     # > perl 5.5
-      }                                                                                                   # > perl 5.5
+    # trap underlying bug in IO::Handle (see RT #17500)
+    # croak if  -CD (or PERL_UNICODE set to D) and parsing a pipe
+    if( ${^UNICODE} && (${^UNICODE} & 24) && isa( $_[0], 'GLOB') && -p $_[0] )
+      { croak   "cannot parse the output of a pipe when perl is set to use the UTF8 perlIO layer\n"
+              . "set the environment variable PERL_UNICODE or use the -C option (see perldoc perlrun)\n"
+              . "not to include 'D'";
+      }
     $t= eval { $t->SUPER::parse( @_); };
 
     if(    !$t
@@ -821,7 +815,7 @@ sub _parse_inplace
 
     # we can only use binmode :utf8 if perl was compiled with useperlio
     # might be a problem if keep_encoding used but the file is already in utf8
-    if( $perl_version > 5.006 && !$t->{twig_keep_encoding} && _use_perlio()) {  binmode( $tmpfh, ":utf8" ); } ## no critic (RequireEncodingWithUTF8Layer)
+    if( !$t->{twig_keep_encoding} && _use_perlio()) {  binmode( $tmpfh, ":utf8" ); } ## no critic (RequireEncodingWithUTF8Layer)
 
     $t->$method( $file);
 
@@ -1225,7 +1219,7 @@ sub _encoding_from_meta
         { my $map= Unicode::Map8->new( $encoding);
           $string= $map->tou( $string)->utf8;
         }
-      $string=~ s{[\x00-\x08\x0B\x0C\x0E-\x1F]}{}g; # get rid of control chars, portable in 5.6
+      $string=~ s{[\x00-\x08\x0B\x0C\x0E-\x1F]}{}g; # get rid of control chars
     return $string;
   }
 }
@@ -2434,7 +2428,7 @@ sub _twig_char
           { $string= $p->original_string(); }
         else
           {
-            use bytes; # > perl 5.5
+            use bytes;
             if( length( $string) < 1024)
               { $string= $p->original_string(); }
             else
@@ -3298,9 +3292,8 @@ sub _trailing_cpi_text
 sub print_to_file
   { my( $t, $filename)= (shift, shift);
     my $out_fh;
-    open( $out_fh, ">$filename") or _croak( "cannot create file $filename: $!");     # < perl 5.8
-    my $mode= $t->{twig_keep_encoding} && ! _use_perlio() ? '>' : '>:utf8';                             # >= perl 5.8
-    open( $out_fh, $mode, $filename) or _croak( "cannot create file $filename: $!"); # >= perl 5.8
+    my $mode= $t->{twig_keep_encoding} && ! _use_perlio() ? '>' : '>:utf8';
+    open( $out_fh, $mode, $filename) or _croak( "cannot create file $filename: $!");
     $t->print( $out_fh, @_);
     close $out_fh;
     return $t;
@@ -3331,7 +3324,7 @@ sub print
     my $old_empty_tag = defined ($args{EmptyTags})   ? $t->set_empty_tag_style( $args{EmptyTags}) : undef;
 
     ## no critic (RequireEncodingWithUTF8Layer)
-    if( $perl_version > 5.006 && ! $t->{twig_keep_encoding} && _use_perlio() ) { binmode( $fh || \*STDOUT, ":utf8" ); } 
+    if( ! $t->{twig_keep_encoding} && _use_perlio() ) { binmode( $fh || \*STDOUT, ":utf8" ); }
 
      print  $t->prolog( %args) . $t->_leading_cpi( %args);
      $t->{twig_root}->print;
@@ -3553,8 +3546,7 @@ sub att_accessors
 
         if( !$accessor{$att})
           { *{"$elt_class\::$att"}=
-                sub
-                    :lvalue                                  # > perl 5.5
+                sub :lvalue
                   { my $elt= shift;
                     if( @_) { $elt->{att}->{$att}= $_[0]; }
                     $elt->{att}->{$att};
@@ -4575,32 +4567,17 @@ sub html_encode
 
 sub safe_encode
   {   my $str= shift;
-      if( $perl_version < 5.008)
-        { # the no utf8 makes the regexp work in 5.6
-          no utf8; # = perl 5.6
-          $str =~ s{([\xC0-\xDF].|[\xE0-\xEF]..|[\xF0-\xFF]...)}
-                   {_XmlUtf8Decode($1)}egs;
-        }
-      else
-        { $str= encode( ascii => $str, $FB_HTMLCREF); }
+      $str= encode( ascii => $str, $FB_HTMLCREF);
       return $str;
   }
 
 sub safe_encode_hex
   {   my $str= shift;
-      if( $perl_version < 5.008)
-        { # the no utf8 makes the regexp work in 5.6
-          no utf8; # = perl 5.6
-          $str =~ s{([\xC0-\xDF].|[\xE0-\xEF]..|[\xF0-\xFF]...)}
-                   {_XmlUtf8Decode($1, 1)}egs;
-        }
-      else
-        { $str= encode( ascii => $str, $FB_XMLCREF); }
+      $str= encode( ascii => $str, $FB_XMLCREF);
       return $str;
   }
 
 # this one shamelessly lifted from XML::DOM
-# does NOT work on 5.8.0
 sub _XmlUtf8Decode
   { my ($str, $hex) = @_;
     my $len = length ($str);
@@ -5984,7 +5961,7 @@ sub set_field
 
 sub set_last_child
   { $_[0]->{'last_child'}= $_[1];
-    delete $_->[0]->{empty};
+    delete $_[0]->{empty};
     if( $XML::Twig::weakrefs) { weaken( $_[0]->{'last_child'}); }
   }
 
@@ -6027,9 +6004,8 @@ sub next_sibling
 
 # methods dealing with the class attribute, convenient if you work with xhtml
 sub class   {   $_[0]->{att}->{class}; }
-# lvalue version of class. separate from class to avoid problem like RT#
-sub lclass
-          :lvalue    # > perl 5.5
+# lvalue version of class. separate from class to avoid problem with scalar/list context
+sub lclass :lvalue
   { $_[0]->{att}->{class}; }
 
 sub set_class { my( $elt, $class)= @_; $elt->set_att( class => $class); }
@@ -6117,9 +6093,8 @@ sub set_att
   }
 
 sub att {  $_[0]->{att}->{$_[1]}; }
-# lvalue version of att. separate from class to avoid problem like RT#
-sub latt
-          :lvalue    # > perl 5.5
+# lvalue version of att. separate from class to avoid problems with scalar/list context
+sub latt :lvalue
   { $_[0]->{att}->{$_[1]}; }
 
 sub del_att
@@ -7756,13 +7731,11 @@ sub mark
         { $text= pop @matches;
           if( $previous_match)
             { # match, not the first one, create a new text ($gi) element
-              _utf8_ify( $pre_match) if( $] < 5.010);
               $elt= $elt->insert_new_elt( after => $gi, $pre_match);
               push @result, $elt if( $return_all);
             }
           else
             { # first match in $elt, re-use $elt for the first sub-string
-              _utf8_ify( $pre_match) if( $] < 5.010);
               $elt->set_text( $pre_match);
               $previous_match++;                # store the fact that there was a match
               push @result, $elt if( $return_all);
@@ -7774,7 +7747,6 @@ sub mark
               my $i=0;
               foreach my $match (@matches)
                 { # create new element, text is the match
-                  _utf8_ify( $match) if( $] < 5.010);
                   my $tag  = _repl_match( $tags[$i]->{tag}, @matches) || '#PCDATA';
                   my $atts = \%{$tags[$i]->{atts}} || {};
                   my %atts= map { _repl_match( $_, @matches) => _repl_match( $atts->{$_}, @matches) } keys %$atts;
@@ -7807,16 +7779,6 @@ sub _repl_match
     return $val;
   }
 
-  # evil hack needed as sometimes
-  my $encode_is_loaded=0;   # so we only load Encode once
-  sub _utf8_ify
-    {
-      if( $perl_version >= 5.008 and $perl_version < 5.010 and !_keep_encoding())
-        { unless( $encode_is_loaded) { require Encode; import Encode; $encode_is_loaded++; }
-          Encode::_utf8_on( $_[0]); # the flag should be set but is not
-        }
-    }
-
 }
 
 { my %replace_sub; # cache for complex expressions (expression => sub)
@@ -7838,7 +7800,6 @@ sub _repl_match
            }
           else
             {
-              no utf8; # = perl 5.6
               my $replace_sub= ( $replace_sub{$replace} ||= _install_replace_sub( $replace));
               my $text= $text_elt->text;
               my $pos=0;  # used to skip text that was previously matched
@@ -8560,9 +8521,8 @@ BEGIN {
 sub print_to_file
   { my( $elt, $filename)= (shift, shift);
     my $out_fh;
-    open( $out_fh, ">$filename") or _croak( "cannot create file $filename: $!");     # < perl 5.8
-    my $mode= $keep_encoding ? '>' : '>:utf8';                                       # >= perl 5.8
-    open( $out_fh, $mode, $filename) or _croak( "cannot create file $filename: $!"); # >= perl 5.8
+    my $mode= $keep_encoding ? '>' : '>:utf8';
+    open( $out_fh, $mode, $filename) or _croak( "cannot create file $filename: $!");
     $elt->print( $out_fh, @_);
     close $out_fh;
     return $elt;
@@ -9788,7 +9748,7 @@ Huge documents (processed in combined stream/tree mode):
 See L<XML::Twig 101|/XML::Twig 101> for other ways to use the module, as a
 filter for example.
 
-=encoding utf8   # > perl 5.10.0
+=encoding utf8
 
 =head1 DESCRIPTION
 
@@ -9992,7 +9952,7 @@ XML::Twig is a lot more sensitive to variations in versions of perl,
 XML::Parser and expat than to the OS, so this should cover some
 reasonable configurations.
 
-The "recommended configuration" is perl 5.8.3+ (for good Unicode
+The "recommended configuration" is perl 5.10.0+ (for good Unicode
 support), XML::Parser 2.31+, and expat 1.95.5+.
 
 See L<http://testers.cpan.org/search?request=dist&dist=XML-Twig> for the
@@ -10007,7 +9967,7 @@ Finally:
 
 =item XML::Twig does B<NOT> work with expat 1.95.4.
 
-=item  XML::Twig only works with XML::Parser 2.27 in perl 5.6.*.
+=item  XML::Twig only works with XML::Parser 2.27 in perl 5.10.0+.
 
 Note that I can't compile XML::Parser 2.27 anymore, so I can't guarantee
 that it still works.
@@ -10446,12 +10406,6 @@ well as the original entities in the strings.
 See the C<t/test6.t> test file to see what results you can expect from the
 various encoding options.
 
-B<WARNING>: If the original encoding is multi-byte then attribute parsing will
-be EXTREMELY unsafe under any Perl before 5.6, as it uses regular expressions
-which do not deal properly with multi-byte characters. You can specify an
-alternate function to parse the start tags with the C<parse_start_tag> option
-(see below).
-
 B<WARNING>: This option is NOT used when parsing with the non-blocking parser
 (C<parse_start>, C<parse_more>, parse_done methods) which you probably should
 not use with XML::Twig anyway as they are totally untested!
@@ -10545,18 +10499,15 @@ Use C<HTML::Entities> to encode a utf8 string.
 
 =item safe_encode ($string)
 
-Use either a regexp (perl < 5.8) or C<Encode> to encode non-ascii characters
-in the string in C<< &#<nnnn>; >> format.
+Use C<Encode> to encode non-ascii characters in the string in C<< &#<nnnn>; >> format.
 
 =item safe_encode_hex ($string)
 
-Use either a regexp (perl < 5.8) or C<Encode> to encode non-ascii characters
-in the string in C<< &#x<nnnn>; >> format.
+Use C<Encode> to encode non-ascii characters in the string in C<< &#x<nnnn>; >> format.
 
 =item regexp2latin1 ($string)
 
-Use a regexp to encode a utf8 string into latin 1 (ISO-8859-1). Does not
-work with Perl 5.8.0!
+Use a regexp to encode a utf8 string into latin 1 (ISO-8859-1).
 
 =back
 
@@ -11786,7 +11737,7 @@ that can be called on elements:
   $elt->foo( 'bar'); # equivalent to $elt->set_att( foo => 'bar');
 
 The methods are l-valued only under those perl's that support this
-feature (5.6 and above).
+feature.
 
 =item create_accessors (list_of_attribute_names)
 
@@ -12586,9 +12537,9 @@ will change C<$elt> to:
   <p><foo type="toto">ta</foo> tata <b>tutu <foo type="toto">ta</foo>
       titi</b> tata <foo type="toto">ta</foo> tata</p>
 
-The regexp can be passed either as a string or as C<qr//> (perl 5.005 and
-later), it defaults to \s+ just as the C<split> built-in (but this would be
-quite a useless behaviour without the C<$optional_tag> parameter).
+The regexp can be passed either as a string or as C<qr//>, it defaults
+to \s+ just as the C<split> built-in (but this would be quite a useless
+behaviour without the C<$optional_tag> parameter).
 
 C<$optional_tag> defaults to PCDATA or CDATA, depending on the initial element
 type.
@@ -13740,7 +13691,7 @@ Returns a C<#PCDATA> or C<#CDATA> element.
 =item regular expression
 
 Returns an element whose tag matches the regexp. The regexp must be created
-with C<qr//> (hence this is available only on perl 5.005 and above).
+with C<qr//>.
 
 =item code reference
 
@@ -14124,19 +14075,6 @@ but not much more.
 So use XML::Twig with standalone documents, or with documents referring to an
 external DTD, but don't expect it to properly parse and even output back the
 DTD.
-
-=item memory leak
-
-If you use a REALLY old Perl (5.005!) and
-a lot of twigs you might find that you leak quite a lot of memory
-(about 2Ks per twig). You can use the C<L<dispose> > method to free
-that memory after you are done.
-
-If you create elements the same thing might happen, use the C<L<delete> >
-method to get rid of them.
-
-Alternatively installing the C<Scalar::Util> (or C<WeakRef>) module on a version
-of Perl that supports it (>5.6.0) will get rid of the memory leaks automagically.
 
 =item ID list
 

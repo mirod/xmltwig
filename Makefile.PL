@@ -1,4 +1,3 @@
-# $Id: /xmltwig/trunk/Makefile.PL 33 2008-04-30T08:03:41.004487Z mrodrigu  $
 # tool installation part shamelessly lifted from YAML's Makefile.PL
 
 use ExtUtils::MakeMaker;
@@ -95,13 +94,14 @@ MyWriteMakefile(
     AUTHOR       => 'Michel Rodriguez <mirod@cpan.org>',
     LICENSE      => 'perl',
     EXE_FILES    => [ map {"tools/$_/$_"} @programs],
-    VERSION_FROM => 'Twig_pm.slow',
+    VERSION_FROM => 'lib/XML/Twig.pm',
     PREREQ_PM    => { 'XML::Parser' => '2.23' },
     dist         => { COMPRESS    => 'gzip -9f',
                       SUFFIX	     => 'gz',
                     },
-    depend       => { 'Twig.pm' => "FORCE\n\t\$(PERL) speedup Twig_pm.slow > Twig.pm\n\t\$(PERL) -i_bak -p filter_for_5.005 Twig.pm Twig/XPath.pm\n\t\$(PERL) check_optional_modules",
-    'FORCE'   => '',
+    PM_FILTER    => '$(PERL) speedup.pl',
+    depend       => { 'Twig.pm' => "FORCE\n\t\$(PERL) check_optional_modules",
+    'FORCE'      => '',
 									  },
 );
 
@@ -122,9 +122,6 @@ sub MyWriteMakefile {  #Written by Alexandr Ciornii, version 0.21. Added by eumm
   delete $params{META_MERGE} if $eumm_version < 6.46;
   delete $params{META_ADD} if $eumm_version < 6.46;
   delete $params{LICENSE} if $eumm_version < 6.31;
-  delete $params{AUTHOR} if $] < 5.005;
-  delete $params{ABSTRACT_FROM} if $] < 5.005;
-  delete $params{BINARY_LOCATION} if $] < 5.005;
 
   WriteMakefile(%params);
 
@@ -154,7 +151,7 @@ sub add_prereqs_to_mymeta
 sub slurp
   { my( $file)= @_;
     my $in;
-    open( $in, "<$file") or return ''; # can't use fancy open so this works in 5.005
+    open( $in, "<$file") or return '';
     local undef $/;
     return <$in>;
   }
