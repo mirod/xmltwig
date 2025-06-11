@@ -143,7 +143,7 @@ my $SEP= qr/\s*(?:$|\|)/;
 
 BEGIN
 {
-$VERSION = '3.54';
+$VERSION = '3.55';
 
 use XML::Parser;
 my $needVersion = '2.23';
@@ -9258,13 +9258,20 @@ sub insert_new_elt {
 # returns the new element
 sub wrap_in
   { my $elt= shift;
+    my $t= $elt->twig;
     while( my $gi = shift @_)
       { my $new_elt = $elt->new( $gi);
         if( $elt->{twig_current})
-          { my $t= $elt->twig;
-            $t->{twig_current}= $new_elt;
+          { $t->{twig_current}= $new_elt;
             $elt->del_twig_current;
             $new_elt->set_twig_current;
+            if ( $t->{twig_in_cdata} || $t->{twig_in_pcdata} ) {
+                $t->{twig_in_cdata} = 0;
+                $t->{twig_in_pcdata} = 0;
+                $t->{twig_current}=$elt->parent;
+                $new_elt->del_twig_current;
+                $elt->parent->set_twig_current;
+            }
           }
 
         if( my $parent= $elt->_parent)
