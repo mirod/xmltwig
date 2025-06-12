@@ -1796,7 +1796,12 @@ sub _parse_predicate_in_handler
                                         "defined( _first_n { \$_->text $PERL_ALPHA_TEST{$op} $str } 1, \$elt->{'$ST_ELT'}->children( '$tag'))"; }
                elsif( $str_test_num   && $str_test_num   =~ m{string\(\s*($REG_TAG_NAME)\s*\)\s*($REG_COMP)\s*($REG_NUMBER)})
                                       { my $test= ($2 eq '=') ? '==' : $2;
-                                        "defined( _first_n { \$_->text $test $3 } 1, \$elt->{'$ST_ELT'}->children( '$1'))";
+                                        # if number is 0 we test to make sure the xml value is indeed a number
+                                        # otherwise Perl treats it as 0, while XPath rules are that it's treated as NaN
+                                        if ($3)
+                                          { "defined( _first_n { \$_->text $test $3 } 1, \$elt->{'$ST_ELT'}->children( '$1'))"; }
+                                        else
+                                          { "defined( _first_n { looks_like_number(\$_->text) && \$_->text $test $3 } 1, \$elt->{'$ST_ELT'}->children( '$1'))"; }
                                       }
                elsif( $and_or)        { $score->{tests}++; $and_or eq 'and' ? '&&' : '||' ; }
                else                   { $token; }
@@ -6951,12 +6956,11 @@ sub next_siblings
                               elsif( $pred =~ s{^string\(\s*\)\s*!=\s*($REG_STRING)\s*}{}o)  # string()!="string" pred
                                 { $test .= "\$_->text ne $1"; }
                               if( $pred =~ s{^string\(\s*\)\s*=\s*($REG_NUMBER)\s*}{}o)  # string()=<number> pred
-                                { $test .= "\$_->text eq $1"; }
+                                { $test .= _gen_nb_comparison( '$_->text', '==', $1); }
                               elsif( $pred =~ s{^string\(\s*\)\s*!=\s*($REG_NUMBER)\s*}{}o)  # string()!=<number> pred
-                                { $test .= "\$_->text ne $1"; }
+                                { $test .= _gen_nb_comparison( '$_->text', '!=', $1); }
                               elsif( $pred =~ s{^string\(\s*\)\s*(>|<|>=|<=)\s*($REG_NUMBER)\s*}{}o)  # string()!=<number> pred
-                                { $test .= "\$_->text $1 $2"; }
-
+                                { $test .= _gen_nb_comparison( '$_->text', $1, $2); }
                              elsif( $pred =~ s{^string\(\s*\)\s*($REG_MATCH)\s*($REG_REGEXP)\s*}{}o)  # string()=~/regex/ pred
                                 { my( $match, $regexp)= ($1, $2);
                                   $test .= "\$_->text $match $regexp";
@@ -7003,6 +7007,16 @@ sub next_siblings
         { _croak_and_doublecheck_xpath( $original_exp, "error in xpath expression $original_exp ($@);") }
       return( $s);
     }
+}
+
+# if $nb is 0 we must make sure that what we check is indeed a number
+# or perl will treat it as 0, while XPath rule is that it should be treated as NaN
+sub _gen_nb_comparison {
+    my ($xml, $op, $nb) = @_;
+    my $test = '';
+    $test.= "looks_like_number($xml) && " if ! $nb;
+    $test .= "$xml $op $nb";
+    return $test;
 }
 
 sub _croak_and_doublecheck_xpath
