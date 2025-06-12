@@ -22,12 +22,6 @@ unless ($mem_size) {
     exit;
 }
 
-if ( !XML::Twig::_weakrefs() ) {
-    print "1..1\nok 1\n";
-    warn "skipping: weaken not available\n";
-    exit;
-}
-
 my $long_test = $ARGV[0] && $ARGV[0] eq '-L';
 
 my $conf

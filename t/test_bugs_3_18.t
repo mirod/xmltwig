@@ -12,7 +12,7 @@ my $DEBUG=0;
 
 use XML::Twig;
 
-my $TMAX=156;
+my $TMAX=155;
 print "1..$TMAX\n";
 
 {
@@ -544,7 +544,7 @@ sub fid { my $elt= $_[0]->elt_id( $_[1]) or return "unknown";
   $t->subs_text( qr/(t[aeiou]t[aeiou])/, '&elt( p => $1)');
   is( $t->sprint,'<doc><p>toto</p><p>tata</p><p>titi</p><p>tutu</p></doc>' , 'subs_text (use \2)');
 }
-  
+
 { my $doc= q{<doc><!-- comment --><e> toto <!-- comment 2 --></e>
                  <e2 att="val1" att2="val2"><!-- comment --><e> toto <!-- comment 2 --></e></e2>
                  <e>foo <?tg pi?> bar <!-- duh --> baz</e>
@@ -558,15 +558,6 @@ sub fid { my $elt= $_[0]->elt_id( $_[1]) or return "unknown";
   $t->root->insert_new_elt( first_child => a => { '#ASIS' => 1 }, 'a <b>c</b> a');
   $copy= $t->root->copy;
   is( $copy->sprint, $t->root->sprint, "copy with extra data, and asis");
-}
-
-{ my $save= XML::Twig::_weakrefs();
-  XML::Twig::_set_weakrefs( 0);
-  my $t= XML::Twig->new->parse( '<doc><e id="e1"/><e id="e2">foo <f id="oo"/></e></doc>');
-  $t->root->first_child->cut->DESTROY;
-  $t->root->first_child->cut->DESTROY;
-  is( $t->sprint, '<doc></doc>', 'DESTROY');
-  XML::Twig::_set_weakrefs( $save);
 }
 
 { # test keep_encoding

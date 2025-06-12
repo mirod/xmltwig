@@ -49,10 +49,10 @@ while( <>)
 
     s{($elt)->former_($FORMER)}{($1\->{former} && $1\->{former}\->{$2})}g;
 
-    s{($elt)->set_(parent|prev_sibling)\(\s*($set_to)\s*\)}{$1\->\{$2\}=$3; if( \$XML::Twig::weakrefs) { weaken( $1\->\{$2\});} }g;
+    s{($elt)->set_(parent|prev_sibling)\(\s*($set_to)\s*\)}{$1\->\{$2\}=$3; weaken( $1\->\{$2\}); }g;
     s{($elt)->set_(first_child)\(\s*($set_to)\s*\)}{ $1\->set_not_empty; $1\->\{$2\}=$3; }g;
     s{($elt)->set_(next_sibling)\(\s*($set_to)\s*\)}{ $1\->\{$2\}=$3; }g;
-    s{($elt)->set_(last_child)\(\s*($set_to)\s*\)}{ $1\->set_not_empty; $1\->\{$2\}=$3; if( \$XML::Twig::weakrefs) { weaken( $1\->\{$2\});} }g;
+    s{($elt)->set_(last_child)\(\s*($set_to)\s*\)}{ $1\->set_not_empty; $1\->\{$2\}=$3; weaken( $1\->\{$2\}); }g;
 
     s/$var->atts/$1\->{att}/g;
 
