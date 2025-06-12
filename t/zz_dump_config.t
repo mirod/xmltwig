@@ -38,20 +38,21 @@ if (! $skip_xmlwf_test)
       { warn format_warn( 'expat', '<no version information found>'); }
   }
 
-print "\n";
-
-# must-have
-warn "Strongly Recommended\n";
 warn version( Scalar::Util, 'for improved memory management');
 if( $ok)
   { unless( defined( &Scalar::Util::weaken))
       { warn format_warn( '', 'NOT USED, weaken not available in this version');
-        warn version( WeakRef); 
+        warn version( WeakRef);
       }
   }
 else
   { warn version( WeakRef, 'for improved memory management'); }
 
+print "\n";
+
+
+# must-have
+warn "Strongly Recommended\n";
 # encoding
 warn version( Encode, 'for encoding conversions');
 unless( $ok) { warn version( Text::Iconv, 'for encoding conversions'); }
@@ -62,7 +63,7 @@ print "\n";
 # optional
 warn "Modules providing additional features\n";
 warn version( XML::XPathEngine, 'to use XML::Twig::XPath');
-warn version( XML::XPath, 'to use XML::Twig::XPath if Tree::XPathEngine not available');
+warn version( XML::XPath, 'to use XML::Twig::XPath if XML::XPathEngine not available');
 warn version( LWP, 'for the parseurl method');
 warn version( HTML::TreeBuilder, 'to use parse_html and parsefile_html');
 warn version( HTML::Entities::Numbered, 'to allow parsing of HTML containing named entities');
