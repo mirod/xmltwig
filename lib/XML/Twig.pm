@@ -1748,19 +1748,18 @@ sub _parse_predicate_in_handler
                  |=~|!~                                    # matching operators
                  |([><]=?|=|!=)(?=\s*[\d+-])               # test before a number
                  |([><]=?|=|!=)                            # test, other cases
-                 |($REG_FUNCTION)                          # no arg functions
                  # this bit is a mess, but it is the only solution with this half-baked parser
                  |(string\(\s*$REG_NAME?\s*\)\s*$REG_MATCH\s*$REG_REGEXP) # string( child)=~ /regexp/ or string()=~ /regexp/
-                 |(string\(\s*$REG_NAME\s*\)\s*$REG_COMP\s*$REG_STRING)   # string( child) = "value" (or other test)
-                 |(string\(\s*$REG_NAME\s*\)\s*$REG_COMP\s*$REG_NUMBER)   # string( child) = nb (or other test)
+                 |(string\(\s*$REG_NAME?\s*\)\s*$REG_COMP\s*$REG_STRING)   # string( child) = "value" (or other test)
+                 |(string\(\s*$REG_NAME?\s*\)\s*$REG_COMP\s*$REG_NUMBER)   # string( child) = nb (or other test)
+                 |($REG_FUNCTION)                          # no arg functions
                  |(\band\b|\bor\b)
                 # |($REG_NAME(?=\s*(and|or|$)))            # nested tag name (needs to be after all other unquoted strings)
                  |($REG_TAG_IN_PREDICATE)                  # nested tag name (needs to be after all other unquoted strings)
 
               )}
-             { my( $token, $str, $regexp, $att_re_name, $att_re_regexp, $att, $bare_att, $num_test, $alpha_test, $func, $str_regexp, $str_test_alpha, $str_test_num, $and_or, $tag)
-               = ( $1,     $2,   $3,      $4,           $5,             $6,   $7,        $8,        $9,          $10,   $11,         $12,              $13,          $14,     $15);
-
+             { my( $token, $str, $regexp, $att_re_name, $att_re_regexp, $att, $bare_att, $num_test, $alpha_test, $str_regexp, $str_test_alpha, $str_test_num, $func, $and_or, $tag)
+               = ( $1,     $2,   $3,      $4,           $5,             $6,   $7,        $8,        $9,          $10,         $11,             $12,           $13,   $14,     $15);
                $score->{predicates}++;
 
                # store tests on text (they are not always allowed)
@@ -1785,23 +1784,29 @@ sub _parse_predicate_in_handler
                                       { "\$elt->{'$ST_ELT'}->text"; }
                elsif( $str_regexp     && $str_regexp     =~ m{string\(\s*($REG_TAG_NAME)?\s*\)\s*($REG_MATCH)\s*($REG_REGEXP)})
                                       { my( $rtag, $rmatch, $rregexp)= ($1, $2, _safe_regexp( $3));
-                                        if( $1) { "defined( _first_n {  \$_->text $rmatch $rregexp } 1, \$elt->{'$ST_ELT'}->_children( '$rtag'))" }
-                                        else    { "\$elt->text $rmatch $rregexp" }
+                                        if( $1) { "defined( XML::Twig::_first_n {  \$_->text $rmatch $rregexp } 1, \$elt->{'$ST_ELT'}->_children( '$rtag'))" }
+                                        else    { "\$elt->{'$ST_ELT'}->text $rmatch $rregexp" }
                                       }
-               elsif( $str_test_alpha && $str_test_alpha =~ m{string\(\s*($REG_TAG_NAME)\s*\)\s*($REG_COMP)\s*($REG_STRING)})
+               elsif( $str_test_alpha && $str_test_alpha =~ m{string\(\s*($REG_TAG_NAME)?\s*\)\s*($REG_COMP)\s*($REG_STRING)})
                                       { my( $tag, $op, $str)= ($1, $2, _safe_string($3));
                                         $str=~ s{(?<=.)'(?=.)}{\\'}g; # escape a quote within the string
                                         $str=~ s{^"}{'};
                                         $str=~ s{"$}{'};
-                                        "defined( _first_n { \$_->text $PERL_ALPHA_TEST{$op} $str } 1, \$elt->{'$ST_ELT'}->children( '$tag'))"; }
-               elsif( $str_test_num   && $str_test_num   =~ m{string\(\s*($REG_TAG_NAME)\s*\)\s*($REG_COMP)\s*($REG_NUMBER)})
-                                      { my $test= ($2 eq '=') ? '==' : $2;
-                                        # if number is 0 we test to make sure the xml value is indeed a number
-                                        # otherwise Perl treats it as 0, while XPath rules are that it's treated as NaN
-                                        if ($3)
-                                          { "defined( _first_n { \$_->text $test $3 } 1, \$elt->{'$ST_ELT'}->children( '$1'))"; }
+                                        if ($tag)
+                                          { "defined( XML::Twig::_first_n { \$_->text $PERL_ALPHA_TEST{$op} $str } 1, \$elt->{'$ST_ELT'}->children( '$tag'))"; }
                                         else
-                                          { "defined( _first_n { looks_like_number(\$_->text) && \$_->text $test $3 } 1, \$elt->{'$ST_ELT'}->children( '$1'))"; }
+                                          { "\$elt->{'$ST_ELT'}->text $PERL_ALPHA_TEST{$op} $str"; }
+                                      }
+               elsif( $str_test_num   && $str_test_num   =~ m{string\(\s*($REG_TAG_NAME)?\s*\)\s*($REG_COMP)\s*($REG_NUMBER)})
+                                      { my ($sub, $test, $nb) = ($1, $2, $3);
+                                        $sub //= '';
+                                        $test = '==' if $test eq '=';
+                                        # we test to make sure the xml value is indeed a number
+                                        # otherwise Perl treats it as 0, while XPath rules are that it's treated as NaN
+                                        if ($sub)
+                                          { "defined( _first_n { (looks_like_number(\$_->text) && \$_->text $test $nb) } 1, \$elt->{'$ST_ELT'}->children( '$sub'))"; }
+                                        else
+                                          { "looks_like_number(\$elt->{'$ST_ELT'}->text) && \$elt->{'$ST_ELT'}->text $test $nb" }
                                       }
                elsif( $and_or)        { $score->{tests}++; $and_or eq 'and' ? '&&' : '||' ; }
                else                   { $token; }
