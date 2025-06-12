@@ -1,6 +1,7 @@
 use strict;
 use warnings;
 
+
 # This is created in the caller's space
 # I realize (now!) that it's not clean, but it's been there for 10+ years...
 BEGIN
@@ -23,6 +24,7 @@ package XML::Twig;
 require 5.010;
 
 use utf8;
+use Scalar::Util qw(weaken looks_like_number);
 
 use vars qw($VERSION @ISA %valid_option);
 
@@ -33,9 +35,6 @@ use File::Basename;
 use Config; # to get perl's path name in case we need to know if perlio is available
 
 *isa= *UNIVERSAL::isa;
-
-# flag, set to true if the weaken sub is available
-use vars qw( $weakrefs);
 
 # flag set to true if the version of expat seems to be 1.95.2, which has annoying bugs
 # wrt doctype handling. This is global for performance reasons.
@@ -155,18 +154,6 @@ croak "need at least XML::Parser version $needVersion" unless $parser_version >=
 eval "use Encode qw( :all)"; ## no critic ProhibitStringyEval
 $FB_XMLCREF  = 0x0400; # Encode::FB_XMLCREF;
 $FB_HTMLCREF = 0x0200; # Encode::FB_HTMLCREF;
-
-# test whether we can use weak references
-# set local empty signal handler to trap error messages
-{ local $SIG{__DIE__};
-  ## no critic (ProhibitStringyEval)
-  if( eval( 'require Scalar::Util') && defined( \&Scalar::Util::weaken))
-    { import Scalar::Util( 'weaken'); $weakrefs= 1; }
-  elsif( eval( 'require WeakRef'))
-    { import WeakRef; $weakrefs= 1;                 }
-  else
-    { $weakrefs= 0;                                 }
-}
 
 # used to store the gi's
 # should be set for each twig really, at least when there are several
@@ -732,7 +719,7 @@ sub new
     $self->{twig_autoflush}= 1; # auto flush by default
 
     $self->{twig}= $self;
-    if( $weakrefs) { weaken( $self->{twig}); }
+    weaken( $self->{twig});
 
     return $self;
   }
@@ -1946,7 +1933,7 @@ sub _twig_init
     $t->{twig_parsing}=1;
 
     $t->{twig_parser}= $p;
-    if( $weakrefs) { weaken( $t->{twig_parser}); }
+    weaken( $t->{twig_parser});
 
     # in case they had been created by a previous parse
     delete $t->{twig_dtd};
@@ -2066,7 +2053,7 @@ sub _twig_start
     # now we can store the tag and atts
     my $context= { $ST_TAG => $gi, $ST_ELT => $elt, @att};
     $context->{$ST_NS}= $ns_decl if $ns_decl;
-    if( $weakrefs) { weaken( $context->{$ST_ELT}); }
+    weaken( $context->{$ST_ELT});
     push @{$t->{_twig_context_stack}}, $context;
 
     $parent->del_twig_current if( $parent);
@@ -2110,7 +2097,7 @@ sub _twig_start
     my $id= $elt->id;
     if( defined $id)
       { $t->{twig_id_list}->{$id}= $elt;
-        if( $weakrefs) { weaken( $t->{twig_id_list}->{$id}); }
+        weaken( $t->{twig_id_list}->{$id});
       }
 
     # call user handler if need be
@@ -2266,7 +2253,7 @@ sub set_root
     $t->{twig_root}= $elt;
     if( $elt)
       { $elt->{twig}= $t;
-        if( $weakrefs) { weaken(  $elt->{twig}); }
+        weaken(  $elt->{twig});
       }
     return $t;
   }
@@ -4658,9 +4645,6 @@ sub getRootNode        { return $_[0]; }
 sub getParentNode      { return undef; }
 sub getChildNodes      { my @children= ($_[0]->root); return wantarray ? @children : \@children; }
 
-sub _weakrefs     { return $weakrefs;       }
-sub _set_weakrefs { $weakrefs=shift() || 0; XML::Twig::Elt::set_destroy()if ! $weakrefs; } # for testing purposes
-
 sub _dump
   { my $t= shift;
     my $dump='';
@@ -4998,6 +4982,8 @@ package XML::Twig::Elt;
 ######################################################################
 
 use Carp;
+use Scalar::Util qw(weaken);
+
 *isa= *UNIVERSAL::isa;
 
 my $CDATA_START    = "<![CDATA[";
@@ -5077,15 +5063,6 @@ BEGIN
     *getFirstChild      = *_first_child;
     *getLastChild      = *_last_child;
 
-    # try using weak references
-    # test whether we can use weak references
-    { local $SIG{__DIE__};
-    ## no critic (ProhibitStringyEval)
-      if( eval 'require Scalar::Util' && defined( &Scalar::Util::weaken) )
-        { import Scalar::Util qw(weaken); }
-      elsif( eval 'require WeakRef')
-        { import WeakRef; }
-    }
 }
 
 # can be called as XML::Twig::Elt->new( [[$gi, $atts, [@content]])
@@ -5897,7 +5874,7 @@ sub reset_cond_cache { %cond_cache=(); }
 
 sub set_parent
   { $_[0]->{parent}= $_[1];
-    if( $XML::Twig::weakrefs) { weaken( $_[0]->{parent}); }
+    weaken( $_[0]->{parent});
   }
 
 sub parent
@@ -5962,7 +5939,7 @@ sub set_field
 sub set_last_child
   { $_[0]->{'last_child'}= $_[1];
     delete $_[0]->{empty};
-    if( $XML::Twig::weakrefs) { weaken( $_[0]->{'last_child'}); }
+    weaken( $_[0]->{'last_child'});
   }
 
 sub last_child
@@ -5977,7 +5954,7 @@ sub last_child
 
 sub set_prev_sibling
   { $_[0]->{'prev_sibling'}= $_[1];
-    if( $XML::Twig::weakrefs) { weaken( $_[0]->{'prev_sibling'}); }
+    weaken( $_[0]->{'prev_sibling'});
   }
 
 sub prev_sibling
@@ -6145,7 +6122,7 @@ sub _set_id
   { my( $elt, $id)= @_;
     my $t= $elt->twig || $elt;
     $t->{twig_id_list}->{$id}= $elt;
-    if( $XML::Twig::weakrefs) { weaken(  $t->{twig_id_list}->{$id}); }
+    weaken(  $t->{twig_id_list}->{$id});
     return $elt;
   }
 
@@ -7094,7 +7071,7 @@ sub cut
     # save the old links, that'll make it easier for some loops
     foreach my $link ( qw(parent prev_sibling next_sibling) )
       { $elt->{former}->{$link}= $elt->{$link};
-         if( $XML::Twig::weakrefs) { weaken( $elt->{former}->{$link}); }
+         weaken( $elt->{former}->{$link});
       }
 
     # if we cut the current element then its parent becomes the current elt
@@ -7293,7 +7270,7 @@ BEGIN
           { $t->{twig_id_list}||={};
             foreach my $id (keys %$ids)
               { $t->{twig_id_list}->{$id}= $ids->{$id};
-                if( $XML::Twig::weakrefs) { weaken( $t->{twig_id_list}->{$id}); }
+                weaken( $t->{twig_id_list}->{$id});
               }
           }
         return $elt;
@@ -7969,7 +7946,7 @@ sub copy
     # save links to the original location, which can be convenient and is used for namespace resolution
     foreach my $link ( qw(parent prev_sibling next_sibling) )
       { $copy->{former}->{$link}= $elt->{$link};
-        if( $XML::Twig::weakrefs) { weaken( $copy->{former}->{$link}); }
+        weaken( $copy->{former}->{$link});
       }
 
     $copy->set_empty( $elt->is_empty);
@@ -7980,29 +7957,8 @@ sub copy
 sub delete
   { my $elt= shift;
     $elt->cut;
-    $elt->DESTROY unless $XML::Twig::weakrefs;
     return undef;
   }
-
-sub __destroy
-  { my $elt= shift;
-    return if( $XML::Twig::weakrefs);
-    my $t= shift || $elt->twig; # optional argument, passed in recursive calls
-
-    foreach( @{[$elt->_children]}) { $_->DESTROY( $t); }
-
-    # the id reference needs to be destroyed
-    # lots of tests to avoid warnings during the cleanup phase
-    $elt->del_id( $t) if( $ID && $t && defined( $elt->{att}) && exists( $elt->{att}->{$ID}));
-    if( $elt->{former}) { foreach (keys %{$elt->{former}}) { delete $elt->{former}->{$_}; } delete $elt->{former}; }
-    foreach (qw( keys %$elt)) { delete $elt->{$_}; }
-    undef $elt;
-  }
-
-BEGIN
-{ sub set_destroy { if( $XML::Twig::weakrefs) { undef *DESTROY } else { *DESTROY= *__destroy; } }
-  set_destroy();
-}
 
 # ignores the element
 sub ignore
@@ -14058,10 +14014,6 @@ This is due to a bug in the way weak references are handled in Perl itself.
 
 The fix is either to upgrade to Perl 5.16 or later (C<perlbrew> is a great
 tool to manage several installations of perl on the same machine).
-
-An other, NOT RECOMMENDED, way of fixing the problem, is to switch off weak
-references by writing C<XML::Twig::_set_weakrefs( 0);> at the top of the code.
-This is totally unsupported, and may lead to other problems though.
 
 =item entity handling
 

@@ -11,7 +11,7 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=96;
+my $TMAX=88;
 print "1..$TMAX\n";
 
 
@@ -125,58 +125,6 @@ else
   is( $t->sprint, '<nroot><root/></nroot>', 'wrapping the root');
 }
 
-{
-my $t=XML::Twig->new;
-XML::Twig::_set_weakrefs(0);
-my $doc='<doc>\n  <e att="a">text</e><e>text <![CDATA[cdata text]]> more text <e>foo</e>\n more</e></doc>';
-$t->parse( $doc);
-
-$doc=~ s{\n  }{}; # just the first one
-is( $t->sprint, $doc, 'parse with no weakrefs');
-
-$t->root->insert_new_elt( first_child => x => 'text');
-$doc=~ s{<doc>}{<doc><x>text</x>};
-is( $t->sprint, $doc, 'insert first child with no weakrefs');
-
-$t->root->insert_new_elt( last_child => x => 'text');
-$doc=~ s{</doc>}{<x>text</x></doc>};
-is( $t->sprint, $doc, 'insert last child with no weakrefs');
-
-$t->root->wrap_in( 'dd');
-$doc=~ s{<doc>}{<dd><doc>}; $doc=~s{</doc>}{</doc></dd>};
-is( $t->sprint, $doc, 'wrap with no weakrefs');
-
-$t->root->unwrap;
-$doc=~s{</?dd>}{}g;
-is( $t->sprint, $doc, 'unwrap with no weakrefs');
-
-my $new_e= XML::Twig::Elt->new( ee => { c => 1 }, 'ee text');
-$new_e->replace( $t->root->first_child( 'e'));
-$doc=~ s{<e.*?</e>}{<ee c="1">ee text</ee>};
-is( $t->sprint, $doc, 'replace with no weakrefs');
-
-XML::Twig::_set_weakrefs(1);
-
-}
-
-{ 
-my $t= XML::Twig->new( no_expand => 1);
-XML::Twig::_set_weakrefs(0);
-my $doc='<!DOCTYPE d [<!ENTITY foo SYSTEM "foo.xml"><!ENTITY bar SYSTEM "bar.xml">]><d a="foo"> bar &bar; bar<e/><f>&bar;</f><f>&foo; <e/>&bar; bar &foo;</f><e/>&bar; na &foo;<e/></d>';
-$t->parse( $doc);
-(my $got= $t->sprint)=~ s{\n}{}g;
-is( $got, $doc, 'external entities without weakrefs');
-
-XML::Twig::_set_weakrefs(1);
-}
-
-{ 
-  XML::Twig::_set_weakrefs(0);
-  { my $t= XML::Twig->new; undef $t; } 
-  ok( 1, "DESTROY doesn't crash when weakrefs is off");
-  XML::Twig::_set_weakrefs(1);
-}
-
 { my $doc= '<d><e a="a" get1="1" id="e1">foo</e><e a="b" id="e2"><e1 id="e11"/>bar</e><e a="b" id="e3"><e2 id="e21"/>bar</e></d>';
   my( $got1, $got2);
   XML::Twig->new( twig_handlers => { e1 => sub { $_->parent->set_att( get1 => 1); },
@@ -194,7 +142,7 @@ XML::Twig::_set_weakrefs(1);
 
 { my $t=XML::Twig->parse( '<foo><e/>foo<!-- comment --></foo>');
   my $root= $t->root;
-  ok( $root->closed, 'closed on completely parsed tree'); 
+  ok( $root->closed, 'closed on completely parsed tree');
   ok( $root->_extra_data_before_end_tag, '_extra_data_before_end_tag (success)');
   nok( $root->first_child->_extra_data_before_end_tag, '_extra_data_before_end_tag (no data)');
 }

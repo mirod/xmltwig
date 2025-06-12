@@ -10,13 +10,13 @@ use Config;
 my $devnull = File::Spec->devnull;
 my $DEBUG=0;
 
-my $extra_flags= $Devel::Cover::VERSION ? '-MDevel::Cover -Ilib' : '-Ilib';
+my $build_lib = File::Spec->catfile( 'blib', 'lib');
+
+my $extra_flags= $Devel::Cover::VERSION ? "-MDevel::Cover -I$build_lib" : "-I$build_lib";
 
 # be cautious: run this only on systems I have tested it on
 my %os_ok=( linux => 1, solaris => 1, darwin => 1, MSWin32 => 1);
 if( !$os_ok{$^O}) { print "1..1\nok 1\n"; warn "skipping, test runs only on some OSs\n"; exit; }
-
-if( $] < 5.006) { print "1..1\nok 1\n"; warn "skipping, xml_merge runs only on perl 5.6 and later\n"; exit; }
 
 print "1..59\n";
 
@@ -107,8 +107,8 @@ sub test_split_merge
     $merge_opts ||= '';
     $base_nb++;
     my $verbifdebug = $DEBUG ? '-v' : '';
-    my $expected_base= File::Spec->catfile( "$test_dir", "test_xml_split_expected-$base_nb"); 
-    my $base= File::Spec->catfile( "$test_dir", "test_xml_split-$base_nb"); 
+    my $expected_base= File::Spec->catfile( "$test_dir", "test_xml_split_expected-$base_nb");
+    my $base= File::Spec->catfile( "$test_dir", "test_xml_split-$base_nb");
 
     systemq( "$perl $xml_split $verbifdebug -b $base $split_opts $file");
     ok( same_files( $expected_base, $base), "xml_split $split_opts $test_file");
@@ -117,7 +117,7 @@ sub test_split_merge
     system "$perl $xml_merge $verbifdebug -o $merged $merge_opts $base-00.xml";
     system "$perl $xml_pp -i $merged";
     ok( same_file( $merged, $file), "xml_merge $merge_opts $test_file ($merged  $base-00.xml");
-    
+
     unlink( glob( "$base*")) unless( $DEBUG);
   }
 

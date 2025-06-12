@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use XML::Twig;
-use Test::More tests => 16;
+use Test::More tests => 15;
 
 
 {
@@ -74,14 +74,6 @@ is( XML::Twig->parse( '<d/>')->standalone, undef, 'standalone, no xml declaratio
 is( XML::Twig->parse( '<?xml version="1.0"?><d/>')->standalone, undef, 'standalone, xml declaration but no standalone bit');
 ok( XML::Twig->parse( '<?xml version="1.0" standalone="yes"?><d/>')->standalone, 'standalone, yes');
 ok( ! XML::Twig->parse( '<?xml version="1.0" standalone="no"?><d/>')->standalone, 'standalone, no');
-
-{
-  XML::Twig::_set_weakrefs(0);
-  my $t= XML::Twig->parse( '<d><e/><e><f/><f/></e><e/></d>');
-  $t->root->first_child( 'e')->next_sibling( 'e')->erase;
-  is( $t->sprint, '<d><e/><f/><f/><e/></d>', 'erase without weakrefs');
-  XML::Twig::_set_weakrefs(1)
-}
 
 {
 my $doc='<ns1:list xmlns:ns1="http://namespace/CommandService" xmlns:ns2="http://namespace/ShelfService" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">

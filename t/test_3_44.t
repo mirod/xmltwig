@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use XML::Twig;
-use Test::More tests => 86;
+use Test::More tests => 84;
 
 
 { my $e= XML::Twig::Elt->new( 'foo');
@@ -84,19 +84,6 @@ use Test::More tests => 86;
   is( $t->sprint, '<d>&3&2&amp;1f</d>', 'pcdata prefix, asis option, before an asis element');
   $t->root->first_child->prefix( '&4');
   is( $t->sprint, '<d>&amp;4&3&2&amp;1f</d>', 'pcdata prefix, after a prefix with an asis option');
-}
-
-{ my $weakrefs= XML::Twig::_weakrefs();
-  XML::Twig::_set_weakrefs(0);
-
-  my $t= XML::Twig->parse( '<d><e>f</e></d>');
-  my $e= $t->first_elt( 'e');
-  XML::Twig::Elt->new( x => 'g')->replace( $e);
-  is( $t->sprint, '<d><x>g</x></d>', 'replace non root element without weakrefs');
-  XML::Twig::Elt->new( y => 'h')->replace( $t->root);
-  is( $t->sprint, '<y>h</y>', 'replace root element without weakrefs');
-
-  XML::Twig::_set_weakrefs( $weakrefs);
 }
 
 { my $t= XML::Twig->parse( '<d><p>foo<!--c1--></p><!--c2--><p>bar<!--c3-->baz<!--c4--></p></d>');
