@@ -4992,7 +4992,7 @@ package XML::Twig::Elt;
 ######################################################################
 
 use Carp;
-use Scalar::Util qw(weaken);
+use Scalar::Util qw(weaken looks_like_number);
 
 *isa= *UNIVERSAL::isa;
 
@@ -5837,16 +5837,16 @@ sub reset_cond_cache { %cond_cache=(); }
                    |=~|!~                                    # matching operators
                    |([><]=?|=|!=)(?=\s*[\d+-])               # test before a number
                    |([><]=?|=|!=)                            # test, other cases
-                   |($REG_FUNCTION)                          # no arg functions
                    # this bit is a mess, but it is the only solution with this half-baked parser
-                   |((?:string|text)\(\s*$REG_TAG_NAME\s*\)\s*$REG_MATCH\s*$REG_REGEXP) # string( child) =~ /regexp/
-                   |((?:string|text)\(\s*$REG_TAG_NAME\s*\)\s*!?=\s*$REG_VALUE)         # string( child) = "value" (or !=)
-                   |((?:string|text)\(\s*$REG_TAG_NAME\s*\)\s*[<>]=?\s*$REG_VALUE)      # string( child) > "value"
+                   |((?:string|text)\(\s*$REG_TAG_NAME\s*\)\s*$REG_MATCH\s*$REG_REGEXP)  # string( child) =~ /regexp/
+                   |((?:string|text)\(\s*$REG_NAME?\s*\)\s*$REG_COMP\s*$REG_NUMBER)      # string( child) = nb (or other test)
+                   |((?:string|text)\(\s*$REG_TAG_NAME\s*\)\s*!?=\s*$REG_STRING)         # string( child) = "value" (or !=)
+                   |((?:string|text)\(\s*$REG_TAG_NAME\s*\)\s*[<>]=?\s*$REG_STRING)      # string( child) > "value"
+                   |($REG_FUNCTION)                          # no arg functions
                    |(and|or)
                 )}
-               { my( $token, $string, $att, $bare_att, $num_test, $alpha_test, $func, $string_regexp, $string_eq, $string_test, $and_or)
-                 = ( $1,     $2,      $3,   $4,        $5,        $6,          $7,    $8,             $9,         $10,          $11);
-
+               { my( $token, $string, $att, $bare_att, $num_test, $alpha_test, $string_regexp, $num_comp, $string_eq, $string_test, $func, $and_or)
+                 = ( $1,     $2,      $3,   $4,        $5,        $6,          $7,             $8,        $9,         $10,          $11,   $12);
                  if( defined $string)   { $token }
                  elsif( $att)           { "( \$_[0]->{att} && exists( \$_[0]->{att}->{'$att'}) && \$_[0]->{att}->{'$att'})"; }
                  elsif( $bare_att)      { "(\$_[0]->{att} && defined( \$_[0]->{att}->{'$bare_att'}))"; }
@@ -5854,6 +5854,14 @@ sub reset_cond_cache { %cond_cache=(); }
                  elsif( $alpha_test)    { $PERL_ALPHA_TEST{$alpha_test} }
                  elsif( $func && $func=~ m{^(?:string|text)})
                                         { "\$_[0]->text"; }
+                 elsif( $num_comp && $num_comp =~ m{(?:string|text)\(\s*($REG_TAG_NAME?)\s*\)\s*($REG_COMP)\s*($REG_NUMBER)})
+                                        { my ($tag, $test, $nb) = ($1, $2, $3);
+                                          $test = '==' if $test eq '=';
+                                          if($tag)
+                                            { "(XML::Twig::_first_n { (\$_->gi eq '$tag') && looks_like_number(\$_->text) && (\$_->text $test $nb) } 1, \$_[0]->_children)"; }
+                                          else
+                                            { "(looks_like_number(\$_[0]->text) && (\$_[0]->text $test $nb) )";}
+                                        }
                  elsif( $string_regexp && $string_regexp =~ m{(?:string|text)\(\s*($REG_TAG_NAME)\s*\)\s*($REG_MATCH)\s*($REG_REGEXP)})
                                         { "(XML::Twig::_first_n { (\$_->gi eq '$1') && (\$_->text $2 $3) } 1, \$_[0]->_children)"; }
                  elsif( $string_eq     && $string_eq     =~ m{(?:string|text)\(\s*($REG_TAG_NAME)\s*\)\s*(!?=)\s*($REG_VALUE)})
