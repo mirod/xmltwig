@@ -138,7 +138,7 @@ sub process_options
 # get the list of files (one per line) from a file
 sub files_from
   { my $file= shift;
-    open( FILES, "<$file") or die "cannot open file $file: $!";
+    open( FILES, '<', $file) or die "cannot open file $file: $!";
     my @files;
     while( <FILES>) { chomp; push @files, $_; }
     close FILES;
