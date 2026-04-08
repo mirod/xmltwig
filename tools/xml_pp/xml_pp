@@ -45,7 +45,7 @@ if( @ARGV)
         my $tempfile;
         if( $opt{in_place})
           { (undef, $tempfile)= tempfile( DIR => dirname( $file)) or die "cannot create tempfile for $file: $!\n" ;
-            open( PP_OUTPUT, ">$tempfile") or die "cannot create tempfile $tempfile: $!";
+            open( PP_OUTPUT, '>', $tempfile) or die "cannot create tempfile $tempfile: $!";
             select PP_OUTPUT;
           }
         $t= $t->safe_parsefile( $file);
