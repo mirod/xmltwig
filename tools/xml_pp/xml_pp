@@ -45,7 +45,7 @@ if( @ARGV)
         my $tempfile;
         if( $opt{in_place})
           { (undef, $tempfile)= tempfile( DIR => dirname( $file)) or die "cannot create tempfile for $file: $!\n" ;
-            open( PP_OUTPUT, ">$tempfile") or die "cannot create tempfile $tempfile: $!";
+            open( PP_OUTPUT, '>', $tempfile) or die "cannot create tempfile $tempfile: $!";
             select PP_OUTPUT;
           }
         $t= $t->safe_parsefile( $file);
@@ -58,9 +58,9 @@ if( @ARGV)
             if( $opt{in_place})
               { close PP_OUTPUT;
                 my $mode= mode( $file);
-                if( $opt{backup})  
+                if( $opt{backup})
                   { my $backup= backup( $file, $opt{backup});
-                    rename( $file, $backup) or die "cannot create backup file $backup: $!"; 
+                    rename( $file, $backup) or die "cannot create backup file $backup: $!";
                   }
                 rename( $tempfile, $file) or die "cannot overwrite file $file: $!";
                 if( $mode ne mode( $file)) { chmod $mode, $file or die "cannot set $file mode to $mode: $!"; }
