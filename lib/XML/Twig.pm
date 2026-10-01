@@ -8654,7 +8654,7 @@ sub safe_print_to_file
     }
 
   sub xml_text_only
-    { return join '', map { $_->xml_text if( $_->is_text || $_->is_ent) } $_[0]->_children; }
+    { return join '', map { $_->is_text || $_->is_ent ? $_->xml_text : '' } $_[0]->_children; }
 
   # same as print but except... it does not print but rather returns the string
   # if the second parameter is set then only the content is returned, not the
@@ -8908,7 +8908,7 @@ sub safe_print_to_file
     }
 
   sub text_only
-    { return join '', map { $_->text if( $_->is_text || $_->is_ent) } $_[0]->_children; }
+    { return join '', map { $_->is_text || $_->is_ent ? $_->text : '' } $_[0]->_children; }
 
   sub trimmed_text
     { my $elt= shift;
