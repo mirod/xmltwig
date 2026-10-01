@@ -25,6 +25,7 @@ require 5.010;
 
 use utf8;
 use Scalar::Util qw(weaken looks_like_number);
+use List::Util qw(first);
 
 use vars qw($VERSION @ISA %valid_option);
 
@@ -4993,6 +4994,7 @@ package XML::Twig::Elt;
 
 use Carp;
 use Scalar::Util qw(weaken looks_like_number);
+use List::Util qw(first);
 
 *isa= *UNIVERSAL::isa;
 
