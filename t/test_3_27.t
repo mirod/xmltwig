@@ -11,7 +11,7 @@ my $DEBUG = 0;
 
 use XML::Twig;
 
-my $TMAX = 82;
+my $TMAX = 83;
 print "1..$TMAX\n";
 
 {    # test reverse call mode
@@ -87,21 +87,22 @@ print "1..$TMAX\n";
 }
 
 {    # test updating #att in start_tag_handlers
-    my ( $b, $e11, $e12 ) = '' x 3;
+    my ( $b, $e11, $e12, $bb ) = '' x 3;
     my $t = XML::Twig->new(
         start_tag_handlers => { a => sub { $_->parent->set_att( '#a' => 1 ); }, },
         twig_handlers      => {
             'e1[@#a]/b'   => sub { $b   .= $_->id || $_->tag },
             'e1[@#a]'     => sub { $e11 .= $_->id || $_->tag },
             'e1[!@#a]'    => sub { $e12 .= $_->id || $_->tag },
-            'e1[@#a=1]/b' => sub { $b   .= $_->id || $_->tag },
+            'e1[@#a=1]/b' => sub { $bb   .= $_->id || $_->tag },
         },
         )
         ->parse(
         q{<d id="d"><e1 id="e1-1"><a id="a1"/><b id="b1"/></e1><e1 id="e1-2"><c id="c1"/><b id="b2"/></e1></d>});
-    is( $b,   'b1b1', 'trigger on e1[@#a]/b' );
+    is( $b,   'b1', 'trigger on e1[@#a]/b' );
     is( $e11, 'e1-1', 'trigger on e1[@#a]' );
     is( $e12, 'e1-2', 'trigger on e1[!@#a]' );
+    is( $bb,  'b1', 'trigger on e1[@#a=1]/b' );
 }
 
 {    # numerical tests in handlers
