@@ -1762,54 +1762,69 @@ sub _parse_predicate_in_handler
               )}
               {
                $score->{predicates}++;
+               my %m = %+; # save the matches, so further regexps don't overwrite it 
 
                # store tests on text (they are not always allowed)
-               if( $+{tfunc} || $+{tstr_re} || $+{tstr_num} || $+{tstr_str} ) { $flag->{test_on_text}= 1;   }
+               if( $m{tfunc} || $m{tstr_re} || $m{tstr_num} || $m{tstr_str} ) { $flag->{test_on_text}= 1;   }
 
-               my $token = $+{token};
-               if(    defined $+{tstr} )   { _safe_string( $token) }
-               elsif( defined $+{tregexp} ){ _safe_regexp( $token) }
-               elsif( $+{tntag} )          { qq{(\$elt->{'$ST_ELT'} && \$elt->{'$ST_ELT'}->has_child( '$+{tag}'))} }
-               elsif( $+{tatt_op} )        { $+{att}=~ m{^#} ? qq{ (\$elt->{'$ST_ELT'} && \$elt->{'$ST_ELT'}->{att}->{'$+{att}'})}
-                                                    : qq{\$elt->{'$+{att}'}}
+               my $token = $m{token};
+               if(    defined $m{tstr} )   { _safe_string( $token) }
+               elsif( defined $m{tregexp} ){ _safe_regexp( $token) }
+               elsif( $m{tntag} )          { qq{(\$elt->{'$ST_ELT'} && \$elt->{'$ST_ELT'}->has_child( '$m{tntag}'))} }
+               elsif( $m{tatt_op} )        { _att_is_private($m{att})
+                                                ? qq{ (\$elt->{'$ST_ELT'} && \$elt->{'$ST_ELT'}->{att}->{'$m{att}'})}
+                                                : qq{\$elt->{'$m{att}'}}
                                            }
-               elsif( $+{tatt_re} )        { $+{att}=~ m{^#} ? qq{ (\$elt->{'$ST_ELT'} && \$elt->{'$ST_ELT'}->{att}->{'$+{att}'} $+{op} $+{re})}
-                                                             : qq{\$elt->{'$+{att}'} $+{op} $+{re}}
+               elsif( $m{tatt_re} )        { _att_is_private($m{att})
+                                                ? qq{ (\$elt->{'$ST_ELT'} && \$elt->{'$ST_ELT'}->{att}->{'$m{att}'} $m{op} $m{re})}
+                                                : qq{\$elt->{'$m{att}'} $m{op} $m{re}}
                                            }
-              elsif( $+{tatt_num} )        { my $op = $+{op} eq '=' ? '==' : $+{op};
-                                             $+{att}=~ m{^#} ? qq{ (\$elt->{'$ST_ELT'} && looks_like_number(\$elt->{'$ST_ELT'}->{att}->{'$+{att}'}) && \$elt->{'$ST_ELT'}->{att}->{'$+{att}'} $op $+{nb})}
-                                                             : qq{(looks_like_number(\$elt->{'$+{att}'}) && \$elt->{'$+{att}'} $op $+{nb})}
+              elsif( $m{tatt_num} )        { my $op = $m{op} eq '=' ? '==' : $m{op};
+                                             # the context stack stores private atts, set in an other handler
+                                             my $context_stack = qq{\$elt\->{'$ST_ELT'}};
+                                             # look for private atts in the context stack, other atts in the plain parse result
+                                             my $att_location = _att_is_private($m{att}) ? qq{$context_stack\->{att}} : qq{\$elt};
+                                             my $att= ${att_location} . qq{->{'$m{att}'}};
+                                             my @tests;
+                                             # for private atts, check existence of the context stack so we don't autovivify it
+                                             push @tests, $context_stack if _att_is_private($m{att});
+                                             # the base test
+                                             push @tests, qq{$att $op $m{nb}};
+                                             join ' && ', @tests;
                                            }
                                            # for some reason Devel::Cover flags the following lines as not tested. They are though.
-               elsif( $+{tbare_att} )      { $+{bare_att}=~ m{^#} ? qq{(\$elt->{'$ST_ELT'} && defined(\$elt->{'$ST_ELT'}->{att}->{'$+{att}'}))}
-                                                         : qq{defined( \$elt->{'$+{att}'})}
+               elsif( $m{tbare_att} )      { _att_is_private($m{att})
+                                                ? qq{(\$elt->{'$ST_ELT'} && defined(\$elt->{'$ST_ELT'}->{att}->{'$m{att}'}))}
+                                                : qq{defined( \$elt->{'$m{att}'})}
                                            }
-               elsif( $+{tbare_num_test }&& ($+{tbare_num_test} eq '=') )
+               elsif( $m{tbare_num_test }&& ($m{tbare_num_test} eq '=') )
                                           { "==" } # others tests are unchanged
-               elsif( $+{tbare_test} )    { $PERL_ALPHA_TEST{$+{tbare_test}} }
-               elsif( $+{tfunc}&& $+{tfunc}=~ m{^string} )
+               elsif( $m{tbare_test} )    { $PERL_ALPHA_TEST{$m{tbare_test}} }
+               elsif( $m{tfunc}&& $m{tfunc}=~ m{^string} )
                                           { "\$elt->{'$ST_ELT'}->text"; }
-               elsif( $+{tstr_re} )       { my( $regexp)=  _safe_regexp( $+{re});
-                                            if( $+{tag} ) { "defined( XML::Twig::_first_n {  \$_->text $+{op} $regexp } 1, \$elt->{'$ST_ELT'}->_children( '$+{tag}'))" }
-                                            else          { "\$elt->{'$ST_ELT'}->text $+{op} $regexp" }
+               elsif( $m{tstr_re} )       { my $tag = $m{tag} // '';
+                                            my $op = $m{op};
+                                            my( $regexp)=  _safe_regexp( $m{re});
+                                            if( $m{tag} ) { "defined( first {  \$_->text $m{op} $regexp } \$elt->{'$ST_ELT'}->_children( '$m{tag}'))" }
+                                            else          { "\$elt->{'$ST_ELT'}->text $m{op} $regexp" }
                                           }
-               elsif( $+{tstr_str} )      { my $str= substr( $+{string}, 1, -1 ); # remove quotes
+               elsif( $m{tstr_str} )      { my $tag = $m{tag};
+                                            my $op= $PERL_ALPHA_TEST{$m{op}};
+                                            my $str= substr( $m{string}, 1, -1 ); # remove quotes
                                             $str= _safe_string($str);
                                             $str=~ s{(?<=.)'(?=.)}{\\'}g; # escape a quote within the string
                                             $str= qq{'$str'};
-                                            if ( $+{tag} ) { "defined( XML::Twig::_first_n { \$_->text $PERL_ALPHA_TEST{$+{op}} $str } 1, \$elt->{'$ST_ELT'}->children( '$+{tag}'))"; }
-                                            else { "\$elt->{'$ST_ELT'}->text $PERL_ALPHA_TEST{$+{op}} $str"; }
+                                            if ( $tag ) { "defined( first { \$_->text $op $str } \$elt->{'$ST_ELT'}->children( '$tag'))"; }
+                                            else { "\$elt->{'$ST_ELT'}->text $op $str"; }
                                           }
-               elsif( $+{tstr_num } )      { $+{tag }//= '';
-                                            my $op = $+{op} eq '=' ? '==' : $+{op};
-                                            # we test to make sure the xml value is indeed a number
-                                            # otherwise Perl treats it as 0, while XPath rules are that it's treated as NaN
-                                            if ( $+{tag} )
-                                              { "defined( _first_n { (looks_like_number(\$_->text) && \$_->text $op $+{nb}) } 1, \$elt->{'$ST_ELT'}->children( '$+{tag}'))"; }
+               elsif( $m{tstr_num } )     { $m{tag }//= '';
+                                            my $op = $m{op} eq '=' ? '==' : $m{op};
+                                            if ( $m{tag} )
+                                              { "defined( first { (\$_->text $op $m{nb}) } \$elt->{'$ST_ELT'}->children( '$m{tag}'))"; }
                                             else
-                                              { "looks_like_number(\$elt->{'$ST_ELT'}->text) && \$elt->{'$ST_ELT'}->text $op $+{nb}" }
+                                              { "\$elt->{'$ST_ELT'}->text $op $m{nb}" }
                                            }
-               elsif( $+{tand_or} )        { $score->{tests}++; $+{and_or} eq 'and' ? '&&' : '||' ; }
+               elsif( $m{tand_or} )        { $score->{tests}++; $m{tand_or} eq 'and' ? '&&' : '||' ; }
                else                        { $token; }
              }gexs;
   }
@@ -1825,6 +1840,12 @@ sub _safe_regexp
     if( $regexp=~ m{\(\s*\?\s*\{}) { s{(\([()])}{\\$1}g; } # if '(?{' (code in a regexp) then escape all '(' and ')'
     return $regexp;
   }
+
+# no regexp in there so we can still use %+ in the following code
+sub _att_is_private {
+    my ($att) = @_;
+    return substr( $att, 0, 1 ) eq '#';
+}
 
 sub setCharHandler
   { my( $t, $handler)= @_;
@@ -5833,45 +5854,54 @@ sub reset_cond_cache { %cond_cache=(); }
 
       $cond=~ s{^\s*\[\s*}{};
       $cond=~ s{\s*\]\s*$}{};
-      $cond=~ s{(   ($REG_STRING|$REG_REGEXP)                # strings or regexps
-                   |\@($REG_TAG_NAME)(?=\s*(?:[><=!]|!~|=~)) # @att (followed by a comparison operator)
-                   |\@($REG_TAG_NAME)                        # @att (not followed by a comparison operator)
-                   |=~|!~                                    # matching operators
-                   |([><]=?|=|!=)(?=\s*[\d+-])               # test before a number
-                   |([><]=?|=|!=)                            # test, other cases
+      $cond=~ s{(?<token>
+                   (?<tstr>$REG_STRING|$REG_REGEXP)                      # strings or regexps
+                   |\@(?<tatt>$REG_TAG_NAME)(?=\s*(?:[><=!]|!~|=~))      # @att (followed by a comparison operator)
+                   |\@(?<tbare_att>$REG_TAG_NAME)                        # @att (not followed by a comparison operator)
+                   |=~|!~                                                # matching operators
+                   |(?<tbare_num_test>[><]=?|=|!=)(?=\s*[\d+-])          # test before a number
+                   |(?<tbare_test>[><]=?|=|!=)                           # test, other cases
                    # this bit is a mess, but it is the only solution with this half-baked parser
-                   |((?:string|text)\(\s*$REG_TAG_NAME\s*\)\s*$REG_MATCH\s*$REG_REGEXP)  # string( child) =~ /regexp/
-                   |((?:string|text)\(\s*$REG_NAME?\s*\)\s*$REG_COMP\s*$REG_NUMBER)      # string( child) = nb (or other test)
-                   |((?:string|text)\(\s*$REG_TAG_NAME\s*\)\s*!?=\s*$REG_STRING)         # string( child) = "value" (or !=)
-                   |((?:string|text)\(\s*$REG_TAG_NAME\s*\)\s*[<>]=?\s*$REG_STRING)      # string( child) > "value"
-                   |($REG_FUNCTION)                          # no arg functions
-                   |(and|or)
+                   |(?<tstr_re>(?:string|text)\(\s*(?<tag>$REG_TAG_NAME?)\s*\)\s*(?<op>$REG_MATCH)\s*(?<re>$REG_REGEXP))     # string(child) =~ /regexp/
+                   |(?<tstr_num>(?:string|text)\(\s*(?<tag>$REG_NAME?)\s*\)\s*(?<op>$REG_COMP)\s*(?<nb>$REG_NUMBER))         # string(child) = nb (or other test)
+                   |(?<tstr_str>(?:string|text)\(\s*(?<tag>$REG_TAG_NAME?)\s*\)\s*(?<op>!?=)\s*(?<string>$REG_STRING))       # string(child) = "value" (or !=)
+                   |(?<tstring_test>(?:string|text)\(\s*(?<tag>$REG_TAG_NAME)\s*\)\s*(?<op>[<>]=?)\s*(?<string>$REG_STRING)) # string(child) > "value"
+                   |(?<tfunc>$REG_FUNCTION)                              # no arg functions
+                   |(?<tand_or>and|or)
                 )}
-               { my( $token, $string, $att, $bare_att, $num_test, $alpha_test, $string_regexp, $num_comp, $string_eq, $string_test, $func, $and_or)
-                 = ( $1,     $2,      $3,   $4,        $5,        $6,          $7,             $8,        $9,         $10,          $11,   $12);
-                 if( defined $string)   { $token }
-                 elsif( $att)           { "( \$_[0]->{att} && exists( \$_[0]->{att}->{'$att'}) && \$_[0]->{att}->{'$att'})"; }
-                 elsif( $bare_att)      { "(\$_[0]->{att} && defined( \$_[0]->{att}->{'$bare_att'}))"; }
-                 elsif( $num_test && ($num_test eq '=') ) { "==" } # others tests are unchanged
-                 elsif( $alpha_test)    { $PERL_ALPHA_TEST{$alpha_test} }
-                 elsif( $func && $func=~ m{^(?:string|text)})
+               { 
+                 my %m = %+; # save the named captures so further regexp do not overwrite them
+                 if( defined $m{tstr} )     { $m{token} }
+                 elsif( $m{tatteq0} )       { "( \$_[0]->{att} && exists( \$_[0]->{att}->{'$m{tatteq0}'}) \$_[0]->{att}->{'$m{tatteq0}'})"; }
+                 elsif( $m{tatt} )          { "( \$_[0]->{att} && exists( \$_[0]->{att}->{'$m{tatt}'}) && \$_[0]->{att}->{'$m{tatt}'})"; }
+                 elsif( $m{tbare_att} )     { "(\$_[0]->{att} && defined( \$_[0]->{att}->{'$m{tbare_att}'}))"; }
+                 elsif( $m{tbare_num_test} && ($m{tbare_num_test} eq '=') ) { "==" } # others tests are unchanged
+                 elsif( $m{tbare_test} )   { $PERL_ALPHA_TEST{$m{tbare_test}} }
+                 elsif( $m{tfunc} && $m{tfunc}=~ m{^(?:string|text)})
                                         { "\$_[0]->text"; }
-                 elsif( $num_comp && $num_comp =~ m{(?:string|text)\(\s*($REG_TAG_NAME?)\s*\)\s*($REG_COMP)\s*($REG_NUMBER)})
-                                        { my ($tag, $test, $nb) = ($1, $2, $3);
-                                          $test = '==' if $test eq '=';
-                                          if($tag)
-                                            { "(XML::Twig::_first_n { (\$_->gi eq '$tag') && looks_like_number(\$_->text) && (\$_->text $test $nb) } 1, \$_[0]->_children)"; }
+                 elsif( $m{tstr_num})   { my $op = $m{op} eq '=' ? '==' : $m{op};
+                                          if($m{tag})
+                                            { "(first { (\$_->gi eq '$m{tag}') && (\$_->text $op $m{nb}) } \$_[0]->_children)"; }
                                           else
-                                            { "(looks_like_number(\$_[0]->text) && (\$_[0]->text $test $nb) )";}
+                                            { "(\$_[0]->text $op $m{nb})";
+                                            }
                                         }
-                 elsif( $string_regexp && $string_regexp =~ m{(?:string|text)\(\s*($REG_TAG_NAME)\s*\)\s*($REG_MATCH)\s*($REG_REGEXP)})
-                                        { "(XML::Twig::_first_n { (\$_->gi eq '$1') && (\$_->text $2 $3) } 1, \$_[0]->_children)"; }
-                 elsif( $string_eq     && $string_eq     =~ m{(?:string|text)\(\s*($REG_TAG_NAME)\s*\)\s*(!?=)\s*($REG_VALUE)})
-                                        {"(XML::Twig::_first_n { (\$_->gi eq '$1') && (\$_->text $PERL_ALPHA_TEST{$2} $3) } 1, \$_[0]->_children)"; }
-                 elsif( $string_test   && $string_test   =~ m{(?:string|text)\(\s*($REG_TAG_NAME)\s*\)\s*([<>]=?)\s*($REG_VALUE)})
-                                        { "(XML::Twig::_first_n { (\$_->gi eq '$1') && (\$_->text $2 $3) } 1, \$_[0]->_children)"; }
-                 elsif( $and_or)        { $and_or eq 'and' ? '&&' : '||' ; }
-                 else                   { $token; }
+                 elsif( $m{tstr_re} )   { if($m{tag})
+                                            { "(first { (\$_->gi eq '$m{tag}') && (\$_->text $m{op} $m{re}) } \$_[0]->_children)"; }
+                                          else
+                                            { "(\$_[0]->text $m{op} $m{re} )";}
+                                        }
+                 elsif( $m{tstr_str}  ){ my $op = $PERL_ALPHA_TEST{$m{op}};
+                                         if($m{tag})
+                                            { "(first { (\$_->gi eq '$m{tag}') && (\$_->text $op $m{string}) } \$_[0]->_children)"; }
+                                          else
+                                            { "(\$_[0]->text $op $m{string} )"; }
+                                        }
+
+                 elsif( $m{tstring_test} )
+                                        { "(first { (\$_->gi eq '$m{tag}') && (\$_->text $m{op} $m{string}) } \$m{_}[0]->_children)"; }
+                 elsif( $m{tand_or})     { $m{tand_or }eq 'and' ? '&&' : '||' ; }
+                 else                   { $m{token}; }
                }gexs;
       #warn "[$initial_cond] => [$cond]\n";
       return "($cond)";
@@ -6970,11 +7000,7 @@ sub next_siblings
                                 { $test .= "\$_->text eq $1"; }
                               elsif( $pred =~ s{^string\(\s*\)\s*!=\s*($REG_STRING)\s*}{}o)  # string()!="string" pred
                                 { $test .= "\$_->text ne $1"; }
-                              if( $pred =~ s{^string\(\s*\)\s*=\s*($REG_NUMBER)\s*}{}o)  # string()=<number> pred
-                                { $test .= _gen_nb_comparison( '$_->text', '==', $1); }
-                              elsif( $pred =~ s{^string\(\s*\)\s*!=\s*($REG_NUMBER)\s*}{}o)  # string()!=<number> pred
-                                { $test .= _gen_nb_comparison( '$_->text', '!=', $1); }
-                              elsif( $pred =~ s{^string\(\s*\)\s*(>|<|>=|<=)\s*($REG_NUMBER)\s*}{}o)  # string()!=<number> pred
+                              elsif( $pred =~ s{^string\(\s*\)\s*(>|<|>=|<=|!=|=)\s*($REG_NUMBER)\s*}{}o)  # string() <comp> <number> pred
                                 { $test .= _gen_nb_comparison( '$_->text', $1, $2); }
                              elsif( $pred =~ s{^string\(\s*\)\s*($REG_MATCH)\s*($REG_REGEXP)\s*}{}o)  # string()=~/regex/ pred
                                 { my( $match, $regexp)= ($1, $2);
@@ -7024,14 +7050,10 @@ sub next_siblings
     }
 }
 
-# if $nb is 0 we must make sure that what we check is indeed a number
-# or perl will treat it as 0, while XPath rule is that it should be treated as NaN
 sub _gen_nb_comparison {
     my ($xml, $op, $nb) = @_;
-    my $test = '';
-    $test.= "looks_like_number($xml) && " if ! $nb;
-    $test .= "$xml $op $nb";
-    return $test;
+    if ($op eq '=') { $op = '=='; }
+    return "$xml $op $nb";
 }
 
 sub _croak_and_doublecheck_xpath
