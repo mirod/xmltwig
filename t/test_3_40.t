@@ -8,7 +8,7 @@ use tools;
 
 $|=1;
 my $DEBUG=0;
- 
+
 use XML::Twig;
 
 my $TMAX=88;
@@ -16,8 +16,8 @@ print "1..$TMAX\n";
 
 
 { my $d="<d><title section='1'>title</title><para>p 1</para> <para>p 2</para></d>";
-  is( lf_in_t( XML::Twig->parse( pretty_print => 'indented', discard_spaces => 1, $d)), 1, 'space prevents indentation'); 
-  is( lf_in_t( XML::Twig->parse( pretty_print => 'indented', discard_all_spaces => 1, $d)), 5, 'discard_all_spaces restores indentation'); 
+  is( lf_in_t( XML::Twig->parse( pretty_print => 'indented', discard_spaces => 1, $d)), 1, 'space prevents indentation');
+  is( lf_in_t( XML::Twig->parse( pretty_print => 'indented', discard_all_spaces => 1, $d)), 5, 'discard_all_spaces restores indentation');
 }
 
 sub lf_in_t
@@ -46,13 +46,13 @@ sub lf_in_t
       my( $trigger, $test_cat, $expected_ids)= @$test;
       my $handlers= $test_cat =~ m{H} ?  { $trigger => sub { $ids.=$_->id; 1; } } : {};
       my $t= XML::Twig->new( twig_handlers => $handlers )->parse( $d);
-      is( $ids, $expected_ids, "(H) trigger with alt: '$trigger'"); 
+      is( $ids, $expected_ids, "(H) trigger with alt: '$trigger'");
 
       my $uniq_ids= join '', sort $expected_ids=~m{(t\d(?:-\d)?)}g;
 
       if( $test_cat =~ m{X})
         { (my $xpath= "//$trigger")=~ s{\|t}{|//t}g;
-          is( join( '', map { $_->id } $t->findnodes( $xpath)), $uniq_ids, " (X) path with |: '$trigger'"); 
+          is( join( '', map { $_->id } $t->findnodes( $xpath)), $uniq_ids, " (X) path with |: '$trigger'");
         }
 
       if( $test_cat =~ m{N})
@@ -76,33 +76,33 @@ sub lf_in_t
   is( $got, 'i1i3', 'bare attribute in handler condition');
 }
 
-if( $] > 5.008)
+if( $] > 5.008 && XML::Twig::_use('LWP') )
 { my $doc= q{<!DOCTYPE doc [ <!ELEMENT doc (#PCDATA)><!ENTITY ext SYSTEM "not_there.txt">]><doc>&ext;</doc>};
   ok( XML::Twig->parse( expand_external_ents => -1, $doc), 'failsafe expand_external_ents');
 }
 else
-{ skip( 1, 'not tested under perl < 5.8'); }
-  
+{ skip( 1, 'not tested under perl < 5.8 or without LWP installed'); }
+
 { my $t=XML::Twig->parse( q{<doc><e><e1>e11</e1><e2>e21</e2></e><e><e1>e12</e1></e></doc>});
   is( join( ':',  $t->findvalues( [$t->root->children], "./e1")), 'e11:e12', 'findvalues on array');
 }
 
-{ my $t=XML::Twig->parse( "<doc/>"); 
+{ my $t=XML::Twig->parse( "<doc/>");
   $t->set_encoding( "UTF-8");
   is( $t->sprint, qq{<?xml version="1.0" encoding="UTF-8"?>\n<doc/>}, 'set_encoding without XML declaration');
 }
 
-{ my $t=XML::Twig->parse( "<doc/>"); 
+{ my $t=XML::Twig->parse( "<doc/>");
   $t->set_standalone( 1);
   is( $t->sprint, qq{<?xml version="1.0" standalone="yes"?>\n<doc/>}, 'set_standalone (yes) without XML declaration');
 }
 
-{ my $t=XML::Twig->parse( "<doc/>"); 
+{ my $t=XML::Twig->parse( "<doc/>");
   $t->set_standalone( 0);
   is( $t->sprint, qq{<?xml version="1.0" standalone="no"?>\n<doc/>}, 'set_standalone (no) without XML declaration');
 }
 
-{ my $t=XML::Twig->parse( "<doc/>"); 
+{ my $t=XML::Twig->parse( "<doc/>");
   nok( $t->xml_version, 'xml_version with no XML declaration');
   $t->set_xml_version( 1.1);
   is( $t->sprint, qq{<?xml version="1.1"?>\n<doc/>}, 'set_xml_version without XML declaration');
@@ -305,5 +305,5 @@ for my $stem ( 1, 100)
 }
 
 { my $s= "foo";
-  is( XML::Twig::_to_utf8( 'iso-8859-1', $s), $s, 'trivial test of _to_utf8'); 
+  is( XML::Twig::_to_utf8( 'iso-8859-1', $s), $s, 'trivial test of _to_utf8');
 }
