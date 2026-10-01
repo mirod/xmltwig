@@ -141,6 +141,7 @@ my $DEFAULT_HTML_TYPE= "-//W3C//DTD HTML 4.0 Transitional//EN";
 
 my $SEP= qr/\s*(?:$|\|)/;
 
+my $DEBUG_HANDLER;
 BEGIN
 {
 $VERSION = '3.55';
@@ -1569,7 +1570,7 @@ sub _set_regexp_handler
       { return 0; }
   }
 
-my $DEBUG_HANDLER= 0; # 0 or 1 (output the handler checking code) or 2 (super verbose)
+$DEBUG_HANDLER= 0; # 0 or 1 (output the handler checking code) or 2 (super verbose)
 my $handler_string;   # store the handler itself
 sub _set_debug_handler    { $DEBUG_HANDLER= shift; }
 sub _warn_debug_handler   { if( $DEBUG_HANDLER < 3) { warn @_; } else { $handler_string .= join( '', @_); } }
@@ -4687,6 +4688,8 @@ sub _dump
     return $dump;
 
   }
+
+sub set_debug_handler                { my ($mode) = @_; $DEBUG_HANDLER      = $mode; }
 
 1;
 
