@@ -2274,7 +2274,7 @@ sub _hash
   is( $t->sprint, '<doc><p>titi toto</p></doc>', 'split, no match');# test 557
 }
 
-{ my $doc= '<?xml version="a.0"?><!DOCTYPE doc SYSTEM "no_dtd" []> <doc att="val"><p att="val">toto &ent; <![CDATA[ toto]]></p></doc>';
+{ my $doc= '<?xml version="1.0"?><!DOCTYPE doc SYSTEM "no_dtd" []> <doc att="val"><p att="val">toto &ent; <![CDATA[ toto]]></p></doc>';
   my $t= XML::Twig->new->parse( $doc);
   my $alt_root= $t->root->copy;
   is( $alt_root->sprint, $t->root->sprint, 'copy with entity');# test 558
