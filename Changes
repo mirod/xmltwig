@@ -1,6 +1,6 @@
 CHANGES
 
-3.55 minor maintenance release
+3.55 2026-10-01  minor maintenance release
 
 - added Scalar::Util as a dependency
 
