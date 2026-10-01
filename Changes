@@ -1,5 +1,15 @@
 CHANGES
 
+3.55 minor maintenance release
+
+- added Scalar::Util as a dependency
+
+- improved some tests
+
+- minor bug fixes
+    see https://github.com/mirod/xmltwig/issues/47
+    see https://github.com/mirod/xmltwig/issues/46
+
 3.54 2025-06-11  minor maintenance release
 
 - changed the minimum version of Perl to 5.10
